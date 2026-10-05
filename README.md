@@ -1,4 +1,4 @@
-# Team Project
+# CHM136 Virtual Lab Project
 
 Please keep this up-to-date with information about your project throughout the term.
 
