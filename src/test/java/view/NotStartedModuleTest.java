@@ -3,6 +3,7 @@ package view;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import data.InMemoryLabDataAccessObject;
 import entity.LabModule;
 import java.awt.Component;
 import java.awt.Container;
@@ -16,13 +17,15 @@ import org.junit.jupiter.api.Test;
 
 class NotStartedModuleTest {
   private static final LabModule NOT_STARTED =
-      new LabModule("Pre-lab 3", LocalDate.of(2026, 11, 30), "overview", false, null);
+      new LabModule("Pre-lab 3", LocalDate.of(2026, 11, 30), "overview", false, null, List.of());
   private static final LabModule STARTED = new LabModule("Pre-lab 3",
-      LocalDate.of(2026, 11, 30), "overview", false, LocalDateTime.of(2026, 11, 5, 14, 30));
+      LocalDate.of(2026, 11, 30), "overview", false, LocalDateTime.of(2026, 11, 5, 14, 30),
+      List.of());
 
   @Test
   void cardSaysNotStarted() {
-    assertTrue(texts(new DashboardView(List.of(NOT_STARTED)))
+    assertTrue(texts(new DashboardView(List.of(NOT_STARTED),
+        new InMemoryLabDataAccessObject()))
         .contains("Last Modified: NOT STARTED"));
   }
 
