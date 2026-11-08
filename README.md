@@ -22,8 +22,8 @@ liquid-liquid extraction.
    lab equipment and combine items, like adding solvents and reagents or transferring layers
    between containers, and see realistic results, so I can practice the techniques before the
    real lab.
-5. **Feedback logic (pacing, mid procedure quizzing):** As a student, I want feedback on each step and answer, telling me what I
-   did right or wrong and why, so I can fix my mistakes and understand the chemistry.
+5. **Lab Comprehension (pacing, mid procedure quizzing, note taking):** As a student, I want feedback on 
+   each step and answer and take notes for the procedure, so I can fix my mistakes and understand the chemistry.
  
 
 ## Running the project
