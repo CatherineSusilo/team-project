@@ -1,5 +1,6 @@
 package app;
 
+import data.InMemoryLabDataAccessObject;
 import entity.LabModule;
 import java.awt.GraphicsEnvironment;
 import java.time.LocalDate;
@@ -12,7 +13,7 @@ import view.DashboardView;
 /**
  * Launches the app on the dashboard page.
  */
-public class Main {
+public class LabApp {
 
   /**
    * Opens the dashboard window.
@@ -38,12 +39,13 @@ public class Main {
                 + "chemistry",
             false,
             // Sample value; null means not started: shows "NOT STARTED" and hides Continue.
-            LocalDateTime.of(2026, 11, 5, 14, 30)));
+            LocalDateTime.of(2026, 11, 5, 14, 30),
+            PreLab3Quiz.questions()));
 
     SwingUtilities.invokeLater(() -> {
       JFrame frame = new JFrame("CHM136 Virtual Lab");
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-      frame.setContentPane(new DashboardView(modules));
+      frame.setContentPane(new DashboardView(modules, new InMemoryLabDataAccessObject()));
       frame.setBounds(GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds());
       frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
       frame.setVisible(true);
