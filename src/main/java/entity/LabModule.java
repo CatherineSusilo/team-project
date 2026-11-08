@@ -2,6 +2,7 @@ package entity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -13,6 +14,7 @@ public class LabModule {
   private final String overview;
   private final boolean completed;
   private final LocalDateTime lastEdited;
+  private final List<QuizQuestion> preProcedureQuestions;
 
   /**
    * Creates a module.
@@ -22,14 +24,16 @@ public class LabModule {
    * @param overview short description of what the pre-lab covers
    * @param completed whether the student has finished it
    * @param lastEdited when the student last worked on it, or null if never
+   * @param preProcedureQuestions quiz the student answers before the walkthrough
    */
   public LabModule(String title, LocalDate dueDate, String overview, boolean completed,
-      LocalDateTime lastEdited) {
+      LocalDateTime lastEdited, List<QuizQuestion> preProcedureQuestions) {
     this.title = title;
     this.dueDate = dueDate;
     this.overview = overview;
     this.completed = completed;
     this.lastEdited = lastEdited;
+    this.preProcedureQuestions = List.copyOf(preProcedureQuestions);
   }
 
   public String getTitle() {
@@ -50,5 +54,9 @@ public class LabModule {
 
   public Optional<LocalDateTime> getLastEdited() {
     return Optional.ofNullable(lastEdited);
+  }
+
+  public List<QuizQuestion> getPreProcedureQuestions() {
+    return preProcedureQuestions;
   }
 }
