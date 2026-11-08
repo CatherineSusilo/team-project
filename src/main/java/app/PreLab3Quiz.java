@@ -1,0 +1,118 @@
+package app;
+
+import entity.QuizQuestion;
+import entity.QuizQuestion.Type;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * Pre-procedure questions for Pre-lab 3: Extraction Lab, taken from the lab manual.
+ */
+public final class PreLab3Quiz {
+
+  private static final String SEPARATION_SCENARIO =
+      "To separate a mixture of vanillin and 2-chlorobenzoic acid, the mixture is dissolved in "
+          + "diethyl ether, mixed with NaHCO₃(aq), and the aqueous layer is separated from "
+          + "the ether layer.";
+
+  /** Every species a student might put in either layer; used for both layer questions. */
+  private static final List<String> SPECIES = List.of(
+      "Water (H₂O)",
+      "Sodium ion (Na⁺)",
+      "Bicarbonate ion (HCO₃⁻)",
+      "Chloride ion (Cl⁻)",
+      "2-Chlorobenzoate ion",
+      "2-Chlorobenzoic acid",
+      "Vanillin",
+      "Vanillin phenoxide ion",
+      "Diethyl ether");
+
+  private PreLab3Quiz() {
+  }
+
+  /**
+   * Returns the questions in the order the manual asks them.
+   *
+   * @return the pre-procedure questions
+   */
+  public static List<QuizQuestion> questions() {
+    return List.of(
+        new QuizQuestion(
+            "Which is the correctly balanced equation for the reaction between NaOH and "
+                + "benzoic acid?",
+            Type.SINGLE,
+            List.of(
+                "C₆H₅COOH + 2 NaOH → C₆H₅COONa + 2 H₂O",
+                "C₆H₅COOH + NaOH → C₆H₅COONa + H₂O",
+                "C₆H₅COOH + NaOH → C₆H₅Na + CO₂ + H₂O",
+                "C₆H₅COOH + NaOH → C₆H₅COONa + H₂"),
+            Set.of(1),
+            "NaOH removes the acidic H from the carboxylic acid (–COOH), giving water and "
+                + "sodium benzoate, a water-soluble salt. Every atom balances 1:1."),
+        new QuizQuestion(
+            "Which is the correctly balanced equation for the reaction between HCl and "
+                + "sodium benzoate?",
+            Type.SINGLE,
+            List.of(
+                "C₆H₅COONa + HCl → C₆H₅COCl + NaOH",
+                "C₆H₅COONa + HCl → C₆H₅COOH + NaCl + H₂O",
+                "2 C₆H₅COONa + HCl → 2 C₆H₅COOH + NaCl",
+                "C₆H₅COONa + HCl → C₆H₅COOH + NaCl"),
+            Set.of(3),
+            "HCl gives the benzoate ion back its H, turning it into neutral benzoic acid (which "
+                + "isn't water-soluble, so it precipitates) plus NaCl."),
+        new QuizQuestion(
+            SEPARATION_SCENARIO + " Which species does the aqueous layer contain? "
+                + "Tick all that apply.",
+            Type.MULTIPLE,
+            SPECIES,
+            Set.of(0, 1, 2, 4),
+            "NaHCO₃ is basic enough to deprotonate the carboxylic acid (pKa ≈ 2.9), "
+                + "making the water-soluble 2-chlorobenzoate ion with Na⁺ as its "
+                + "counter-ion. Leftover HCO₃⁻ stays dissolved in the water too. "
+                + "Vanillin's phenol (pKa ≈ 7.4) is too weak an acid for NaHCO₃ to "
+                + "deprotonate, so vanillin stays out of the water."),
+        new QuizQuestion(
+            "Same separation: which species does the ether layer contain? "
+                + "Tick all that apply.",
+            Type.MULTIPLE,
+            SPECIES,
+            Set.of(6, 8),
+            "Vanillin stays neutral because NaHCO₃ can't deprotonate its phenol, so it "
+                + "remains dissolved in the diethyl ether."),
+        new QuizQuestion(
+            "Pick the skeletal structure of the organic component in the aqueous layer "
+                + "(2-chlorobenzoate ion).",
+            Type.IMAGE,
+            List.of(
+                "/structures/2-chlorobenzoic-acid.png",
+                "/structures/4-chlorobenzoate.png",
+                "/structures/2-chlorobenzoate.png",
+                "/structures/3-chlorobenzoate.png"),
+            Set.of(2),
+            "2-Chlorobenzoate has the Cl next to the carboxylate (ortho) and has lost the acidic "
+                + "H, so it carries a negative charge (COO⁻)."),
+        new QuizQuestion(
+            "Pick the skeletal structure of vanillin (ether layer).",
+            Type.IMAGE,
+            List.of(
+                "/structures/isovanillin.png",
+                "/structures/vanillin.png",
+                "/structures/vanillin-phenoxide.png",
+                "/structures/ethyl-vanillin.png"),
+            Set.of(1),
+            "Vanillin is a benzaldehyde with OH at position 4 and OCH₃ at position 3. "
+                + "In the ether layer it is neutral, so the OH still has its H."),
+        new QuizQuestion(
+            "Pick the skeletal structure of diethyl ether (ether layer).",
+            Type.IMAGE,
+            List.of(
+                "/structures/diethyl-ether.png",
+                "/structures/ethanol.png",
+                "/structures/tetrahydrofuran.png",
+                "/structures/dimethyl-ether.png"),
+            Set.of(0),
+            "Diethyl ether is CH₃CH₂–O–CH₂CH₃: an oxygen with an "
+                + "ethyl group on each side."));
+  }
+}
