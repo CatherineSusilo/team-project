@@ -82,7 +82,16 @@ public class DashboardView extends JPanel {
   private void showModulePanel(LabModule module) {
     JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), module.getTitle(),
         Dialog.ModalityType.APPLICATION_MODAL);
-    dialog.setContentPane(new ModulePanel(module));
+    dialog.setContentPane(new ModulePanel(module,
+        () -> {
+          // TODO: open the pre-lab.
+        },
+        () -> {
+          // TODO: reopen the pre-lab where the student left off.
+        },
+        () -> {
+          // TODO: clear the student's saved progress for this module.
+        }));
     dialog.pack();
     dialog.setLocationRelativeTo(this);
     dialog.setVisible(true);
