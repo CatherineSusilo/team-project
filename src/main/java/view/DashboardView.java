@@ -9,15 +9,16 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.function.Consumer;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.RootPaneContainer;
 import javax.swing.SwingUtilities;
 import usecase.LabDataAccessInterface;
 
@@ -28,26 +29,38 @@ public class DashboardView extends JPanel {
   private static final DateTimeFormatter LAST_MODIFIED_FORMAT =
       DateTimeFormatter.ofPattern("MMM d, yyyy 'at' h:mm a");
 
+  private final List<LabModule> modules;
   private final LabDataAccessInterface labDataAccess;
+  private final Consumer<Container> showPage;
+  private final JPanel cards = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 16));
 
   /**
    * Builds the dashboard for the given modules.
    *
    * @param modules all modules assigned to the student
    * @param labDataAccess saves progress whenever the student clicks Continue
+   * @param showPage shows a page in the app window
    */
-  public DashboardView(List<LabModule> modules, LabDataAccessInterface labDataAccess) {
+  public DashboardView(List<LabModule> modules, LabDataAccessInterface labDataAccess,
+      Consumer<Container> showPage) {
     super(new BorderLayout());
+    this.modules = modules;
     this.labDataAccess = labDataAccess;
-
-    JPanel cards = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 16));
-    for (LabModule module : modules) {
-      cards.add(createCard(module));
-    }
+    this.showPage = showPage;
+    refreshCards();
     // NORTH keeps cards at their natural size instead of stretching to fill the screen.
     JPanel cardsHolder = new JPanel(new BorderLayout());
     cardsHolder.add(cards, BorderLayout.NORTH);
     add(new JScrollPane(cardsHolder), BorderLayout.CENTER);
+  }
+
+  /** Rebuilds every card so each one shows its module's current details. */
+  private void refreshCards() {
+    cards.removeAll();
+    for (LabModule module : modules) {
+      cards.add(createCard(module));
+    }
+    cards.revalidate();
   }
 
   private JPanel createCard(LabModule module) {
@@ -106,31 +119,26 @@ public class DashboardView extends JPanel {
   }
 
   private void openQuiz(LabModule module) {
-    RootPaneContainer window = (RootPaneContainer) SwingUtilities.getWindowAncestor(this);
     QuizView quiz = new QuizView(module.getTitle(), module.getPreProcedureQuestions(),
-        () -> showPage(window, this),
+        () -> showPage.accept(this),
         () -> {
           labDataAccess.saveLab(labDataAccess.getLab());
-          showPage(window, createNextScene(window));
+          module.setLastEdited(LocalDateTime.now());
+          refreshCards();
+          showPage.accept(createNextScene());
         });
     JScrollPane scroll = new JScrollPane(quiz);
     scroll.getVerticalScrollBar().setUnitIncrement(16);
-    showPage(window, scroll);
+    showPage.accept(scroll);
   }
 
-  private JPanel createNextScene(RootPaneContainer window) {
+  private JPanel createNextScene() {
     // TODO: build the next scene of the pre-lab; for now it's a blank page.
     JPanel scene = new JPanel(new FlowLayout(FlowLayout.LEFT, 24, 24));
     scene.setBackground(Color.WHITE);
     JButton back = new JButton("Back to Dashboard");
-    back.addActionListener(event -> showPage(window, this));
+    back.addActionListener(event -> showPage.accept(this));
     scene.add(back);
     return scene;
-  }
-
-  private static void showPage(RootPaneContainer window, Container page) {
-    window.setContentPane(page);
-    window.getRootPane().revalidate();
-    window.getRootPane().repaint();
   }
 }

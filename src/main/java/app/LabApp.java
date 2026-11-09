@@ -45,7 +45,11 @@ public class LabApp {
     SwingUtilities.invokeLater(() -> {
       JFrame frame = new JFrame("CHM136 Virtual Lab");
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-      frame.setContentPane(new DashboardView(modules, new InMemoryLabDataAccessObject()));
+      frame.setContentPane(new DashboardView(modules, new InMemoryLabDataAccessObject(), page -> {
+        frame.setContentPane(page);
+        frame.getRootPane().revalidate();
+        frame.getRootPane().repaint();
+      }));
       frame.setBounds(GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds());
       frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
       frame.setVisible(true);

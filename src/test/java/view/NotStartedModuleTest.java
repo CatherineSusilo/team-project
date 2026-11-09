@@ -25,7 +25,7 @@ class NotStartedModuleTest {
   @Test
   void cardSaysNotStarted() {
     assertTrue(texts(new DashboardView(List.of(NOT_STARTED),
-        new InMemoryLabDataAccessObject()))
+        new InMemoryLabDataAccessObject(), page -> { }))
         .contains("Last Modified: NOT STARTED"));
   }
 
