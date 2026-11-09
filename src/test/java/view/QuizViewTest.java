@@ -35,6 +35,11 @@ class QuizViewTest {
     button(quiz, "Check Answers").doClick();
     assertTrue(continueButton.isVisible(), "shown once everything is correct");
 
+    button(quiz, "also yes").setSelected(false);
+    assertFalse(continueButton.isVisible(), "hidden again once an answer changes");
+    button(quiz, "also yes").setSelected(true);
+    button(quiz, "Check Answers").doClick();
+
     continueButton.doClick();
     assertTrue(continued[0]);
   }

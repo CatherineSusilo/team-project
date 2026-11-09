@@ -95,6 +95,8 @@ public class QuizView extends JPanel {
         button = new JRadioButton(images ? imageHtml(choice) : choice);
         group.add(button);
       }
+      // A changed answer hasn't been checked yet, so Continue waits for Check Answers again.
+      button.addItemListener(event -> continueButton.setVisible(false));
       buttons.add(button);
       choicesPanel.add(button);
     }
