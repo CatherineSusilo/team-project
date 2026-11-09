@@ -17,7 +17,7 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface {
 
   @Override
   public void saveLab(Lab lab) {
-    // TODO: save the lab (the scene the student reached and their answers) and set the
-    //  module's last-modified time to now. Optionally also write it to a JSON file.
+    // TODO: save the lab (the scene the student reached and their answers).
+    //  Optionally also write it to a JSON file. DashboardView sets Last Modified itself.
   }
 }

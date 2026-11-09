@@ -13,7 +13,7 @@ public class LabModule {
   private final LocalDate dueDate;
   private final String overview;
   private final boolean completed;
-  private final LocalDateTime lastEdited;
+  private LocalDateTime lastEdited;
   private final List<QuizQuestion> preProcedureQuestions;
 
   /**
@@ -54,6 +54,10 @@ public class LabModule {
 
   public Optional<LocalDateTime> getLastEdited() {
     return Optional.ofNullable(lastEdited);
+  }
+
+  public void setLastEdited(LocalDateTime lastEdited) {
+    this.lastEdited = lastEdited;
   }
 
   public List<QuizQuestion> getPreProcedureQuestions() {
