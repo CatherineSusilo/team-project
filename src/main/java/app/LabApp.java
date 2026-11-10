@@ -42,6 +42,9 @@ public class LabApp {
     SubmitQuizController submitQuizController = new SubmitQuizController(
         new SubmitQuizInteractor(dataAccess, dataAccess, new SubmitQuizPresenter(quizViewModel)));
 
+    // TODO: save quiz progress: wire SaveQuizPresenter(quizViewModel) ->
+    //  SaveQuizInteractor(dataAccess, presenter) -> SaveQuizController, and pass it to QuizView.
+
     SwingUtilities.invokeLater(() -> {
       JFrame frame = new JFrame("CHM136 Virtual Lab");
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

@@ -15,6 +15,9 @@ public class LabModule {
   private final boolean completed;
   private LocalDateTime lastEdited;
   private final List<QuizQuestion> preProcedureQuestions;
+  // TODO: save quiz progress: add List<Set<Integer>> savedAnswers (one set per question,
+  //  empty = unanswered) with a getter/setter, and an int getQuizProgress() that returns the
+  //  percent of saved answers that QuizQuestion.isCorrect accepts.
 
   /**
    * Creates a module.

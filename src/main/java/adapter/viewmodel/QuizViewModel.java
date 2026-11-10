@@ -12,6 +12,8 @@ public class QuizViewModel {
   private List<FeedbackState> feedback = List.of();
   private boolean continueVisible;
   private boolean submitted;
+  // TODO: save quiz progress: add boolean saved, set by a SaveQuiz presenter once partial
+  //  answers are stored, so the quiz page knows it can go back to the dashboard.
   private String message = "";
 
   /**
