@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import usecase.loaddashboard.LoadDashboardOutputData.ModuleInfo;
 import usecase.loaddashboard.LoadDashboardOutputData.QuestionInfo;
 
 class LoadDashboardInteractorTest {
@@ -19,7 +20,7 @@ class LoadDashboardInteractorTest {
   @Test
   void questionTypesBecomeFlags() {
     LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "", List.of("goal"),
-        false, null, List.of(
+        List.of("Part A"), null, List.of(
             new QuizQuestion("single", Type.SINGLE, List.of("a", "b"), Set.of(0), ""),
             new QuizQuestion("multiple", Type.MULTIPLE, List.of("a", "b"), Set.of(0, 1), ""),
             new QuizQuestion("image", Type.IMAGE, List.of("/a.png", "/b.png"), Set.of(0), ""),
@@ -38,7 +39,12 @@ class LoadDashboardInteractorTest {
           }
         }).execute(new LoadDashboardInputData());
 
-    assertEquals(List.of("goal"), out[0].getModules().get(0).getLearningObjectives());
+    ModuleInfo info = out[0].getModules().get(0);
+    assertEquals(List.of("goal"), info.getLearningObjectives());
+    assertEquals(List.of("Part A"), info.getPartTitles());
+    assertEquals(List.of(0), info.getPartProgress());
+    assertEquals(0, info.getProgress());
+    assertEquals(List.of(), info.getSavedAnswers());
     List<QuestionInfo> questions = out[0].getModules().get(0).getQuestions();
     assertEquals(4, questions.size());
     assertFalse(questions.get(0).isMultipleChoice());

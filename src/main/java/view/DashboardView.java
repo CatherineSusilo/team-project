@@ -82,15 +82,13 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     info.setOpaque(false);
     info.add(title);
     info.add(new JLabel("Due: " + module.getDueDate()));
-    info.add(new JLabel("Status: " + module.getStatus()));
-    info.add(new JLabel("Last Modified: " + module.getLastModified()));
+    info.add(new JLabel("Progress: " + module.getProgress()));
 
     JButton seeInstructions = new JButton("See Instructions");
     seeInstructions.addActionListener(event -> showModulePanel(module));
-    // TODO: export the completed module as PDF/CSV for submission,
-    //  and enable the button only for completed modules.
+    // TODO: export the completed module as PDF/CSV for submission.
     JButton export = new JButton("Export");
-    export.setEnabled(false);
+    export.setEnabled(module.isComplete());
     JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
     buttons.setOpaque(false);
     buttons.add(seeInstructions);
@@ -144,7 +142,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     return scene;
   }
 
-  /** Reloads the modules, so Last Modified is current, then shows the dashboard. */
+  /** Reloads the modules, so Progress is current, then shows the dashboard. */
   private void showDashboard() {
     loadDashboard.execute();
     showPage.accept(this);

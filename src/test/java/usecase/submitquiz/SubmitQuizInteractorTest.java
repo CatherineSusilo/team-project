@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 
 class SubmitQuizInteractorTest {
   private final LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "",
-      List.of(), false, null, List.of(
+      List.of(), List.of(), null, List.of(
           new QuizQuestion("q1", Type.SINGLE, List.of("a", "b"), Set.of(0), ""),
           new QuizQuestion("q2", Type.SINGLE, List.of("a", "b"), Set.of(1), "")));
   private final InMemoryLabDataAccessObject dataAccess =
@@ -41,6 +41,7 @@ class SubmitQuizInteractorTest {
     assertEquals("Answer every question correctly before continuing.", error);
     assertNull(output);
     assertNull(module.getLastEdited().orElse(null));
+    assertEquals(List.of(), module.getSavedAnswers());
   }
 
   @Test
@@ -51,10 +52,12 @@ class SubmitQuizInteractorTest {
   }
 
   @Test
-  void correctAnswersSetLastModified() {
+  void correctAnswersAreSaved() {
     interactor.execute(new SubmitQuizInputData("Pre-lab", List.of(Set.of(0), Set.of(1))));
     assertEquals("Pre-lab", output.getModuleTitle());
     assertTrue(module.getLastEdited().isPresent());
+    assertEquals(List.of(Set.of(0), Set.of(1)), module.getSavedAnswers());
+    assertEquals(100, module.getQuizProgress());
   }
 
   @Test

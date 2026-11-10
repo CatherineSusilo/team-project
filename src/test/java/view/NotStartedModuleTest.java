@@ -21,17 +21,17 @@ import usecase.loaddashboard.LoadDashboardInteractor;
 
 class NotStartedModuleTest {
   private static final LabModule NOT_STARTED =
-      new LabModule("Pre-lab 3", LocalDate.of(2026, 11, 30), "overview", List.of(), false,
-          null, List.of());
+      new LabModule("Pre-lab 3", LocalDate.of(2026, 11, 30), "overview", List.of(),
+          List.of(), null, List.of());
 
   @Test
-  void cardSaysNotStarted() {
+  void cardShowsNoProgress() {
     DashboardViewModel viewModel = new DashboardViewModel();
     LoadDashboardController controller = new LoadDashboardController(new LoadDashboardInteractor(
         new InMemoryLabDataAccessObject(List.of(NOT_STARTED)),
         new LoadDashboardPresenter(viewModel)));
     assertTrue(texts(new DashboardView(viewModel, controller, null, page -> { }))
-        .contains("Last Modified: NOT STARTED"));
+        .contains("Progress: 0%"));
   }
 
   @Test
@@ -41,9 +41,8 @@ class NotStartedModuleTest {
   }
 
   private static ModulePanel panel(boolean started) {
-    ModuleState module = new ModuleState("Pre-lab 3", "2026-11-30", "To do",
-        started ? "Nov 5, 2026 at 2:30 PM" : "NOT STARTED", started, "overview", List.of(),
-        List.of());
+    ModuleState module = new ModuleState("Pre-lab 3", "2026-11-30", "0%", false, started,
+        "overview", List.of(), List.of(), List.of(), List.of());
     return new ModulePanel(module, () -> { }, () -> { }, () -> { });
   }
 

@@ -2,8 +2,8 @@ package adapter.presenter;
 
 import adapter.viewmodel.DashboardViewModel;
 import adapter.viewmodel.ModuleState;
+import adapter.viewmodel.PartState;
 import adapter.viewmodel.QuestionState;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import usecase.loaddashboard.LoadDashboardOutputBoundary;
@@ -15,9 +15,6 @@ import usecase.loaddashboard.LoadDashboardOutputData.QuestionInfo;
  * Turns the loaded modules into display text for the dashboard.
  */
 public class LoadDashboardPresenter implements LoadDashboardOutputBoundary {
-  private static final DateTimeFormatter LAST_MODIFIED_FORMAT =
-      DateTimeFormatter.ofPattern("MMM d, yyyy 'at' h:mm a");
-
   private final DashboardViewModel viewModel;
 
   /**
@@ -39,12 +36,17 @@ public class LoadDashboardPresenter implements LoadDashboardOutputBoundary {
             question.isImageChoices(), question.isEquation(), question.getReactants(),
             question.getBlankCount(), question.getChoices()));
       }
-      // TODO: save quiz progress: copy the saved answers and quiz progress into ModuleState.
-      boolean started = module.getLastEdited() != null;
+      List<PartState> parts = new ArrayList<>();
+      parts.add(new PartState("Pre-Procedure Quiz", module.getQuizProgress() + "%"));
+      for (int i = 0; i < module.getPartTitles().size(); i++) {
+        parts.add(new PartState(module.getPartTitles().get(i),
+            module.getPartProgress().get(i) + "%"));
+      }
+      boolean complete = module.getProgress() == 100;
       modules.add(new ModuleState(module.getTitle(), module.getDueDate().toString(),
-          module.isCompleted() ? "Completed" : "To do",
-          started ? LAST_MODIFIED_FORMAT.format(module.getLastEdited()) : "NOT STARTED",
-          started, module.getOverview(), module.getLearningObjectives(), questions));
+          complete ? "Complete" : module.getProgress() + "%", complete,
+          module.getLastEdited() != null, module.getOverview(), module.getLearningObjectives(),
+          parts, module.getSavedAnswers(), questions));
     }
     viewModel.setState(modules, "");
     viewModel.firePropertyChanged();

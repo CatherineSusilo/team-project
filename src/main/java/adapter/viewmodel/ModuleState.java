@@ -1,6 +1,7 @@
 package adapter.viewmodel;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * One module as the dashboard shows it. Every field is ready to display.
@@ -8,11 +9,13 @@ import java.util.List;
 public final class ModuleState {
   private final String title;
   private final String dueDate;
-  private final String status;
-  private final String lastModified;
+  private final String progress;
+  private final boolean complete;
   private final boolean started;
   private final String overview;
   private final List<String> learningObjectives;
+  private final List<PartState> parts;
+  private final List<Set<Integer>> savedAnswers;
   private final List<QuestionState> questions;
 
   /**
@@ -20,23 +23,27 @@ public final class ModuleState {
    *
    * @param title display name
    * @param dueDate submission deadline
-   * @param status "Completed" or "To do"
-   * @param lastModified when it was last edited, or "NOT STARTED"
+   * @param progress "Complete", or how much is done, e.g. "33%"
+   * @param complete whether the whole module is done, which enables Export
    * @param started whether the student has worked on it, which shows Continue
    * @param overview short description of the pre-lab
    * @param learningObjectives what the student should be able to do afterwards, in order
+   * @param parts the progress rows: the quiz first, then each lab part
+   * @param savedAnswers the student's saved choice indexes per question, or empty if none
    * @param questions the pre-procedure quiz
    */
-  public ModuleState(String title, String dueDate, String status, String lastModified,
-      boolean started, String overview, List<String> learningObjectives,
-      List<QuestionState> questions) {
+  public ModuleState(String title, String dueDate, String progress, boolean complete,
+      boolean started, String overview, List<String> learningObjectives, List<PartState> parts,
+      List<Set<Integer>> savedAnswers, List<QuestionState> questions) {
     this.title = title;
     this.dueDate = dueDate;
-    this.status = status;
-    this.lastModified = lastModified;
+    this.progress = progress;
+    this.complete = complete;
     this.started = started;
     this.overview = overview;
     this.learningObjectives = learningObjectives;
+    this.parts = parts;
+    this.savedAnswers = savedAnswers;
     this.questions = questions;
   }
 
@@ -48,12 +55,12 @@ public final class ModuleState {
     return dueDate;
   }
 
-  public String getStatus() {
-    return status;
+  public String getProgress() {
+    return progress;
   }
 
-  public String getLastModified() {
-    return lastModified;
+  public boolean isComplete() {
+    return complete;
   }
 
   public boolean isStarted() {
@@ -66,6 +73,14 @@ public final class ModuleState {
 
   public List<String> getLearningObjectives() {
     return learningObjectives;
+  }
+
+  public List<PartState> getParts() {
+    return parts;
+  }
+
+  public List<Set<Integer>> getSavedAnswers() {
+    return savedAnswers;
   }
 
   public List<QuestionState> getQuestions() {

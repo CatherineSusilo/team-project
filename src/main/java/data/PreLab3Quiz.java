@@ -57,8 +57,8 @@ public final class PreLab3Quiz {
   public static LabModule module() {
     // TODO: load the student's real progress, and replace the placeholder due date.
     return new LabModule("Pre-lab 3: Extraction Lab", LocalDate.of(2026, 11, 30), OVERVIEW,
-        LEARNING_OBJECTIVES, false,
-        // Sample value; null means not started: shows "NOT STARTED" and hides Continue.
+        LEARNING_OBJECTIVES, List.of("Part A", "Part B"),
+        // Sample value; null means not started, which hides Continue.
         LocalDateTime.of(2026, 11, 5, 14, 30),
         questions());
   }
