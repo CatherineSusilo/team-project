@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import adapter.controller.CheckQuizController;
+import adapter.controller.SubmitQuizController;
 import adapter.presenter.CheckQuizPresenter;
+import adapter.presenter.SubmitQuizPresenter;
 import adapter.viewmodel.ModuleState;
 import adapter.viewmodel.QuestionState;
 import adapter.viewmodel.QuizViewModel;
@@ -23,6 +25,7 @@ import javax.swing.AbstractButton;
 import javax.swing.JLabel;
 import org.junit.jupiter.api.Test;
 import usecase.checkquiz.CheckQuizInteractor;
+import usecase.submitquiz.SubmitQuizInteractor;
 
 class QuizViewTest {
   private static final List<QuizQuestion> QUESTIONS = List.of(
@@ -35,8 +38,11 @@ class QuizViewTest {
         QUESTIONS);
     InMemoryLabDataAccessObject dataAccess = new InMemoryLabDataAccessObject(List.of(module));
     QuizViewModel viewModel = new QuizViewModel();
-    QuizView quiz = new QuizView(viewModel, new CheckQuizController(
-        new CheckQuizInteractor(dataAccess, dataAccess, new CheckQuizPresenter(viewModel))));
+    QuizView quiz = new QuizView(viewModel,
+        new CheckQuizController(
+            new CheckQuizInteractor(dataAccess, new CheckQuizPresenter(viewModel))),
+        new SubmitQuizController(
+            new SubmitQuizInteractor(dataAccess, dataAccess, new SubmitQuizPresenter(viewModel))));
     boolean[] submitted = {false};
     quiz.open(new ModuleState("Pre-lab", "", "", "", false, "", List.of(
         new QuestionState("q1", false, false, List.of("right", "wrong")),

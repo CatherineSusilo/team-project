@@ -6,7 +6,7 @@ package usecase.checkquiz;
 public interface CheckQuizInputBoundary {
 
   /**
-   * Checks the answers, and when submitting, saves progress if every answer is correct.
+   * Checks the answers without saving anything.
    *
    * @param in the student's answers
    */

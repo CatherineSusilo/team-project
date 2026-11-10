@@ -24,7 +24,7 @@ class CheckQuizInteractorTest {
       new InMemoryLabDataAccessObject(List.of(module));
   private CheckQuizOutputData output;
   private String error;
-  private final CheckQuizInteractor interactor = new CheckQuizInteractor(dataAccess, dataAccess,
+  private final CheckQuizInteractor interactor = new CheckQuizInteractor(dataAccess,
       new CheckQuizOutputBoundary() {
         @Override
         public void prepareSuccessView(CheckQuizOutputData out) {
@@ -39,7 +39,7 @@ class CheckQuizInteractorTest {
 
   @Test
   void checkReportsEachQuestionWithoutSaving() {
-    interactor.execute(new CheckQuizInputData("Pre-lab", List.of(Set.of(0), Set.of()), false));
+    interactor.execute(new CheckQuizInputData("Pre-lab", List.of(Set.of(0), Set.of())));
     QuestionResult first = output.getResults().get(0);
     QuestionResult second = output.getResults().get(1);
     assertTrue(first.isAnswered() && first.isCorrect());
@@ -50,23 +50,15 @@ class CheckQuizInteractorTest {
   }
 
   @Test
-  void submitWithWrongAnswersFailsAndSavesNothing() {
-    interactor.execute(new CheckQuizInputData("Pre-lab", List.of(Set.of(0), Set.of(0)), true));
-    assertEquals("Answer every question correctly before continuing.", error);
-    assertNull(output);
+  void allCorrectAnswersStillSaveNothing() {
+    interactor.execute(new CheckQuizInputData("Pre-lab", List.of(Set.of(0), Set.of(1))));
+    assertTrue(output.isAllCorrect());
     assertNull(module.getLastEdited().orElse(null));
   }
 
   @Test
-  void submitWithCorrectAnswersSetsLastModified() {
-    interactor.execute(new CheckQuizInputData("Pre-lab", List.of(Set.of(0), Set.of(1)), true));
-    assertTrue(output.isSubmitted());
-    assertTrue(module.getLastEdited().isPresent());
-  }
-
-  @Test
   void unknownModuleFails() {
-    interactor.execute(new CheckQuizInputData("Nope", List.of(), false));
+    interactor.execute(new CheckQuizInputData("Nope", List.of()));
     assertEquals("There is no module called Nope.", error);
   }
 }

@@ -8,20 +8,16 @@ import java.util.List;
 public final class CheckQuizOutputData {
   private final List<QuestionResult> results;
   private final boolean allCorrect;
-  private final boolean submitted;
 
   /**
    * Creates the output.
    *
    * @param results one result per question, in order
    * @param allCorrect whether every question was answered correctly
-   * @param submitted whether progress was saved so the student can move on
    */
-  public CheckQuizOutputData(List<QuestionResult> results, boolean allCorrect,
-      boolean submitted) {
+  public CheckQuizOutputData(List<QuestionResult> results, boolean allCorrect) {
     this.results = results;
     this.allCorrect = allCorrect;
-    this.submitted = submitted;
   }
 
   public List<QuestionResult> getResults() {
@@ -30,10 +26,6 @@ public final class CheckQuizOutputData {
 
   public boolean isAllCorrect() {
     return allCorrect;
-  }
-
-  public boolean isSubmitted() {
-    return submitted;
   }
 
   /**

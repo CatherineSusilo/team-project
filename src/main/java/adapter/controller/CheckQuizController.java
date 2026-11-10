@@ -25,9 +25,8 @@ public class CheckQuizController {
    *
    * @param moduleTitle the module the quiz belongs to
    * @param answers for each question in order, the indexes of the selected choices
-   * @param submit true on Continue, to also save progress if every answer is correct
    */
-  public void execute(String moduleTitle, List<Set<Integer>> answers, boolean submit) {
-    interactor.execute(new CheckQuizInputData(moduleTitle, answers, submit));
+  public void execute(String moduleTitle, List<Set<Integer>> answers) {
+    interactor.execute(new CheckQuizInputData(moduleTitle, answers));
   }
 }

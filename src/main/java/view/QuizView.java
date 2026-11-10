@@ -1,6 +1,7 @@
 package view;
 
 import adapter.controller.CheckQuizController;
+import adapter.controller.SubmitQuizController;
 import adapter.viewmodel.FeedbackState;
 import adapter.viewmodel.ModuleState;
 import adapter.viewmodel.QuestionState;
@@ -41,7 +42,8 @@ public class QuizView extends JPanel implements PropertyChangeListener {
   private static final Color INCORRECT = new Color(192, 0, 0);
 
   private final QuizViewModel viewModel;
-  private final CheckQuizController controller;
+  private final CheckQuizController checkQuiz;
+  private final SubmitQuizController submitQuiz;
   private final List<List<AbstractButton>> choiceButtons = new ArrayList<>();
   private final List<JLabel> feedbackLabels = new ArrayList<>();
   private final JButton continueButton = new JButton("Continue");
@@ -53,15 +55,18 @@ public class QuizView extends JPanel implements PropertyChangeListener {
    * Builds an empty quiz page; {@link #open} fills it in.
    *
    * @param viewModel where the check results appear
-   * @param controller checks and submits the answers
+   * @param checkQuiz checks the answers (Check Answers)
+   * @param submitQuiz saves progress (Continue)
    */
-  public QuizView(QuizViewModel viewModel, CheckQuizController controller) {
+  public QuizView(QuizViewModel viewModel, CheckQuizController checkQuiz,
+      SubmitQuizController submitQuiz) {
     this.viewModel = viewModel;
-    this.controller = controller;
+    this.checkQuiz = checkQuiz;
+    this.submitQuiz = submitQuiz;
     viewModel.addPropertyChangeListener(this);
     setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
     setBorder(BorderFactory.createEmptyBorder(24, 24, 24, 24));
-    continueButton.addActionListener(event -> controller.execute(moduleTitle, answers(), true));
+    continueButton.addActionListener(event -> submitQuiz.execute(moduleTitle, answers()));
     message.setForeground(INCORRECT);
   }
 
@@ -94,7 +99,7 @@ public class QuizView extends JPanel implements PropertyChangeListener {
     }
 
     JButton check = new JButton("Check Answers");
-    check.addActionListener(event -> controller.execute(moduleTitle, answers(), false));
+    check.addActionListener(event -> checkQuiz.execute(moduleTitle, answers()));
     continueButton.setVisible(false);
     message.setText("");
     JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));

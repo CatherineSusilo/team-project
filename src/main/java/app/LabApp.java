@@ -2,8 +2,10 @@ package app;
 
 import adapter.controller.CheckQuizController;
 import adapter.controller.LoadDashboardController;
+import adapter.controller.SubmitQuizController;
 import adapter.presenter.CheckQuizPresenter;
 import adapter.presenter.LoadDashboardPresenter;
+import adapter.presenter.SubmitQuizPresenter;
 import adapter.viewmodel.DashboardViewModel;
 import adapter.viewmodel.QuizViewModel;
 import data.InMemoryLabDataAccessObject;
@@ -12,6 +14,7 @@ import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import usecase.checkquiz.CheckQuizInteractor;
 import usecase.loaddashboard.LoadDashboardInteractor;
+import usecase.submitquiz.SubmitQuizInteractor;
 import view.DashboardView;
 import view.QuizView;
 
@@ -35,12 +38,15 @@ public class LabApp {
 
     QuizViewModel quizViewModel = new QuizViewModel();
     CheckQuizController checkQuizController = new CheckQuizController(
-        new CheckQuizInteractor(dataAccess, dataAccess, new CheckQuizPresenter(quizViewModel)));
+        new CheckQuizInteractor(dataAccess, new CheckQuizPresenter(quizViewModel)));
+    SubmitQuizController submitQuizController = new SubmitQuizController(
+        new SubmitQuizInteractor(dataAccess, dataAccess, new SubmitQuizPresenter(quizViewModel)));
 
     SwingUtilities.invokeLater(() -> {
       JFrame frame = new JFrame("CHM136 Virtual Lab");
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-      QuizView quizView = new QuizView(quizViewModel, checkQuizController);
+      QuizView quizView = new QuizView(quizViewModel, checkQuizController,
+          submitQuizController);
       frame.setContentPane(new DashboardView(dashboardViewModel, loadDashboardController,
           quizView, page -> {
             frame.setContentPane(page);

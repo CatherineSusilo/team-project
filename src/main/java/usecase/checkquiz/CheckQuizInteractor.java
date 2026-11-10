@@ -2,34 +2,29 @@ package usecase.checkquiz;
 
 import entity.LabModule;
 import entity.QuizQuestion;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import usecase.LabDataAccessInterface;
 import usecase.ModuleDataAccessInterface;
 import usecase.checkquiz.CheckQuizOutputData.QuestionResult;
 
 /**
- * Checks a module's pre-procedure quiz and, on Continue, saves the student's progress.
+ * Checks a module's pre-procedure quiz. Saving progress is SubmitQuiz's job.
  */
 public class CheckQuizInteractor implements CheckQuizInputBoundary {
   private final ModuleDataAccessInterface moduleDataAccess;
-  private final LabDataAccessInterface labDataAccess;
   private final CheckQuizOutputBoundary presenter;
 
   /**
    * Creates the interactor.
    *
    * @param moduleDataAccess where the modules and their questions are stored
-   * @param labDataAccess saves the student's lab when they continue
    * @param presenter receives the results
    */
   public CheckQuizInteractor(ModuleDataAccessInterface moduleDataAccess,
-      LabDataAccessInterface labDataAccess, CheckQuizOutputBoundary presenter) {
+      CheckQuizOutputBoundary presenter) {
     this.moduleDataAccess = moduleDataAccess;
-    this.labDataAccess = labDataAccess;
     this.presenter = presenter;
   }
 
@@ -59,15 +54,6 @@ public class CheckQuizInteractor implements CheckQuizInputBoundary {
       results.add(new QuestionResult(answered, correct, question.getExplanation()));
     }
 
-    if (in.isSubmit()) {
-      if (!allCorrect) {
-        presenter.prepareFailView("Answer every question correctly before continuing.");
-        return;
-      }
-      module.setLastEdited(LocalDateTime.now());
-      moduleDataAccess.saveModule(module);
-      labDataAccess.saveLab(labDataAccess.getLab());
-    }
-    presenter.prepareSuccessView(new CheckQuizOutputData(results, allCorrect, in.isSubmit()));
+    presenter.prepareSuccessView(new CheckQuizOutputData(results, allCorrect));
   }
 }

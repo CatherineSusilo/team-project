@@ -13,7 +13,7 @@ public interface CheckQuizOutputBoundary {
   void prepareSuccessView(CheckQuizOutputData out);
 
   /**
-   * Shows why the answers couldn't be checked or submitted.
+   * Shows why the answers couldn't be checked.
    *
    * @param error what went wrong
    */
