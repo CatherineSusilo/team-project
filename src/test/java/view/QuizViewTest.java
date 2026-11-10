@@ -5,8 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import adapter.controller.CheckQuizController;
+import adapter.controller.SaveQuizController;
 import adapter.controller.SubmitQuizController;
 import adapter.presenter.CheckQuizPresenter;
+import adapter.presenter.SaveQuizPresenter;
 import adapter.presenter.SubmitQuizPresenter;
 import adapter.viewmodel.ModuleState;
 import adapter.viewmodel.QuestionState;
@@ -25,6 +27,7 @@ import javax.swing.AbstractButton;
 import javax.swing.JLabel;
 import org.junit.jupiter.api.Test;
 import usecase.checkquiz.CheckQuizInteractor;
+import usecase.savequiz.SaveQuizInteractor;
 import usecase.submitquiz.SubmitQuizInteractor;
 
 class QuizViewTest {
@@ -34,15 +37,9 @@ class QuizViewTest {
 
   @Test
   void continueOnlyAppearsWhenEveryAnswerIsCorrect() {
-    LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "", List.of(), List.of(),
-        null, QUESTIONS);
-    InMemoryLabDataAccessObject dataAccess = new InMemoryLabDataAccessObject(List.of(module));
-    QuizViewModel viewModel = new QuizViewModel();
-    QuizView quiz = new QuizView(viewModel,
-        new CheckQuizController(
-            new CheckQuizInteractor(dataAccess, new CheckQuizPresenter(viewModel))),
-        new SubmitQuizController(
-            new SubmitQuizInteractor(dataAccess, dataAccess, new SubmitQuizPresenter(viewModel))));
+    LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "", List.of(),
+        List.of(), null, QUESTIONS);
+    QuizView quiz = quizFor(module);
     boolean[] submitted = {false};
     quiz.open(new ModuleState("Pre-lab", "", "", false, false, "", List.of(), List.of(),
         List.of(), List.of(
@@ -77,15 +74,9 @@ class QuizViewTest {
 
   @Test
   void equationTilesFillAndClearTheBlanks() {
-    LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "", List.of(), List.of(),
-        null, List.of(new QuizQuestion("q", "A + B", List.of("C", "D", "E"), Set.of(0, 1), "")));
-    InMemoryLabDataAccessObject dataAccess = new InMemoryLabDataAccessObject(List.of(module));
-    QuizViewModel viewModel = new QuizViewModel();
-    QuizView quiz = new QuizView(viewModel,
-        new CheckQuizController(
-            new CheckQuizInteractor(dataAccess, new CheckQuizPresenter(viewModel))),
-        new SubmitQuizController(
-            new SubmitQuizInteractor(dataAccess, dataAccess, new SubmitQuizPresenter(viewModel))));
+    LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "", List.of(),
+        List.of(), null, List.of(new QuizQuestion("q", "A + B", List.of("C", "D", "E"), Set.of(0, 1), "")));
+    QuizView quiz = quizFor(module);
     quiz.open(new ModuleState("Pre-lab", "", "", false, false, "", List.of(), List.of(),
         List.of(), List.of(
         new QuestionState("q", false, false, true, "A + B", 2, List.of("C", "D", "E")))),
@@ -103,6 +94,40 @@ class QuizViewTest {
     button(quiz, "C").doClick();
     button(quiz, "Check Answers").doClick();
     assertTrue(button(quiz, "Continue").isVisible(), "C and D in either order is correct");
+  }
+
+  @Test
+  void backSavesUnfinishedAnswersThenLeaves() {
+    LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "", List.of(),
+        List.of(), null, QUESTIONS);
+    QuizView quiz = quizFor(module);
+    boolean[] left = {false};
+    quiz.open(new ModuleState("Pre-lab", "", "", false, false, "", List.of(), List.of(),
+        List.of(), List.of(
+        new QuestionState("q1", false, false, false, "", 0, List.of("right", "wrong")),
+        new QuestionState("q2", true, false, false, "", 0, List.of("yes", "no", "also yes")))),
+        () -> left[0] = true, () -> { });
+
+    button(quiz, "right").setSelected(true);
+    button(quiz, "no").setSelected(true);
+    button(quiz, "Back to Dashboard").doClick();
+    assertTrue(left[0]);
+    assertEquals(List.of(Set.of(0), Set.of(1)), module.getSavedAnswers(),
+        "wrong answers are saved too");
+    assertEquals(50, module.getQuizProgress());
+  }
+
+  /** A quiz page backed by the real use cases, with {@code module} as the only module. */
+  private static QuizView quizFor(LabModule module) {
+    InMemoryLabDataAccessObject dataAccess = new InMemoryLabDataAccessObject(List.of(module));
+    QuizViewModel viewModel = new QuizViewModel();
+    return new QuizView(viewModel,
+        new CheckQuizController(
+            new CheckQuizInteractor(dataAccess, new CheckQuizPresenter(viewModel))),
+        new SubmitQuizController(
+            new SubmitQuizInteractor(dataAccess, dataAccess, new SubmitQuizPresenter(viewModel))),
+        new SaveQuizController(
+            new SaveQuizInteractor(dataAccess, new SaveQuizPresenter(viewModel))));
   }
 
   private static AbstractButton button(Container container, String text) {

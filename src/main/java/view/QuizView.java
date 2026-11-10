@@ -1,6 +1,7 @@
 package view;
 
 import adapter.controller.CheckQuizController;
+import adapter.controller.SaveQuizController;
 import adapter.controller.SubmitQuizController;
 import adapter.viewmodel.FeedbackState;
 import adapter.viewmodel.ModuleState;
@@ -47,6 +48,7 @@ public class QuizView extends JPanel implements PropertyChangeListener {
   private final QuizViewModel viewModel;
   private final CheckQuizController checkQuiz;
   private final SubmitQuizController submitQuiz;
+  private final SaveQuizController saveQuiz;
 
   /** For each question, reads the indexes of the choices the student selected. */
   private final List<Supplier<Set<Integer>>> answerReaders = new ArrayList<>();
@@ -54,6 +56,7 @@ public class QuizView extends JPanel implements PropertyChangeListener {
   private final JButton continueButton = new JButton("Continue");
   private final JLabel message = new JLabel();
   private String moduleTitle = "";
+  private Runnable onBack = () -> { };
   private Runnable onSubmitted = () -> { };
 
   /**
@@ -61,13 +64,15 @@ public class QuizView extends JPanel implements PropertyChangeListener {
    *
    * @param viewModel where the check results appear
    * @param checkQuiz checks the answers (Check Answers)
-   * @param submitQuiz saves progress (Continue)
+   * @param submitQuiz saves progress once every answer is correct (Continue)
+   * @param saveQuiz saves the answers so far, right or wrong (Back to Dashboard)
    */
   public QuizView(QuizViewModel viewModel, CheckQuizController checkQuiz,
-      SubmitQuizController submitQuiz) {
+      SubmitQuizController submitQuiz, SaveQuizController saveQuiz) {
     this.viewModel = viewModel;
     this.checkQuiz = checkQuiz;
     this.submitQuiz = submitQuiz;
+    this.saveQuiz = saveQuiz;
     viewModel.addPropertyChangeListener(this);
     setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
     setBorder(BorderFactory.createEmptyBorder(24, 24, 24, 24));
@@ -79,22 +84,21 @@ public class QuizView extends JPanel implements PropertyChangeListener {
    * Shows the quiz for a module, replacing any quiz shown before.
    *
    * @param module the module whose quiz to show
-   * @param onBack called when the student clicks "Back to Dashboard"
+   * @param onBack called once "Back to Dashboard" has saved the student's answers
    * @param onSubmitted called once Continue has saved the student's progress
    */
   public void open(ModuleState module, Runnable onBack, Runnable onSubmitted) {
     // TODO: save quiz progress: pre-select module's saved answers (ticks, radios, filled
     //  blanks) and jump to the first question that isn't answered correctly yet.
     this.moduleTitle = module.getTitle();
+    this.onBack = onBack;
     this.onSubmitted = onSubmitted;
     removeAll();
     answerReaders.clear();
     feedbackLabels.clear();
 
     JButton back = new JButton("Back to Dashboard");
-    // TODO: save quiz progress: call a SaveQuizController with answers() first (no
-    //  all-correct check), and leave once the view model says the answers were saved.
-    back.addActionListener(event -> onBack.run());
+    back.addActionListener(event -> saveQuiz.execute(moduleTitle, answers()));
     addLeft(back);
 
     JLabel title = new JLabel(module.getTitle() + ": Pre-Procedure Questions");
@@ -138,6 +142,8 @@ public class QuizView extends JPanel implements PropertyChangeListener {
     repaint();
     if (viewModel.isSubmitted()) {
       onSubmitted.run();
+    } else if (viewModel.isSaved()) {
+      onBack.run();
     }
   }
 

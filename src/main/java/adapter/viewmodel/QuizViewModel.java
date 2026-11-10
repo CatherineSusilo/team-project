@@ -5,15 +5,15 @@ import java.beans.PropertyChangeSupport;
 import java.util.List;
 
 /**
- * What the quiz page shows after a check. The CheckQuiz presenter writes it; the quiz reads it.
+ * What the quiz page shows. The CheckQuiz, SubmitQuiz and SaveQuiz presenters write it; the quiz
+ * reads it.
  */
 public class QuizViewModel {
   private final PropertyChangeSupport support = new PropertyChangeSupport(this);
   private List<FeedbackState> feedback = List.of();
   private boolean continueVisible;
   private boolean submitted;
-  // TODO: save quiz progress: add boolean saved, set by a SaveQuiz presenter once partial
-  //  answers are stored, so the quiz page knows it can go back to the dashboard.
+  private boolean saved;
   private String message = "";
 
   /**
@@ -21,14 +21,16 @@ public class QuizViewModel {
    *
    * @param feedback feedback for each question, in order
    * @param continueVisible whether to show Continue
-   * @param submitted whether progress was saved, so the page should move on
+   * @param submitted whether the quiz was submitted, so the page should move on
+   * @param saved whether the answers so far were saved, so the page can leave
    * @param message an error to show, or empty for none
    */
   public void setState(List<FeedbackState> feedback, boolean continueVisible, boolean submitted,
-      String message) {
+      boolean saved, String message) {
     this.feedback = List.copyOf(feedback);
     this.continueVisible = continueVisible;
     this.submitted = submitted;
+    this.saved = saved;
     this.message = message;
   }
 
@@ -56,6 +58,10 @@ public class QuizViewModel {
 
   public boolean isSubmitted() {
     return submitted;
+  }
+
+  public boolean isSaved() {
+    return saved;
   }
 
   public String getMessage() {

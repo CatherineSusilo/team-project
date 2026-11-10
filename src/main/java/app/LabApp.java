@@ -2,9 +2,11 @@ package app;
 
 import adapter.controller.CheckQuizController;
 import adapter.controller.LoadDashboardController;
+import adapter.controller.SaveQuizController;
 import adapter.controller.SubmitQuizController;
 import adapter.presenter.CheckQuizPresenter;
 import adapter.presenter.LoadDashboardPresenter;
+import adapter.presenter.SaveQuizPresenter;
 import adapter.presenter.SubmitQuizPresenter;
 import adapter.viewmodel.DashboardViewModel;
 import adapter.viewmodel.QuizViewModel;
@@ -14,6 +16,7 @@ import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import usecase.checkquiz.CheckQuizInteractor;
 import usecase.loaddashboard.LoadDashboardInteractor;
+import usecase.savequiz.SaveQuizInteractor;
 import usecase.submitquiz.SubmitQuizInteractor;
 import view.DashboardView;
 import view.QuizView;
@@ -41,15 +44,14 @@ public class LabApp {
         new CheckQuizInteractor(dataAccess, new CheckQuizPresenter(quizViewModel)));
     SubmitQuizController submitQuizController = new SubmitQuizController(
         new SubmitQuizInteractor(dataAccess, dataAccess, new SubmitQuizPresenter(quizViewModel)));
-
-    // TODO: save quiz progress: wire SaveQuizPresenter(quizViewModel) ->
-    //  SaveQuizInteractor(dataAccess, presenter) -> SaveQuizController, and pass it to QuizView.
+    SaveQuizController saveQuizController = new SaveQuizController(
+        new SaveQuizInteractor(dataAccess, new SaveQuizPresenter(quizViewModel)));
 
     SwingUtilities.invokeLater(() -> {
       JFrame frame = new JFrame("CHM136 Virtual Lab");
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
       QuizView quizView = new QuizView(quizViewModel, checkQuizController,
-          submitQuizController);
+          submitQuizController, saveQuizController);
       frame.setContentPane(new DashboardView(dashboardViewModel, loadDashboardController,
           quizView, page -> {
             frame.setContentPane(page);
