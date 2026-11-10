@@ -1,14 +1,31 @@
-package app;
+package data;
 
+import entity.LabModule;
 import entity.QuizQuestion;
 import entity.QuizQuestion.Type;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
 /**
- * Pre-procedure questions for Pre-lab 3: Extraction Lab, taken from the lab manual.
+ * Pre-lab 3: Extraction Lab, with its pre-procedure questions taken from the lab manual.
  */
 public final class PreLab3Quiz {
+
+  private static final String OVERVIEW =
+      "You are QA at Lash Miller Inc. Two API batches (acetylsalicylic acid / aspirin, "
+          + "or mefenamic acid / Ponstel) are contaminated with vanillin and mislabeled. "
+          + "Purify your assigned unknown batch using liquid-liquid extraction and "
+          + "identify which API it is.\n\n"
+          + "Learning objectives:\n"
+          + "- Separate a mixture of solids using liquid-liquid extraction\n"
+          + "- Isolate a targeted solid compound via vacuum filtration\n"
+          + "- Characterize an isolated compound using melting point and IR data\n"
+          + "- Understand how acid/base chemistry alters solubility in organic vs. "
+          + "aqueous solvents\n"
+          + "- Understand how extractions are used to isolate a compound in organic "
+          + "chemistry";
 
   private static final String SEPARATION_SCENARIO =
       "To separate a mixture of vanillin and 2-chlorobenzoic acid, the mixture is dissolved in "
@@ -28,6 +45,20 @@ public final class PreLab3Quiz {
       "Diethyl ether");
 
   private PreLab3Quiz() {
+  }
+
+  /**
+   * Returns the Pre-lab 3 module, with its overview and pre-procedure questions.
+   *
+   * @return the Pre-lab 3 module
+   */
+  public static LabModule module() {
+    // TODO: load the student's real progress, and replace the placeholder due date.
+    return new LabModule("Pre-lab 3: Extraction Lab", LocalDate.of(2026, 11, 30), OVERVIEW,
+        false,
+        // Sample value; null means not started: shows "NOT STARTED" and hides Continue.
+        LocalDateTime.of(2026, 11, 5, 14, 30),
+        questions());
   }
 
   /**
