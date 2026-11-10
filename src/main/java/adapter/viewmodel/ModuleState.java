@@ -12,6 +12,7 @@ public final class ModuleState {
   private final String lastModified;
   private final boolean started;
   private final String overview;
+  private final List<String> learningObjectives;
   private final List<QuestionState> questions;
 
   /**
@@ -23,16 +24,19 @@ public final class ModuleState {
    * @param lastModified when it was last edited, or "NOT STARTED"
    * @param started whether the student has worked on it, which shows Continue
    * @param overview short description of the pre-lab
+   * @param learningObjectives what the student should be able to do afterwards, in order
    * @param questions the pre-procedure quiz
    */
   public ModuleState(String title, String dueDate, String status, String lastModified,
-      boolean started, String overview, List<QuestionState> questions) {
+      boolean started, String overview, List<String> learningObjectives,
+      List<QuestionState> questions) {
     this.title = title;
     this.dueDate = dueDate;
     this.status = status;
     this.lastModified = lastModified;
     this.started = started;
     this.overview = overview;
+    this.learningObjectives = learningObjectives;
     this.questions = questions;
   }
 
@@ -58,6 +62,10 @@ public final class ModuleState {
 
   public String getOverview() {
     return overview;
+  }
+
+  public List<String> getLearningObjectives() {
+    return learningObjectives;
   }
 
   public List<QuestionState> getQuestions() {

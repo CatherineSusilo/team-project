@@ -15,7 +15,8 @@ import javax.swing.JTextArea;
 
 /**
  * Detail panel shown when a student clicks "See Instructions" on a module: title, due date,
- * overview, and start/continue/reset buttons. Continue only shows once the module is started.
+ * overview, learning objectives, and start/continue/reset buttons. Continue only shows once the
+ * module is started.
  *
  * <p>The panel only displays the module; what each button does (opening the pre-lab, loading
  * or clearing saved progress) is passed in by whoever creates it.
@@ -42,7 +43,14 @@ public class ModulePanel extends JPanel {
     header.add(new JLabel("Due: " + module.getDueDate()));
     add(header, BorderLayout.NORTH);
 
-    JTextArea overview = new JTextArea(module.getOverview(), 14, 50);
+    StringBuilder text = new StringBuilder(module.getOverview());
+    if (!module.getLearningObjectives().isEmpty()) {
+      text.append("\n\nLearning Objectives:");
+      for (String objective : module.getLearningObjectives()) {
+        text.append("\n• ").append(objective);
+      }
+    }
+    JTextArea overview = new JTextArea(text.toString(), 14, 50);
     overview.setLineWrap(true);
     overview.setWrapStyleWord(true);
     overview.setEditable(false);

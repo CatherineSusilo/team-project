@@ -21,7 +21,8 @@ import usecase.loaddashboard.LoadDashboardInteractor;
 
 class NotStartedModuleTest {
   private static final LabModule NOT_STARTED =
-      new LabModule("Pre-lab 3", LocalDate.of(2026, 11, 30), "overview", false, null, List.of());
+      new LabModule("Pre-lab 3", LocalDate.of(2026, 11, 30), "overview", List.of(), false,
+          null, List.of());
 
   @Test
   void cardSaysNotStarted() {
@@ -41,7 +42,8 @@ class NotStartedModuleTest {
 
   private static ModulePanel panel(boolean started) {
     ModuleState module = new ModuleState("Pre-lab 3", "2026-11-30", "To do",
-        started ? "Nov 5, 2026 at 2:30 PM" : "NOT STARTED", started, "overview", List.of());
+        started ? "Nov 5, 2026 at 2:30 PM" : "NOT STARTED", started, "overview", List.of(),
+        List.of());
     return new ModulePanel(module, () -> { }, () -> { }, () -> { });
   }
 

@@ -12,6 +12,7 @@ public class LabModule {
   private final String title;
   private final LocalDate dueDate;
   private final String overview;
+  private final List<String> learningObjectives;
   private final boolean completed;
   private LocalDateTime lastEdited;
   private final List<QuizQuestion> preProcedureQuestions;
@@ -25,15 +26,18 @@ public class LabModule {
    * @param title display name, e.g. "Pre-lab 3"
    * @param dueDate submission deadline
    * @param overview short description of what the pre-lab covers
+   * @param learningObjectives what the student should be able to do afterwards, in order
    * @param completed whether the student has finished it
    * @param lastEdited when the student last worked on it, or null if never
    * @param preProcedureQuestions quiz the student answers before the walkthrough
    */
-  public LabModule(String title, LocalDate dueDate, String overview, boolean completed,
-      LocalDateTime lastEdited, List<QuizQuestion> preProcedureQuestions) {
+  public LabModule(String title, LocalDate dueDate, String overview,
+      List<String> learningObjectives, boolean completed, LocalDateTime lastEdited,
+      List<QuizQuestion> preProcedureQuestions) {
     this.title = title;
     this.dueDate = dueDate;
     this.overview = overview;
+    this.learningObjectives = List.copyOf(learningObjectives);
     this.completed = completed;
     this.lastEdited = lastEdited;
     this.preProcedureQuestions = List.copyOf(preProcedureQuestions);
@@ -49,6 +53,10 @@ public class LabModule {
 
   public String getOverview() {
     return overview;
+  }
+
+  public List<String> getLearningObjectives() {
+    return learningObjectives;
   }
 
   public boolean isCompleted() {

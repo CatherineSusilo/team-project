@@ -47,7 +47,8 @@ public class LoadDashboardInteractor implements LoadDashboardInputBoundary {
       // TODO: save quiz progress: add the module's saved answers and quiz progress to
       //  ModuleInfo, so the quiz can restore them and the dashboard can show the percent.
       infos.add(new ModuleInfo(module.getTitle(), module.getDueDate(), module.getOverview(),
-          module.isCompleted(), module.getLastEdited().orElse(null), questions));
+          module.getLearningObjectives(), module.isCompleted(),
+          module.getLastEdited().orElse(null), questions));
     }
     presenter.prepareSuccessView(new LoadDashboardOutputData(infos));
   }

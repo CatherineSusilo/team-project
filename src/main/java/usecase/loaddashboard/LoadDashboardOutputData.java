@@ -30,6 +30,7 @@ public final class LoadDashboardOutputData {
     private final String title;
     private final LocalDate dueDate;
     private final String overview;
+    private final List<String> learningObjectives;
     private final boolean completed;
     private final LocalDateTime lastEdited;
     private final List<QuestionInfo> questions;
@@ -40,15 +41,18 @@ public final class LoadDashboardOutputData {
      * @param title display name
      * @param dueDate submission deadline
      * @param overview short description of the pre-lab
+     * @param learningObjectives what the student should be able to do afterwards, in order
      * @param completed whether the student has finished it
      * @param lastEdited when the student last worked on it, or null if never
      * @param questions the pre-procedure quiz, without its answers
      */
-    public ModuleInfo(String title, LocalDate dueDate, String overview, boolean completed,
-        LocalDateTime lastEdited, List<QuestionInfo> questions) {
+    public ModuleInfo(String title, LocalDate dueDate, String overview,
+        List<String> learningObjectives, boolean completed, LocalDateTime lastEdited,
+        List<QuestionInfo> questions) {
       this.title = title;
       this.dueDate = dueDate;
       this.overview = overview;
+      this.learningObjectives = learningObjectives;
       this.completed = completed;
       this.lastEdited = lastEdited;
       this.questions = questions;
@@ -64,6 +68,10 @@ public final class LoadDashboardOutputData {
 
     public String getOverview() {
       return overview;
+    }
+
+    public List<String> getLearningObjectives() {
+      return learningObjectives;
     }
 
     public boolean isCompleted() {

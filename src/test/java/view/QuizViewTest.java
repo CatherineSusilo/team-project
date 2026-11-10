@@ -34,8 +34,8 @@ class QuizViewTest {
 
   @Test
   void continueOnlyAppearsWhenEveryAnswerIsCorrect() {
-    LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "", false, null,
-        QUESTIONS);
+    LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "", List.of(), false,
+        null, QUESTIONS);
     InMemoryLabDataAccessObject dataAccess = new InMemoryLabDataAccessObject(List.of(module));
     QuizViewModel viewModel = new QuizViewModel();
     QuizView quiz = new QuizView(viewModel,
@@ -44,7 +44,7 @@ class QuizViewTest {
         new SubmitQuizController(
             new SubmitQuizInteractor(dataAccess, dataAccess, new SubmitQuizPresenter(viewModel))));
     boolean[] submitted = {false};
-    quiz.open(new ModuleState("Pre-lab", "", "", "", false, "", List.of(
+    quiz.open(new ModuleState("Pre-lab", "", "", "", false, "", List.of(), List.of(
         new QuestionState("q1", false, false, false, "", 0, List.of("right", "wrong")),
         new QuestionState("q2", true, false, false, "", 0, List.of("yes", "no", "also yes")))),
         () -> { }, () -> submitted[0] = true);
@@ -75,8 +75,8 @@ class QuizViewTest {
 
   @Test
   void equationTilesFillAndClearTheBlanks() {
-    LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "", false, null,
-        List.of(new QuizQuestion("q", "A + B", List.of("C", "D", "E"), Set.of(0, 1), "")));
+    LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "", List.of(), false,
+        null, List.of(new QuizQuestion("q", "A + B", List.of("C", "D", "E"), Set.of(0, 1), "")));
     InMemoryLabDataAccessObject dataAccess = new InMemoryLabDataAccessObject(List.of(module));
     QuizViewModel viewModel = new QuizViewModel();
     QuizView quiz = new QuizView(viewModel,
@@ -84,7 +84,7 @@ class QuizViewTest {
             new CheckQuizInteractor(dataAccess, new CheckQuizPresenter(viewModel))),
         new SubmitQuizController(
             new SubmitQuizInteractor(dataAccess, dataAccess, new SubmitQuizPresenter(viewModel))));
-    quiz.open(new ModuleState("Pre-lab", "", "", "", false, "", List.of(
+    quiz.open(new ModuleState("Pre-lab", "", "", "", false, "", List.of(), List.of(
         new QuestionState("q", false, false, true, "A + B", 2, List.of("C", "D", "E")))),
         () -> { }, () -> { });
     AbstractButton tileE = button(quiz, "E");

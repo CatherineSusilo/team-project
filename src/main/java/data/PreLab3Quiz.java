@@ -14,18 +14,19 @@ import java.util.Set;
 public final class PreLab3Quiz {
 
   private static final String OVERVIEW =
-      "You are QA at Lash Miller Inc. Two API batches (acetylsalicylic acid / aspirin, "
-          + "or mefenamic acid / Ponstel) are contaminated with vanillin and mislabeled. "
-          + "Purify your assigned unknown batch using liquid-liquid extraction and "
-          + "identify which API it is.\n\n"
-          + "Learning objectives:\n"
-          + "- Separate a mixture of solids using liquid-liquid extraction\n"
-          + "- Isolate a targeted solid compound via vacuum filtration\n"
-          + "- Characterize an isolated compound using melting point and IR data\n"
-          + "- Understand how acid/base chemistry alters solubility in organic vs. "
-          + "aqueous solvents\n"
-          + "- Understand how extractions are used to isolate a compound in organic "
-          + "chemistry";
+      "You're on the QA team at Lash Miller Inc. Two unlabelled batches of medicine, one "
+          + "aspirin and one mefenamic acid, are both contaminated with vanillin. You'll get a "
+          + "random unknown sample, separate the API from the vanillin, and identify which drug "
+          + "it is.";
+
+  private static final List<String> LEARNING_OBJECTIVES = List.of(
+      "To separate a mixture of solids using liquid-liquid extraction technique",
+      "To isolate a targeted solid compound following separation by using vacuum filtration",
+      "To characterize an isolated solid compound using collected melting point and IR data, "
+          + "along with provided NMR data",
+      "To understand how acid/base chemistry can be used to alter solubility of compounds in "
+          + "organic and aqueous solvents",
+      "To understand how extractions are used in organic chemistry to isolate a compound");
 
   private static final String SEPARATION_SCENARIO =
       "To separate a mixture of vanillin and 2-chlorobenzoic acid, the mixture is dissolved in "
@@ -48,14 +49,15 @@ public final class PreLab3Quiz {
   }
 
   /**
-   * Returns the Pre-lab 3 module, with its overview and pre-procedure questions.
+   * Returns the Pre-lab 3 module, with its overview, learning objectives and pre-procedure
+   * questions.
    *
    * @return the Pre-lab 3 module
    */
   public static LabModule module() {
     // TODO: load the student's real progress, and replace the placeholder due date.
     return new LabModule("Pre-lab 3: Extraction Lab", LocalDate.of(2026, 11, 30), OVERVIEW,
-        false,
+        LEARNING_OBJECTIVES, false,
         // Sample value; null means not started: shows "NOT STARTED" and hides Continue.
         LocalDateTime.of(2026, 11, 5, 14, 30),
         questions());

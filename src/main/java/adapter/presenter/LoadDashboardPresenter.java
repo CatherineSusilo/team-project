@@ -44,7 +44,7 @@ public class LoadDashboardPresenter implements LoadDashboardOutputBoundary {
       modules.add(new ModuleState(module.getTitle(), module.getDueDate().toString(),
           module.isCompleted() ? "Completed" : "To do",
           started ? LAST_MODIFIED_FORMAT.format(module.getLastEdited()) : "NOT STARTED",
-          started, module.getOverview(), questions));
+          started, module.getOverview(), module.getLearningObjectives(), questions));
     }
     viewModel.setState(modules, "");
     viewModel.firePropertyChanged();
