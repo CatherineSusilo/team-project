@@ -1,6 +1,6 @@
 package view;
 
-import entity.LabModule;
+import adapter.viewmodel.ModuleState;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -30,7 +30,7 @@ public class ModulePanel extends JPanel {
    * @param onContinue called when the student clicks Continue
    * @param onReset called after the student confirms they want to reset
    */
-  public ModulePanel(LabModule module, Runnable onStart, Runnable onContinue,
+  public ModulePanel(ModuleState module, Runnable onStart, Runnable onContinue,
       Runnable onReset) {
     super(new BorderLayout(0, 8));
     setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
@@ -61,7 +61,7 @@ public class ModulePanel extends JPanel {
     });
     JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
     buttons.add(reset);
-    if (module.getLastEdited().isPresent()) {
+    if (module.isStarted()) {
       JButton continueButton = new JButton("Continue");
       continueButton.addActionListener(event -> onContinue.run());
       buttons.add(continueButton);

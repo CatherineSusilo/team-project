@@ -1,15 +1,19 @@
 package view;
 
-import entity.LabModule;
+import adapter.controller.LoadDashboardController;
+import adapter.viewmodel.DashboardViewModel;
+import adapter.viewmodel.ModuleState;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Container;
 import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.util.function.Consumer;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -19,42 +23,67 @@ import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 
 /**
- * Landing page: every module the student has, with its status and actions.
+ * Landing page: every module the student has, with its status and actions. The cards come
+ * from {@link DashboardViewModel}, filled in by the LoadDashboard use case.
  */
-public class DashboardView extends JPanel {
-  private static final DateTimeFormatter LAST_MODIFIED_FORMAT =
-      DateTimeFormatter.ofPattern("MMM d, yyyy 'at' h:mm a");
+public class DashboardView extends JPanel implements PropertyChangeListener {
+  private final DashboardViewModel viewModel;
+  private final LoadDashboardController loadDashboard;
+  private final QuizView quizView;
+  private final Consumer<Container> showPage;
+  private final JPanel cards = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 16));
+  private final JLabel message = new JLabel();
 
   /**
-   * Builds the dashboard for the given modules.
+   * Builds the dashboard and loads its modules.
    *
-   * @param modules all modules assigned to the student
+   * @param viewModel where the modules to show appear
+   * @param loadDashboard reloads the modules, e.g. after the student saves progress
+   * @param quizView the page Start opens
+   * @param showPage shows a page in the app window
    */
-  public DashboardView(List<LabModule> modules) {
+  public DashboardView(DashboardViewModel viewModel, LoadDashboardController loadDashboard,
+      QuizView quizView, Consumer<Container> showPage) {
     super(new BorderLayout());
+    this.viewModel = viewModel;
+    this.loadDashboard = loadDashboard;
+    this.quizView = quizView;
+    this.showPage = showPage;
+    viewModel.addPropertyChangeListener(this);
 
-    JPanel cards = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 16));
-    for (LabModule module : modules) {
-      cards.add(createCard(module));
-    }
+    message.setBorder(BorderFactory.createEmptyBorder(16, 16, 0, 16));
     // NORTH keeps cards at their natural size instead of stretching to fill the screen.
     JPanel cardsHolder = new JPanel(new BorderLayout());
-    cardsHolder.add(cards, BorderLayout.NORTH);
-    add(new JScrollPane(cardsHolder), BorderLayout.CENTER);
+    cardsHolder.add(message, BorderLayout.NORTH);
+    cardsHolder.add(cards, BorderLayout.CENTER);
+    JPanel top = new JPanel(new BorderLayout());
+    top.add(cardsHolder, BorderLayout.NORTH);
+    add(new JScrollPane(top), BorderLayout.CENTER);
+    loadDashboard.execute();
   }
 
-  private JPanel createCard(LabModule module) {
+  /** Rebuilds every card whenever the LoadDashboard presenter updates the view model. */
+  @Override
+  public void propertyChange(PropertyChangeEvent event) {
+    message.setText(viewModel.getMessage());
+    message.setVisible(!viewModel.getMessage().isEmpty());
+    cards.removeAll();
+    for (ModuleState module : viewModel.getModules()) {
+      cards.add(createCard(module));
+    }
+    cards.revalidate();
+    cards.repaint();
+  }
+
+  private JPanel createCard(ModuleState module) {
     JLabel title = new JLabel(module.getTitle());
     title.setFont(title.getFont().deriveFont(Font.BOLD, 16f));
     JPanel info = new JPanel(new GridLayout(0, 1, 0, 4));
     info.setOpaque(false);
     info.add(title);
     info.add(new JLabel("Due: " + module.getDueDate()));
-    info.add(new JLabel("Status: " + (module.isCompleted() ? "Completed" : "To do")));
-    String lastModified = module.getLastEdited()
-        .map(LAST_MODIFIED_FORMAT::format)
-        .orElse("NOT STARTED");
-    info.add(new JLabel("Last Modified: " + lastModified));
+    info.add(new JLabel("Status: " + module.getStatus()));
+    info.add(new JLabel("Last Modified: " + module.getLastModified()));
 
     JButton seeInstructions = new JButton("See Instructions");
     seeInstructions.addActionListener(event -> showModulePanel(module));
@@ -79,12 +108,13 @@ public class DashboardView extends JPanel {
     return card;
   }
 
-  private void showModulePanel(LabModule module) {
+  private void showModulePanel(ModuleState module) {
     JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), module.getTitle(),
         Dialog.ModalityType.APPLICATION_MODAL);
     dialog.setContentPane(new ModulePanel(module,
         () -> {
-          // TODO: open the pre-lab.
+          dialog.dispose();
+          openQuiz(module);
         },
         () -> {
           // TODO: reopen the pre-lab where the student left off.
@@ -95,5 +125,28 @@ public class DashboardView extends JPanel {
     dialog.pack();
     dialog.setLocationRelativeTo(this);
     dialog.setVisible(true);
+  }
+
+  private void openQuiz(ModuleState module) {
+    quizView.open(module, this::showDashboard, () -> showPage.accept(createNextScene()));
+    JScrollPane scroll = new JScrollPane(quizView);
+    scroll.getVerticalScrollBar().setUnitIncrement(16);
+    showPage.accept(scroll);
+  }
+
+  private JPanel createNextScene() {
+    // TODO: build the next scene of the pre-lab; for now it's a blank page.
+    JPanel scene = new JPanel(new FlowLayout(FlowLayout.LEFT, 24, 24));
+    scene.setBackground(Color.WHITE);
+    JButton back = new JButton("Back to Dashboard");
+    back.addActionListener(event -> showDashboard());
+    scene.add(back);
+    return scene;
+  }
+
+  /** Reloads the modules, so Last Modified is current, then shows the dashboard. */
+  private void showDashboard() {
+    loadDashboard.execute();
+    showPage.accept(this);
   }
 }
