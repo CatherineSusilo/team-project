@@ -45,8 +45,8 @@ class QuizViewTest {
             new SubmitQuizInteractor(dataAccess, dataAccess, new SubmitQuizPresenter(viewModel))));
     boolean[] submitted = {false};
     quiz.open(new ModuleState("Pre-lab", "", "", "", false, "", List.of(
-        new QuestionState("q1", false, false, List.of("right", "wrong")),
-        new QuestionState("q2", true, false, List.of("yes", "no", "also yes")))),
+        new QuestionState("q1", false, false, false, "", 0, List.of("right", "wrong")),
+        new QuestionState("q2", true, false, false, "", 0, List.of("yes", "no", "also yes")))),
         () -> { }, () -> submitted[0] = true);
     AbstractButton continueButton = button(quiz, "Continue");
     assertFalse(continueButton.isVisible(), "hidden before checking");
@@ -71,6 +71,35 @@ class QuizViewTest {
     continueButton.doClick();
     assertTrue(submitted[0]);
     assertTrue(module.getLastEdited().isPresent(), "Continue sets Last Modified");
+  }
+
+  @Test
+  void equationTilesFillAndClearTheBlanks() {
+    LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "", false, null,
+        List.of(new QuizQuestion("q", "A + B", List.of("C", "D", "E"), Set.of(0, 1), "")));
+    InMemoryLabDataAccessObject dataAccess = new InMemoryLabDataAccessObject(List.of(module));
+    QuizViewModel viewModel = new QuizViewModel();
+    QuizView quiz = new QuizView(viewModel,
+        new CheckQuizController(
+            new CheckQuizInteractor(dataAccess, new CheckQuizPresenter(viewModel))),
+        new SubmitQuizController(
+            new SubmitQuizInteractor(dataAccess, dataAccess, new SubmitQuizPresenter(viewModel))));
+    quiz.open(new ModuleState("Pre-lab", "", "", "", false, "", List.of(
+        new QuestionState("q", false, false, true, "A + B", 2, List.of("C", "D", "E")))),
+        () -> { }, () -> { });
+    AbstractButton tileE = button(quiz, "E");
+    tileE.doClick();
+    assertFalse(tileE.isEnabled(), "a used tile can't fill a second blank");
+    button(quiz, "D").doClick();
+    button(quiz, "Check Answers").doClick();
+    assertFalse(button(quiz, "Continue").isVisible(), "E is wrong");
+
+    // The first button labelled E is the blank it filled, not the tile.
+    button(quiz, "E").doClick();
+    assertTrue(tileE.isEnabled(), "clearing a blank frees its tile");
+    button(quiz, "C").doClick();
+    button(quiz, "Check Answers").doClick();
+    assertTrue(button(quiz, "Continue").isVisible(), "C and D in either order is correct");
   }
 
   private static AbstractButton button(Container container, String text) {

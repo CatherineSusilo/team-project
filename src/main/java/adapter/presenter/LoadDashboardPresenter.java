@@ -36,8 +36,10 @@ public class LoadDashboardPresenter implements LoadDashboardOutputBoundary {
       List<QuestionState> questions = new ArrayList<>();
       for (QuestionInfo question : module.getQuestions()) {
         questions.add(new QuestionState(question.getPrompt(), question.isMultipleChoice(),
-            question.isImageChoices(), question.getChoices()));
+            question.isImageChoices(), question.isEquation(), question.getReactants(),
+            question.getBlankCount(), question.getChoices()));
       }
+      // TODO: save quiz progress: copy the saved answers and quiz progress into ModuleState.
       boolean started = module.getLastEdited() != null;
       modules.add(new ModuleState(module.getTitle(), module.getDueDate().toString(),
           module.isCompleted() ? "Completed" : "To do",

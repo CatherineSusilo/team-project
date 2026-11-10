@@ -38,10 +38,14 @@ public class LoadDashboardInteractor implements LoadDashboardInputBoundary {
     for (LabModule module : modules) {
       List<QuestionInfo> questions = new ArrayList<>();
       for (QuizQuestion question : module.getPreProcedureQuestions()) {
+        boolean equation = question.getType() == QuizQuestion.Type.EQUATION;
         questions.add(new QuestionInfo(question.getPrompt(),
             question.getType() == QuizQuestion.Type.MULTIPLE,
-            question.getType() == QuizQuestion.Type.IMAGE, question.getChoices()));
+            question.getType() == QuizQuestion.Type.IMAGE, equation, question.getReactants(),
+            equation ? question.getBlankCount() : 0, question.getChoices()));
       }
+      // TODO: save quiz progress: add the module's saved answers and quiz progress to
+      //  ModuleInfo, so the quiz can restore them and the dashboard can show the percent.
       infos.add(new ModuleInfo(module.getTitle(), module.getDueDate(), module.getOverview(),
           module.isCompleted(), module.getLastEdited().orElse(null), questions));
     }

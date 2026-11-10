@@ -16,10 +16,13 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -44,7 +47,9 @@ public class QuizView extends JPanel implements PropertyChangeListener {
   private final QuizViewModel viewModel;
   private final CheckQuizController checkQuiz;
   private final SubmitQuizController submitQuiz;
-  private final List<List<AbstractButton>> choiceButtons = new ArrayList<>();
+
+  /** For each question, reads the indexes of the choices the student selected. */
+  private final List<Supplier<Set<Integer>>> answerReaders = new ArrayList<>();
   private final List<JLabel> feedbackLabels = new ArrayList<>();
   private final JButton continueButton = new JButton("Continue");
   private final JLabel message = new JLabel();
@@ -78,13 +83,17 @@ public class QuizView extends JPanel implements PropertyChangeListener {
    * @param onSubmitted called once Continue has saved the student's progress
    */
   public void open(ModuleState module, Runnable onBack, Runnable onSubmitted) {
+    // TODO: save quiz progress: pre-select module's saved answers (ticks, radios, filled
+    //  blanks) and jump to the first question that isn't answered correctly yet.
     this.moduleTitle = module.getTitle();
     this.onSubmitted = onSubmitted;
     removeAll();
-    choiceButtons.clear();
+    answerReaders.clear();
     feedbackLabels.clear();
 
     JButton back = new JButton("Back to Dashboard");
+    // TODO: save quiz progress: call a SaveQuizController with answers() first (no
+    //  all-correct check), and leave once the view model says the answers were saved.
     back.addActionListener(event -> onBack.run());
     addLeft(back);
 
@@ -140,7 +149,19 @@ public class QuizView extends JPanel implements PropertyChangeListener {
 
     JLabel feedback = new JLabel();
     feedbackLabels.add(feedback);
+    // A changed answer hasn't been checked yet: 
+    // clear its old verdict, and Continue waits for Check Answers again.
+    Runnable onChange = () -> {
+      continueButton.setVisible(false);
+      feedback.setText("");
+    };
+    panel.add(question.isEquation() ? createEquation(question, onChange)
+        : createChoices(question, onChange), BorderLayout.CENTER);
+    panel.add(feedback, BorderLayout.SOUTH);
+    return panel;
+  }
 
+  private JPanel createChoices(QuestionState question, Runnable onChange) {
     boolean images = question.isImageChoices();
     JPanel choicesPanel = images
         ? new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0))
@@ -155,32 +176,87 @@ public class QuizView extends JPanel implements PropertyChangeListener {
         button = new JRadioButton(images ? imageHtml(choice) : choice);
         group.add(button);
       }
-      // A changed answer hasn't been checked yet: clear its old verdict, and Continue waits
-      // for Check Answers again.
-      button.addItemListener(event -> {
-        continueButton.setVisible(false);
-        feedback.setText("");
-      });
+      button.addItemListener(event -> onChange.run());
       buttons.add(button);
       choicesPanel.add(button);
     }
-    choiceButtons.add(buttons);
-    panel.add(choicesPanel, BorderLayout.CENTER);
-    panel.add(feedback, BorderLayout.SOUTH);
-    return panel;
-  }
-
-  /** For each question, the indexes of the choices the student selected. */
-  private List<Set<Integer>> answers() {
-    List<Set<Integer>> answers = new ArrayList<>();
-    for (List<AbstractButton> buttons : choiceButtons) {
+    answerReaders.add(() -> {
       Set<Integer> selected = new HashSet<>();
       for (int choice = 0; choice < buttons.size(); choice++) {
         if (buttons.get(choice).isSelected()) {
           selected.add(choice);
         }
       }
-      answers.add(selected);
+      return selected;
+    });
+    return choicesPanel;
+  }
+
+  /**
+   * The reactants, one blank per product, and the product tiles. Tapping a tile fills the next
+   * empty blank and greys the tile out; tapping a filled blank empties it.
+   */
+  private JPanel createEquation(QuestionState question, Runnable onChange) {
+    List<JButton> tiles = new ArrayList<>();
+    JButton[] blanks = new JButton[question.getBlankCount()];
+    int[] filled = new int[blanks.length];
+    // TODO: save quiz progress: start from the saved tile indexes instead of all empty, and
+    //  disable those tiles.
+    Arrays.fill(filled, -1);
+
+    JPanel equation = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+    equation.add(new JLabel(question.getReactants() + " →"));
+    for (int i = 0; i < blanks.length; i++) {
+      if (i > 0) {
+        equation.add(new JLabel("+"));
+      }
+      int blank = i;
+      blanks[i] = new JButton("?");
+      blanks[i].addActionListener(event -> {
+        if (filled[blank] >= 0) {
+          tiles.get(filled[blank]).setEnabled(true);
+          filled[blank] = -1;
+          blanks[blank].setText("?");
+          onChange.run();
+        }
+      });
+      equation.add(blanks[i]);
+    }
+
+    JPanel tilesPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+    List<String> products = question.getChoices();
+    for (int i = 0; i < products.size(); i++) {
+      int tile = i;
+      JButton button = new JButton(products.get(i));
+      button.addActionListener(event -> {
+        for (int blank = 0; blank < blanks.length; blank++) {
+          if (filled[blank] < 0) {
+            filled[blank] = tile;
+            blanks[blank].setText(products.get(tile));
+            button.setEnabled(false);
+            onChange.run();
+            return;
+          }
+        }
+      });
+      tiles.add(button);
+      tilesPanel.add(button);
+    }
+    answerReaders.add(() -> Arrays.stream(filled).filter(tile -> tile >= 0).boxed()
+        .collect(Collectors.toSet()));
+
+    JPanel panel = new JPanel(new GridLayout(0, 1, 0, 8));
+    panel.add(equation);
+    panel.add(new JLabel("Tap a product to fill the next blank. Tap a blank to clear it."));
+    panel.add(tilesPanel);
+    return panel;
+  }
+
+  /** For each question, the indexes of the choices the student selected. */
+  private List<Set<Integer>> answers() {
+    List<Set<Integer>> answers = new ArrayList<>();
+    for (Supplier<Set<Integer>> reader : answerReaders) {
+      answers.add(reader.get());
     }
     return answers;
   }

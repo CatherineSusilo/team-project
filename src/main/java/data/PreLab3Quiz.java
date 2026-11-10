@@ -69,27 +69,19 @@ public final class PreLab3Quiz {
   public static List<QuizQuestion> questions() {
     return List.of(
         new QuizQuestion(
-            "Which is the correctly balanced equation for the reaction between NaOH and "
-                + "benzoic acid?",
-            Type.SINGLE,
-            List.of(
-                "C₆H₅COOH + 2 NaOH → C₆H₅COONa + 2 H₂O",
-                "C₆H₅COOH + NaOH → C₆H₅COONa + H₂O",
-                "C₆H₅COOH + NaOH → C₆H₅Na + CO₂ + H₂O",
-                "C₆H₅COOH + NaOH → C₆H₅COONa + H₂"),
-            Set.of(1),
+            "Write the correctly balanced equation for the reaction between NaOH and "
+                + "benzoic acid.",
+            "C₆H₅COOH + NaOH",
+            List.of("C₆H₅COONa", "H₂O", "NaCl", "CO₂"),
+            Set.of(0, 1),
             "NaOH removes the acidic H from the carboxylic acid (–COOH), giving water and "
                 + "sodium benzoate, a water-soluble salt. Every atom balances 1:1."),
         new QuizQuestion(
-            "Which is the correctly balanced equation for the reaction between HCl and "
-                + "sodium benzoate?",
-            Type.SINGLE,
-            List.of(
-                "C₆H₅COONa + HCl → C₆H₅COCl + NaOH",
-                "C₆H₅COONa + HCl → C₆H₅COOH + NaCl + H₂O",
-                "2 C₆H₅COONa + HCl → 2 C₆H₅COOH + NaCl",
-                "C₆H₅COONa + HCl → C₆H₅COOH + NaCl"),
-            Set.of(3),
+            "Write the correctly balanced equation for the reaction between HCl and "
+                + "sodium benzoate.",
+            "C₆H₅COONa + HCl",
+            List.of("H₂O", "C₆H₅COOH", "NaOH", "NaCl"),
+            Set.of(1, 3),
             "HCl gives the benzoate ion back its H, turning it into neutral benzoic acid (which "
                 + "isn't water-soluble, so it precipitates) plus NaCl."),
         new QuizQuestion(

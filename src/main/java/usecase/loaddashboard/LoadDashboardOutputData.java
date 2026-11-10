@@ -87,6 +87,9 @@ public final class LoadDashboardOutputData {
     private final String prompt;
     private final boolean multipleChoice;
     private final boolean imageChoices;
+    private final boolean equation;
+    private final String reactants;
+    private final int blankCount;
     private final List<String> choices;
 
     /**
@@ -96,13 +99,20 @@ public final class LoadDashboardOutputData {
      * @param multipleChoice true if the student ticks every correct choice, false if they
      *     pick one
      * @param imageChoices true if each choice is an image resource path, not a text label
-     * @param choices choice labels, or image resource paths when {@code imageChoices}
+     * @param equation true if the student fills product tiles into blanks after the reactants
+     * @param reactants the left side of the equation, or empty when not {@code equation}
+     * @param blankCount how many blanks the equation has, or 0 when not {@code equation}
+     * @param choices choice labels, image resource paths when {@code imageChoices}, or
+     *     product tiles when {@code equation}
      */
     public QuestionInfo(String prompt, boolean multipleChoice, boolean imageChoices,
-        List<String> choices) {
+        boolean equation, String reactants, int blankCount, List<String> choices) {
       this.prompt = prompt;
       this.multipleChoice = multipleChoice;
       this.imageChoices = imageChoices;
+      this.equation = equation;
+      this.reactants = reactants;
+      this.blankCount = blankCount;
       this.choices = choices;
     }
 
@@ -116,6 +126,18 @@ public final class LoadDashboardOutputData {
 
     public boolean isImageChoices() {
       return imageChoices;
+    }
+
+    public boolean isEquation() {
+      return equation;
+    }
+
+    public String getReactants() {
+      return reactants;
+    }
+
+    public int getBlankCount() {
+      return blankCount;
     }
 
     public List<String> getChoices() {
