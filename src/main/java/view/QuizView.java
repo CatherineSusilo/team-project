@@ -133,6 +133,9 @@ public class QuizView extends JPanel implements PropertyChangeListener {
     panel.add(new JLabel(wrap("<b>" + number + ".</b> " + question.getPrompt())),
         BorderLayout.NORTH);
 
+    JLabel feedback = new JLabel();
+    feedbackLabels.add(feedback);
+
     boolean images = "IMAGE".equals(question.getType());
     JPanel choicesPanel = images
         ? new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0))
@@ -147,16 +150,17 @@ public class QuizView extends JPanel implements PropertyChangeListener {
         button = new JRadioButton(images ? imageHtml(choice) : choice);
         group.add(button);
       }
-      // A changed answer hasn't been checked yet, so Continue waits for Check Answers again.
-      button.addItemListener(event -> continueButton.setVisible(false));
+      // A changed answer hasn't been checked yet: clear its old verdict, and Continue waits
+      // for Check Answers again.
+      button.addItemListener(event -> {
+        continueButton.setVisible(false);
+        feedback.setText("");
+      });
       buttons.add(button);
       choicesPanel.add(button);
     }
     choiceButtons.add(buttons);
     panel.add(choicesPanel, BorderLayout.CENTER);
-
-    JLabel feedback = new JLabel();
-    feedbackLabels.add(feedback);
     panel.add(feedback, BorderLayout.SOUTH);
     return panel;
   }

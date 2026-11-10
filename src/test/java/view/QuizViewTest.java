@@ -1,5 +1,6 @@
 package view;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -19,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import javax.swing.AbstractButton;
+import javax.swing.JLabel;
 import org.junit.jupiter.api.Test;
 import usecase.checkquiz.CheckQuizInteractor;
 
@@ -52,8 +54,11 @@ class QuizViewTest {
     button(quiz, "Check Answers").doClick();
     assertTrue(continueButton.isVisible(), "shown once everything is correct");
 
+    assertTrue(labelTexts(quiz).stream().anyMatch(text -> text.contains("Correct.")));
     button(quiz, "also yes").setSelected(false);
     assertFalse(continueButton.isVisible(), "hidden again once an answer changes");
+    assertEquals(1, labelTexts(quiz).stream().filter(text -> text.contains("Correct.")).count(),
+        "only the unchanged question still says Correct");
     button(quiz, "also yes").setSelected(true);
     button(quiz, "Check Answers").doClick();
 
@@ -69,6 +74,19 @@ class QuizViewTest {
       }
     }
     throw new AssertionError("No button labelled " + text);
+  }
+
+  private static List<String> labelTexts(Container container) {
+    List<String> texts = new ArrayList<>();
+    for (Component child : container.getComponents()) {
+      if (child instanceof JLabel) {
+        texts.add(((JLabel) child).getText());
+      }
+      if (child instanceof Container) {
+        texts.addAll(labelTexts((Container) child));
+      }
+    }
+    return texts;
   }
 
   private static List<AbstractButton> buttons(Container container) {

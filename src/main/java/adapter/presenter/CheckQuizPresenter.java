@@ -41,7 +41,8 @@ public class CheckQuizPresenter implements CheckQuizOutputBoundary {
 
   @Override
   public void prepareFailView(String error) {
-    viewModel.setState(viewModel.getFeedback(), false, false, error);
+    // No feedback: the last results may no longer match the answers on screen.
+    viewModel.setState(List.of(), false, false, error);
     viewModel.firePropertyChanged();
   }
 }
