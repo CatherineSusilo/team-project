@@ -85,19 +85,24 @@ public final class LoadDashboardOutputData {
    */
   public static final class QuestionInfo {
     private final String prompt;
-    private final String type;
+    private final boolean multipleChoice;
+    private final boolean imageChoices;
     private final List<String> choices;
 
     /**
      * Creates the question info.
      *
      * @param prompt the question text
-     * @param type SINGLE, MULTIPLE or IMAGE
-     * @param choices choice labels, or image resource paths for IMAGE questions
+     * @param multipleChoice true if the student ticks every correct choice, false if they
+     *     pick one
+     * @param imageChoices true if each choice is an image resource path, not a text label
+     * @param choices choice labels, or image resource paths when {@code imageChoices}
      */
-    public QuestionInfo(String prompt, String type, List<String> choices) {
+    public QuestionInfo(String prompt, boolean multipleChoice, boolean imageChoices,
+        List<String> choices) {
       this.prompt = prompt;
-      this.type = type;
+      this.multipleChoice = multipleChoice;
+      this.imageChoices = imageChoices;
       this.choices = choices;
     }
 
@@ -105,8 +110,12 @@ public final class LoadDashboardOutputData {
       return prompt;
     }
 
-    public String getType() {
-      return type;
+    public boolean isMultipleChoice() {
+      return multipleChoice;
+    }
+
+    public boolean isImageChoices() {
+      return imageChoices;
     }
 
     public List<String> getChoices() {

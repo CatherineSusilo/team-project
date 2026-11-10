@@ -39,8 +39,8 @@ class QuizViewTest {
         new CheckQuizInteractor(dataAccess, dataAccess, new CheckQuizPresenter(viewModel))));
     boolean[] submitted = {false};
     quiz.open(new ModuleState("Pre-lab", "", "", "", false, "", List.of(
-        new QuestionState("q1", "SINGLE", List.of("right", "wrong")),
-        new QuestionState("q2", "MULTIPLE", List.of("yes", "no", "also yes")))),
+        new QuestionState("q1", false, false, List.of("right", "wrong")),
+        new QuestionState("q2", true, false, List.of("yes", "no", "also yes")))),
         () -> { }, () -> submitted[0] = true);
     AbstractButton continueButton = button(quiz, "Continue");
     assertFalse(continueButton.isVisible(), "hidden before checking");

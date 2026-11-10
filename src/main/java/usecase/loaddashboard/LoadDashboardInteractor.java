@@ -38,8 +38,9 @@ public class LoadDashboardInteractor implements LoadDashboardInputBoundary {
     for (LabModule module : modules) {
       List<QuestionInfo> questions = new ArrayList<>();
       for (QuizQuestion question : module.getPreProcedureQuestions()) {
-        questions.add(new QuestionInfo(question.getPrompt(), question.getType().name(),
-            question.getChoices()));
+        questions.add(new QuestionInfo(question.getPrompt(),
+            question.getType() == QuizQuestion.Type.MULTIPLE,
+            question.getType() == QuizQuestion.Type.IMAGE, question.getChoices()));
       }
       infos.add(new ModuleInfo(module.getTitle(), module.getDueDate(), module.getOverview(),
           module.isCompleted(), module.getLastEdited().orElse(null), questions));

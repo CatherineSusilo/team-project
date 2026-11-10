@@ -136,7 +136,7 @@ public class QuizView extends JPanel implements PropertyChangeListener {
     JLabel feedback = new JLabel();
     feedbackLabels.add(feedback);
 
-    boolean images = "IMAGE".equals(question.getType());
+    boolean images = question.isImageChoices();
     JPanel choicesPanel = images
         ? new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0))
         : new JPanel(new GridLayout(0, 1));
@@ -144,7 +144,7 @@ public class QuizView extends JPanel implements PropertyChangeListener {
     List<AbstractButton> buttons = new ArrayList<>();
     for (String choice : question.getChoices()) {
       AbstractButton button;
-      if ("MULTIPLE".equals(question.getType())) {
+      if (question.isMultipleChoice()) {
         button = new JCheckBox(choice);
       } else {
         button = new JRadioButton(images ? imageHtml(choice) : choice);
