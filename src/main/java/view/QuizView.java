@@ -73,7 +73,7 @@ public class QuizView extends JPanel implements PropertyChangeListener {
    * @param onSubmitted called once Continue has saved the student's progress
    */
   public void open(ModuleState module, Runnable onBack, Runnable onSubmitted) {
-    this.moduleTitle = module.title();
+    this.moduleTitle = module.getTitle();
     this.onSubmitted = onSubmitted;
     removeAll();
     choiceButtons.clear();
@@ -83,12 +83,12 @@ public class QuizView extends JPanel implements PropertyChangeListener {
     back.addActionListener(event -> onBack.run());
     addLeft(back);
 
-    JLabel title = new JLabel(module.title() + ": Pre-Procedure Questions");
+    JLabel title = new JLabel(module.getTitle() + ": Pre-Procedure Questions");
     title.setFont(title.getFont().deriveFont(Font.BOLD, 20f));
     title.setBorder(BorderFactory.createEmptyBorder(16, 0, 8, 0));
     addLeft(title);
 
-    List<QuestionState> questions = module.questions();
+    List<QuestionState> questions = module.getQuestions();
     for (int i = 0; i < questions.size(); i++) {
       addLeft(createQuestion(i + 1, questions.get(i)));
     }
@@ -114,8 +114,8 @@ public class QuizView extends JPanel implements PropertyChangeListener {
       for (int i = 0; i < feedback.size(); i++) {
         FeedbackState state = feedback.get(i);
         JLabel label = feedbackLabels.get(i);
-        label.setForeground(state.correct() ? CORRECT : INCORRECT);
-        label.setText(wrap("<b>" + state.verdict() + "</b> " + state.explanation()));
+        label.setForeground(state.isCorrect() ? CORRECT : INCORRECT);
+        label.setText(wrap("<b>" + state.getVerdict() + "</b> " + state.getExplanation()));
       }
     }
     continueButton.setVisible(viewModel.isContinueVisible());
@@ -130,18 +130,18 @@ public class QuizView extends JPanel implements PropertyChangeListener {
   private JPanel createQuestion(int number, QuestionState question) {
     JPanel panel = new JPanel(new BorderLayout(0, 8));
     panel.setBorder(BorderFactory.createEmptyBorder(12, 0, 12, 0));
-    panel.add(new JLabel(wrap("<b>" + number + ".</b> " + question.prompt())),
+    panel.add(new JLabel(wrap("<b>" + number + ".</b> " + question.getPrompt())),
         BorderLayout.NORTH);
 
-    boolean images = "IMAGE".equals(question.type());
+    boolean images = "IMAGE".equals(question.getType());
     JPanel choicesPanel = images
         ? new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0))
         : new JPanel(new GridLayout(0, 1));
     ButtonGroup group = new ButtonGroup();
     List<AbstractButton> buttons = new ArrayList<>();
-    for (String choice : question.choices()) {
+    for (String choice : question.getChoices()) {
       AbstractButton button;
-      if ("MULTIPLE".equals(question.type())) {
+      if ("MULTIPLE".equals(question.getType())) {
         button = new JCheckBox(choice);
       } else {
         button = new JRadioButton(images ? imageHtml(choice) : choice);

@@ -32,16 +32,17 @@ public class LoadDashboardPresenter implements LoadDashboardOutputBoundary {
   @Override
   public void prepareSuccessView(LoadDashboardOutputData out) {
     List<ModuleState> modules = new ArrayList<>();
-    for (ModuleInfo module : out.modules()) {
+    for (ModuleInfo module : out.getModules()) {
       List<QuestionState> questions = new ArrayList<>();
-      for (QuestionInfo question : module.questions()) {
-        questions.add(new QuestionState(question.prompt(), question.type(), question.choices()));
+      for (QuestionInfo question : module.getQuestions()) {
+        questions.add(new QuestionState(question.getPrompt(), question.getType(),
+            question.getChoices()));
       }
-      boolean started = module.lastEdited() != null;
-      modules.add(new ModuleState(module.title(), module.dueDate().toString(),
-          module.completed() ? "Completed" : "To do",
-          started ? LAST_MODIFIED_FORMAT.format(module.lastEdited()) : "NOT STARTED",
-          started, module.overview(), questions));
+      boolean started = module.getLastEdited() != null;
+      modules.add(new ModuleState(module.getTitle(), module.getDueDate().toString(),
+          module.isCompleted() ? "Completed" : "To do",
+          started ? LAST_MODIFIED_FORMAT.format(module.getLastEdited()) : "NOT STARTED",
+          started, module.getOverview(), questions));
     }
     viewModel.setState(modules, "");
     viewModel.firePropertyChanged();

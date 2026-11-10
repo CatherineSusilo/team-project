@@ -76,14 +76,14 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   }
 
   private JPanel createCard(ModuleState module) {
-    JLabel title = new JLabel(module.title());
+    JLabel title = new JLabel(module.getTitle());
     title.setFont(title.getFont().deriveFont(Font.BOLD, 16f));
     JPanel info = new JPanel(new GridLayout(0, 1, 0, 4));
     info.setOpaque(false);
     info.add(title);
-    info.add(new JLabel("Due: " + module.dueDate()));
-    info.add(new JLabel("Status: " + module.status()));
-    info.add(new JLabel("Last Modified: " + module.lastModified()));
+    info.add(new JLabel("Due: " + module.getDueDate()));
+    info.add(new JLabel("Status: " + module.getStatus()));
+    info.add(new JLabel("Last Modified: " + module.getLastModified()));
 
     JButton seeInstructions = new JButton("See Instructions");
     seeInstructions.addActionListener(event -> showModulePanel(module));
@@ -109,7 +109,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   }
 
   private void showModulePanel(ModuleState module) {
-    JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), module.title(),
+    JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), module.getTitle(),
         Dialog.ModalityType.APPLICATION_MODAL);
     dialog.setContentPane(new ModulePanel(module,
         () -> {

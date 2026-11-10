@@ -26,16 +26,16 @@ public class CheckQuizPresenter implements CheckQuizOutputBoundary {
   @Override
   public void prepareSuccessView(CheckQuizOutputData out) {
     List<FeedbackState> feedback = new ArrayList<>();
-    for (QuestionResult result : out.results()) {
-      if (!result.answered()) {
+    for (QuestionResult result : out.getResults()) {
+      if (!result.isAnswered()) {
         // Don't reveal the explanation (and so the answer) for skipped questions.
         feedback.add(new FeedbackState(false, "Not answered yet.", ""));
       } else {
-        feedback.add(new FeedbackState(result.correct(),
-            result.correct() ? "Correct." : "Not quite.", result.explanation()));
+        feedback.add(new FeedbackState(result.isCorrect(),
+            result.isCorrect() ? "Correct." : "Not quite.", result.getExplanation()));
       }
     }
-    viewModel.setState(feedback, out.allCorrect(), out.submitted(), "");
+    viewModel.setState(feedback, out.isAllCorrect(), out.isSubmitted(), "");
     viewModel.firePropertyChanged();
   }
 

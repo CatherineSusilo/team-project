@@ -35,14 +35,14 @@ public class ModulePanel extends JPanel {
     super(new BorderLayout(0, 8));
     setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
 
-    JLabel title = new JLabel(module.title());
+    JLabel title = new JLabel(module.getTitle());
     title.setFont(title.getFont().deriveFont(Font.BOLD, 18f));
     JPanel header = new JPanel(new GridLayout(0, 1));
     header.add(title);
-    header.add(new JLabel("Due: " + module.dueDate()));
+    header.add(new JLabel("Due: " + module.getDueDate()));
     add(header, BorderLayout.NORTH);
 
-    JTextArea overview = new JTextArea(module.overview(), 14, 50);
+    JTextArea overview = new JTextArea(module.getOverview(), 14, 50);
     overview.setLineWrap(true);
     overview.setWrapStyleWord(true);
     overview.setEditable(false);
@@ -53,7 +53,7 @@ public class ModulePanel extends JPanel {
     JButton reset = new JButton("Reset");
     reset.addActionListener(event -> {
       int choice = JOptionPane.showConfirmDialog(this,
-          "Reset all your progress on " + module.title() + "? This can't be undone.",
+          "Reset all your progress on " + module.getTitle() + "? This can't be undone.",
           "Reset module", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
       if (choice == JOptionPane.YES_OPTION) {
         onReset.run();
@@ -61,7 +61,7 @@ public class ModulePanel extends JPanel {
     });
     JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
     buttons.add(reset);
-    if (module.started()) {
+    if (module.isStarted()) {
       JButton continueButton = new JButton("Continue");
       continueButton.addActionListener(event -> onContinue.run());
       buttons.add(continueButton);

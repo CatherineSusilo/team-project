@@ -35,23 +35,23 @@ public class CheckQuizInteractor implements CheckQuizInputBoundary {
 
   @Override
   public void execute(CheckQuizInputData in) {
-    Optional<LabModule> found = moduleDataAccess.getModule(in.moduleTitle());
+    Optional<LabModule> found = moduleDataAccess.getModule(in.getModuleTitle());
     if (found.isEmpty()) {
-      presenter.prepareFailView("There is no module called " + in.moduleTitle() + ".");
+      presenter.prepareFailView("There is no module called " + in.getModuleTitle() + ".");
       return;
     }
     LabModule module = found.get();
     List<QuizQuestion> questions = module.getPreProcedureQuestions();
-    if (in.answers().size() != questions.size()) {
+    if (in.getAnswers().size() != questions.size()) {
       presenter.prepareFailView("Expected " + questions.size() + " answers but got "
-          + in.answers().size() + ".");
+          + in.getAnswers().size() + ".");
       return;
     }
 
     List<QuestionResult> results = new ArrayList<>();
     boolean allCorrect = true;
     for (int i = 0; i < questions.size(); i++) {
-      Set<Integer> selected = in.answers().get(i);
+      Set<Integer> selected = in.getAnswers().get(i);
       QuizQuestion question = questions.get(i);
       boolean answered = !selected.isEmpty();
       boolean correct = answered && question.isCorrect(selected);
@@ -59,7 +59,7 @@ public class CheckQuizInteractor implements CheckQuizInputBoundary {
       results.add(new QuestionResult(answered, correct, question.getExplanation()));
     }
 
-    if (in.submit()) {
+    if (in.isSubmit()) {
       if (!allCorrect) {
         presenter.prepareFailView("Answer every question correctly before continuing.");
         return;
@@ -68,6 +68,6 @@ public class CheckQuizInteractor implements CheckQuizInputBoundary {
       moduleDataAccess.saveModule(module);
       labDataAccess.saveLab(labDataAccess.getLab());
     }
-    presenter.prepareSuccessView(new CheckQuizOutputData(results, allCorrect, in.submit()));
+    presenter.prepareSuccessView(new CheckQuizOutputData(results, allCorrect, in.isSubmit()));
   }
 }

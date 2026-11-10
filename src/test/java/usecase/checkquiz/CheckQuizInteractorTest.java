@@ -40,9 +40,12 @@ class CheckQuizInteractorTest {
   @Test
   void checkReportsEachQuestionWithoutSaving() {
     interactor.execute(new CheckQuizInputData("Pre-lab", List.of(Set.of(0), Set.of()), false));
-    assertEquals(List.of(new QuestionResult(true, true, "because a"),
-        new QuestionResult(false, false, "because b")), output.results());
-    assertFalse(output.allCorrect());
+    QuestionResult first = output.getResults().get(0);
+    QuestionResult second = output.getResults().get(1);
+    assertTrue(first.isAnswered() && first.isCorrect());
+    assertEquals("because a", first.getExplanation());
+    assertFalse(second.isAnswered() || second.isCorrect());
+    assertFalse(output.isAllCorrect());
     assertNull(module.getLastEdited().orElse(null));
   }
 
@@ -57,7 +60,7 @@ class CheckQuizInteractorTest {
   @Test
   void submitWithCorrectAnswersSetsLastModified() {
     interactor.execute(new CheckQuizInputData("Pre-lab", List.of(Set.of(0), Set.of(1)), true));
-    assertTrue(output.submitted());
+    assertTrue(output.isSubmitted());
     assertTrue(module.getLastEdited().isPresent());
   }
 
