@@ -23,13 +23,13 @@ public class SaveQuizPresenter implements SaveQuizOutputBoundary {
   @Override
   public void prepareSuccessView(SaveQuizOutputData out) {
     // No feedback: the labels already show the last check, and the page is about to change.
-    viewModel.setState(List.of(), false, false, true, "");
+    viewModel.setState(List.of(), false, true, "");
     viewModel.firePropertyChanged();
   }
 
   @Override
   public void prepareFailView(String error) {
-    viewModel.setState(List.of(), false, false, false, error);
+    viewModel.setState(List.of(), false, false, error);
     viewModel.firePropertyChanged();
   }
 }

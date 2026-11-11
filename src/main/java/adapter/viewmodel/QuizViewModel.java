@@ -11,7 +11,6 @@ import java.util.List;
 public class QuizViewModel {
   private final PropertyChangeSupport support = new PropertyChangeSupport(this);
   private List<FeedbackState> feedback = List.of();
-  private boolean continueVisible;
   private boolean submitted;
   private boolean saved;
   private String message = "";
@@ -20,15 +19,13 @@ public class QuizViewModel {
    * Replaces everything the quiz page shows.
    *
    * @param feedback feedback for each question, in order
-   * @param continueVisible whether to show Continue
    * @param submitted whether the quiz was submitted, so the page should move on
    * @param saved whether the answers so far were saved, so the page can leave
    * @param message an error to show, or empty for none
    */
-  public void setState(List<FeedbackState> feedback, boolean continueVisible, boolean submitted,
-      boolean saved, String message) {
+  public void setState(List<FeedbackState> feedback, boolean submitted, boolean saved,
+      String message) {
     this.feedback = List.copyOf(feedback);
-    this.continueVisible = continueVisible;
     this.submitted = submitted;
     this.saved = saved;
     this.message = message;
@@ -50,10 +47,6 @@ public class QuizViewModel {
 
   public List<FeedbackState> getFeedback() {
     return feedback;
-  }
-
-  public boolean isContinueVisible() {
-    return continueVisible;
   }
 
   public boolean isSubmitted() {

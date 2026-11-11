@@ -135,7 +135,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   }
 
   private void openQuiz(ModuleState module) {
-    HeaderBar header = new HeaderBar(module.getTitle());
+    HeaderBar header = new HeaderBar("Pre-Procedure Quiz");
     quizView.open(module, this::showDashboard,
         () -> showPage.accept(new HeaderBar(module.getTitle()).above(createNextScene())));
     JScrollPane scroll = new JScrollPane(quizView);

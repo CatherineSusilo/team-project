@@ -4,6 +4,7 @@ import entity.LabModule;
 import entity.QuizQuestion;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import usecase.ModuleDataAccessInterface;
 import usecase.loaddashboard.LoadDashboardOutputData.ModuleInfo;
 import usecase.loaddashboard.LoadDashboardOutputData.QuestionInfo;
@@ -37,12 +38,15 @@ public class LoadDashboardInteractor implements LoadDashboardInputBoundary {
     List<ModuleInfo> infos = new ArrayList<>();
     for (LabModule module : modules) {
       List<QuestionInfo> questions = new ArrayList<>();
-      for (QuizQuestion question : module.getPreProcedureQuestions()) {
+      List<Set<Integer>> saved = module.getSavedAnswers();
+      for (int i = 0; i < module.getPreProcedureQuestions().size(); i++) {
+        QuizQuestion question = module.getPreProcedureQuestions().get(i);
         boolean equation = question.getType() == QuizQuestion.Type.EQUATION;
         questions.add(new QuestionInfo(question.getPrompt(),
             question.getType() == QuizQuestion.Type.MULTIPLE,
             question.getType() == QuizQuestion.Type.IMAGE, equation, question.getReactants(),
-            equation ? question.getBlankCount() : 0, question.getChoices()));
+            equation ? question.getBlankCount() : 0, question.getChoices(),
+            i < saved.size() && question.isCorrect(saved.get(i))));
       }
       infos.add(new ModuleInfo(module.getTitle(), module.getDueDate(), module.getOverview(),
           module.getLearningObjectives(), module.getQuizProgress(), module.getPartTitles(),

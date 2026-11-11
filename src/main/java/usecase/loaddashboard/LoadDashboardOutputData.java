@@ -129,6 +129,7 @@ public final class LoadDashboardOutputData {
     private final String reactants;
     private final int blankCount;
     private final List<String> choices;
+    private final boolean savedCorrect;
 
     /**
      * Creates the question info.
@@ -142,9 +143,11 @@ public final class LoadDashboardOutputData {
      * @param blankCount how many blanks the equation has, or 0 when not {@code equation}
      * @param choices choice labels, image resource paths when {@code imageChoices}, or
      *     product tiles when {@code equation}
+     * @param savedCorrect whether the student's saved answer to it is correct
      */
     public QuestionInfo(String prompt, boolean multipleChoice, boolean imageChoices,
-        boolean equation, String reactants, int blankCount, List<String> choices) {
+        boolean equation, String reactants, int blankCount, List<String> choices,
+        boolean savedCorrect) {
       this.prompt = prompt;
       this.multipleChoice = multipleChoice;
       this.imageChoices = imageChoices;
@@ -152,6 +155,7 @@ public final class LoadDashboardOutputData {
       this.reactants = reactants;
       this.blankCount = blankCount;
       this.choices = choices;
+      this.savedCorrect = savedCorrect;
     }
 
     public String getPrompt() {
@@ -180,6 +184,10 @@ public final class LoadDashboardOutputData {
 
     public List<String> getChoices() {
       return choices;
+    }
+
+    public boolean isSavedCorrect() {
+      return savedCorrect;
     }
   }
 }

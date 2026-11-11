@@ -45,7 +45,7 @@ public class LoadDashboardPresenter implements LoadDashboardOutputBoundary {
       for (QuestionInfo question : module.getQuestions()) {
         questions.add(new QuestionState(question.getPrompt(), question.isMultipleChoice(),
             question.isImageChoices(), question.isEquation(), question.getReactants(),
-            question.getBlankCount(), question.getChoices()));
+            question.getBlankCount(), question.getChoices(), question.isSavedCorrect()));
       }
       List<PartState> parts = new ArrayList<>();
       parts.add(new PartState("Pre-Procedure Quiz", module.getQuizProgress() + "%"));
