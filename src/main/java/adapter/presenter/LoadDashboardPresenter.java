@@ -56,7 +56,7 @@ public class LoadDashboardPresenter implements LoadDashboardOutputBoundary {
       boolean complete = module.getProgress() == 100;
       modules.add(new ModuleState(module.getTitle(), dueDate(module.getDueDate()),
           complete ? "Complete" : module.getProgress() + "%", complete,
-          module.getLastEdited() != null, module.getOverview(), module.getLearningObjectives(),
+          module.getOverview(), module.getLearningObjectives(),
           parts, module.getSavedAnswers(), questions));
     }
     viewModel.setState(modules, "");

@@ -1,12 +1,18 @@
 package view;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Font;
+import java.awt.Graphics;
 import java.awt.font.TextAttribute;
 import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JRootPane;
+import javax.swing.RootPaneContainer;
 
 /**
  * The app's shared colors and button styles, so every page looks the same.
@@ -17,6 +23,7 @@ final class Theme {
   static final Color RED = new Color(0xC62828);
   static final Color YELLOW = new Color(0xF9C846);
   static final Color DISABLED = new Color(0xE0E0E0);
+  static final Color DIM = new Color(0, 0, 0, 120);
 
   private Theme() {
   }
@@ -40,6 +47,33 @@ final class Theme {
     button.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
     button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     return button;
+  }
+
+  /**
+   * Shows a modal dialog with its owner window darkened behind it, until the dialog closes.
+   *
+   * @param dialog the modal dialog to show
+   */
+  static void showDimmed(JDialog dialog) {
+    JRootPane root = dialog.getOwner() instanceof RootPaneContainer
+        ? ((RootPaneContainer) dialog.getOwner()).getRootPane() : null;
+    if (root == null) {
+      dialog.setVisible(true);
+      return;
+    }
+    final Component oldGlass = root.getGlassPane();
+    JComponent dim = new JComponent() {
+      @Override
+      protected void paintComponent(Graphics graphics) {
+        graphics.setColor(DIM);
+        graphics.fillRect(0, 0, getWidth(), getHeight());
+      }
+    };
+    root.setGlassPane(dim);
+    dim.setVisible(true);
+    // A modal dialog blocks here until it closes.
+    dialog.setVisible(true);
+    root.setGlassPane(oldGlass);
   }
 
   /**

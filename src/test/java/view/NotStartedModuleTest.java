@@ -7,6 +7,7 @@ import adapter.controller.LoadDashboardController;
 import adapter.presenter.LoadDashboardPresenter;
 import adapter.viewmodel.DashboardViewModel;
 import adapter.viewmodel.ModuleState;
+import adapter.viewmodel.PartState;
 import data.InMemoryLabDataAccessObject;
 import entity.LabModule;
 import java.awt.Component;
@@ -46,15 +47,16 @@ class NotStartedModuleTest {
   }
 
   @Test
-  void continueOnlyShowsOnceStarted() {
-    assertFalse(texts(panel(false)).contains("Continue"));
-    assertTrue(texts(panel(true)).contains("Continue"));
-  }
-
-  private static ModulePanel panel(boolean started) {
-    ModuleState module = new ModuleState("Pre-lab 3", "2026-11-30", "0%", false, started,
-        "overview", List.of(), List.of(), List.of(), List.of());
-    return new ModulePanel(module, () -> { }, () -> { }, () -> { });
+  void popupShowsProgressRowsAndNoContinue() {
+    ModuleState module = new ModuleState("Pre-lab 3", "Nov 30, 2026", "26%", false,
+        "overview", List.of("goal"), List.of(new PartState("Pre-Procedure Quiz", "80%"),
+            new PartState("Part A", "0%")), List.of(), List.of());
+    List<String> texts = texts(new ModulePanel(module, () -> { }, () -> { }));
+    assertTrue(texts.contains("Due: Nov 30, 2026"));
+    assertTrue(texts.contains("Your Progress"));
+    assertTrue(texts.containsAll(List.of("1", "Pre-Procedure Quiz", "80%", "2", "Part A")));
+    assertTrue(texts.containsAll(List.of("Reset", "Start")));
+    assertFalse(texts.contains("Continue"));
   }
 
   /** Text of every label and button inside the component. */

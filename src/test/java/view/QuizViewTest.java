@@ -41,7 +41,7 @@ class QuizViewTest {
         List.of(), null, QUESTIONS);
     QuizView quiz = quizFor(module);
     boolean[] submitted = {false};
-    quiz.open(new ModuleState("Pre-lab", "", "", false, false, "", List.of(), List.of(),
+    quiz.open(new ModuleState("Pre-lab", "", "", false, "", List.of(), List.of(),
         List.of(), List.of(
         new QuestionState("q1", false, false, false, "", 0, List.of("right", "wrong")),
         new QuestionState("q2", true, false, false, "", 0, List.of("yes", "no", "also yes")))),
@@ -77,7 +77,7 @@ class QuizViewTest {
     LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "", List.of(),
         List.of(), null, List.of(new QuizQuestion("q", "A + B", List.of("C", "D", "E"), Set.of(0, 1), "")));
     QuizView quiz = quizFor(module);
-    quiz.open(new ModuleState("Pre-lab", "", "", false, false, "", List.of(), List.of(),
+    quiz.open(new ModuleState("Pre-lab", "", "", false, "", List.of(), List.of(),
         List.of(), List.of(
         new QuestionState("q", false, false, true, "A + B", 2, List.of("C", "D", "E")))),
         () -> { }, () -> { });
@@ -102,7 +102,7 @@ class QuizViewTest {
         List.of(), null, QUESTIONS);
     QuizView quiz = quizFor(module);
     boolean[] left = {false};
-    quiz.open(new ModuleState("Pre-lab", "", "", false, false, "", List.of(), List.of(),
+    quiz.open(new ModuleState("Pre-lab", "", "", false, "", List.of(), List.of(),
         List.of(), List.of(
         new QuestionState("q1", false, false, false, "", 0, List.of("right", "wrong")),
         new QuestionState("q2", true, false, false, "", 0, List.of("yes", "no", "also yes")))),

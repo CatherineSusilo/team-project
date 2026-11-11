@@ -127,14 +127,11 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
           openQuiz(module);
         },
         () -> {
-          // TODO: reopen the pre-lab where the student left off.
-        },
-        () -> {
           // TODO: clear the student's saved progress for this module.
         }));
     dialog.pack();
     dialog.setLocationRelativeTo(this);
-    dialog.setVisible(true);
+    Theme.showDimmed(dialog);
   }
 
   private void openQuiz(ModuleState module) {
