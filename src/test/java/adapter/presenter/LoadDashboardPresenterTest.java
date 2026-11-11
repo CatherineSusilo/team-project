@@ -7,7 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import adapter.viewmodel.DashboardViewModel;
 import adapter.viewmodel.ModuleState;
 import adapter.viewmodel.PartState;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import usecase.loaddashboard.LoadDashboardOutputData;
@@ -30,6 +32,15 @@ class LoadDashboardPresenterTest {
   }
 
   @Test
+  void dueDateSaysHowLate() {
+    assertEquals("Nov 30, 2026", present(0, 0, LocalDate.of(2026, 11, 30)).getDueDate());
+    assertEquals("Nov 30, 2026 (1 day late)",
+        present(0, 0, LocalDate.of(2026, 12, 1)).getDueDate());
+    assertEquals("Nov 30, 2026 (3 days late)",
+        present(0, 0, LocalDate.of(2026, 12, 3)).getDueDate());
+  }
+
+  @Test
   void showsCompleteAtOneHundred() {
     ModuleState module = present(100, 100);
     assertEquals("Complete", module.getProgress());
@@ -37,8 +48,13 @@ class LoadDashboardPresenterTest {
   }
 
   private static ModuleState present(int quizProgress, int progress) {
+    return present(quizProgress, progress, LocalDate.of(2026, 11, 10));
+  }
+
+  private static ModuleState present(int quizProgress, int progress, LocalDate today) {
     DashboardViewModel viewModel = new DashboardViewModel();
-    new LoadDashboardPresenter(viewModel).prepareSuccessView(new LoadDashboardOutputData(
+    Clock clock = Clock.fixed(today.atStartOfDay(ZoneOffset.UTC).toInstant(), ZoneOffset.UTC);
+    new LoadDashboardPresenter(viewModel, clock).prepareSuccessView(new LoadDashboardOutputData(
         List.of(new ModuleInfo("Pre-lab", LocalDate.of(2026, 11, 30), "", List.of(),
             quizProgress, List.of("Part A", "Part B"), List.of(0, 0), progress, null,
             List.of(), List.of()))));

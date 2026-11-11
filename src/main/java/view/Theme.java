@@ -5,6 +5,7 @@ import java.awt.Cursor;
 import java.awt.Font;
 import java.awt.font.TextAttribute;
 import java.util.Map;
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 
 /**
@@ -13,8 +14,32 @@ import javax.swing.JButton;
 final class Theme {
   static final Color GREEN = new Color(0x2E7D32);
   static final Color ON_GREEN = Color.WHITE;
+  static final Color RED = new Color(0xC62828);
+  static final Color YELLOW = new Color(0xF9C846);
+  static final Color DISABLED = new Color(0xE0E0E0);
 
   private Theme() {
+  }
+
+  /**
+   * A flat button filled with one color. Opaque and borderless, so the color also shows on
+   * macOS.
+   *
+   * @param text the button text
+   * @param background the fill
+   * @param foreground the text color
+   * @return the button
+   */
+  static JButton filledButton(String text, Color background, Color foreground) {
+    JButton button = new JButton(text);
+    button.setBackground(background);
+    button.setForeground(foreground);
+    button.setOpaque(true);
+    button.setBorderPainted(false);
+    button.setFocusPainted(false);
+    button.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+    button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    return button;
   }
 
   /**

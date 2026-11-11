@@ -7,7 +7,6 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dialog;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
@@ -20,6 +19,7 @@ import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
 /**
@@ -31,7 +31,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   private final LoadDashboardController loadDashboard;
   private final QuizView quizView;
   private final Consumer<Container> showPage;
-  private final JPanel cards = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 16));
+  private final JPanel cards = new JPanel(new GridLayout(0, 3, 24, 24));
   private final JLabel message = new JLabel();
 
   /**
@@ -51,10 +51,15 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     this.showPage = showPage;
     viewModel.addPropertyChangeListener(this);
 
-    message.setBorder(BorderFactory.createEmptyBorder(16, 16, 0, 16));
-    // NORTH keeps cards at their natural size instead of stretching to fill the screen.
-    JPanel cardsHolder = new JPanel(new BorderLayout());
-    cardsHolder.add(message, BorderLayout.NORTH);
+    JLabel heading = new JLabel("Modules", SwingConstants.CENTER);
+    heading.setFont(Theme.bold(heading.getFont(), 28f));
+    JPanel header = new JPanel(new BorderLayout(0, 8));
+    header.add(heading, BorderLayout.NORTH);
+    header.add(message, BorderLayout.CENTER);
+    // NORTH keeps cards at their natural height instead of stretching to fill the screen.
+    JPanel cardsHolder = new JPanel(new BorderLayout(0, 24));
+    cardsHolder.setBorder(BorderFactory.createEmptyBorder(24, 32, 24, 32));
+    cardsHolder.add(header, BorderLayout.NORTH);
     cardsHolder.add(cards, BorderLayout.CENTER);
     JPanel top = new JPanel(new BorderLayout());
     top.add(cardsHolder, BorderLayout.NORTH);
@@ -83,12 +88,20 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     info.setOpaque(false);
     info.add(title);
     info.add(new JLabel("Due: " + module.getDueDate()));
-    info.add(new JLabel("Progress: " + module.getProgress()));
+    JLabel progress = new JLabel(module.getProgress());
+    progress.setForeground(module.isComplete() ? Theme.GREEN : Theme.RED);
+    JPanel progressRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+    progressRow.setOpaque(false);
+    progressRow.add(new JLabel("Progress:"));
+    progressRow.add(progress);
+    info.add(progressRow);
 
-    JButton seeInstructions = new JButton("See Instructions");
+    JButton seeInstructions =
+        Theme.filledButton("See Instructions", Theme.GREEN, Theme.ON_GREEN);
     seeInstructions.addActionListener(event -> showModulePanel(module));
     // TODO: export the completed module as PDF/CSV for submission.
-    JButton export = new JButton("Export");
+    JButton export = Theme.filledButton("Export",
+        module.isComplete() ? Theme.YELLOW : Theme.DISABLED, Color.BLACK);
     export.setEnabled(module.isComplete());
     JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
     buttons.setOpaque(false);
@@ -102,8 +115,6 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
         BorderFactory.createEmptyBorder(16, 16, 16, 16)));
     card.add(info, BorderLayout.CENTER);
     card.add(buttons, BorderLayout.SOUTH);
-    Dimension size = card.getPreferredSize();
-    card.setPreferredSize(new Dimension(Math.max(320, size.width), size.height));
     return card;
   }
 

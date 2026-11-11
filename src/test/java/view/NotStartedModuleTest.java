@@ -11,6 +11,7 @@ import data.InMemoryLabDataAccessObject;
 import entity.LabModule;
 import java.awt.Component;
 import java.awt.Container;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,9 +30,11 @@ class NotStartedModuleTest {
     DashboardViewModel viewModel = new DashboardViewModel();
     LoadDashboardController controller = new LoadDashboardController(new LoadDashboardInteractor(
         new InMemoryLabDataAccessObject(List.of(NOT_STARTED)),
-        new LoadDashboardPresenter(viewModel)));
-    assertTrue(texts(new DashboardView(viewModel, controller, null, page -> { }))
-        .contains("Progress: 0%"));
+        new LoadDashboardPresenter(viewModel, Clock.systemDefaultZone())));
+    List<String> texts = texts(new DashboardView(viewModel, controller, null, page -> { }));
+    assertTrue(texts.contains("Modules"));
+    assertTrue(texts.contains("Progress:"));
+    assertTrue(texts.contains("0%"));
   }
 
   @Test
