@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * The student's final quiz answers, sent when they click Continue.
+ * The student's final quiz answers, sent when they click Submit Quiz.
  */
 public final class SubmitQuizInputData {
   private final String moduleTitle;

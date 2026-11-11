@@ -7,7 +7,6 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dialog;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
@@ -20,6 +19,7 @@ import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
 /**
@@ -31,7 +31,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   private final LoadDashboardController loadDashboard;
   private final QuizView quizView;
   private final Consumer<Container> showPage;
-  private final JPanel cards = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 16));
+  private final JPanel cards = new JPanel(new GridLayout(0, 3, 24, 24));
   private final JLabel message = new JLabel();
 
   /**
@@ -51,13 +51,19 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     this.showPage = showPage;
     viewModel.addPropertyChangeListener(this);
 
-    message.setBorder(BorderFactory.createEmptyBorder(16, 16, 0, 16));
-    // NORTH keeps cards at their natural size instead of stretching to fill the screen.
-    JPanel cardsHolder = new JPanel(new BorderLayout());
-    cardsHolder.add(message, BorderLayout.NORTH);
+    JLabel heading = new JLabel("Modules", SwingConstants.CENTER);
+    heading.setFont(Theme.bold(heading.getFont(), 28f));
+    JPanel header = new JPanel(new BorderLayout(0, 8));
+    header.add(heading, BorderLayout.NORTH);
+    header.add(message, BorderLayout.CENTER);
+    // NORTH keeps cards at their natural height instead of stretching to fill the screen.
+    JPanel cardsHolder = new JPanel(new BorderLayout(0, 24));
+    cardsHolder.setBorder(BorderFactory.createEmptyBorder(24, 32, 24, 32));
+    cardsHolder.add(header, BorderLayout.NORTH);
     cardsHolder.add(cards, BorderLayout.CENTER);
     JPanel top = new JPanel(new BorderLayout());
     top.add(cardsHolder, BorderLayout.NORTH);
+    add(new HeaderBar(""), BorderLayout.NORTH);
     add(new JScrollPane(top), BorderLayout.CENTER);
     loadDashboard.execute();
   }
@@ -82,15 +88,21 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     info.setOpaque(false);
     info.add(title);
     info.add(new JLabel("Due: " + module.getDueDate()));
-    info.add(new JLabel("Status: " + module.getStatus()));
-    info.add(new JLabel("Last Modified: " + module.getLastModified()));
+    JLabel progress = new JLabel(module.getProgress());
+    progress.setForeground(module.isComplete() ? Theme.GREEN : Theme.RED);
+    JPanel progressRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+    progressRow.setOpaque(false);
+    progressRow.add(new JLabel("Progress:"));
+    progressRow.add(progress);
+    info.add(progressRow);
 
-    JButton seeInstructions = new JButton("See Instructions");
+    JButton seeInstructions =
+        Theme.filledButton("See Instructions", Theme.GREEN, Theme.ON_GREEN);
     seeInstructions.addActionListener(event -> showModulePanel(module));
-    // TODO: export the completed module as PDF/CSV for submission,
-    //  and enable the button only for completed modules.
-    JButton export = new JButton("Export");
-    export.setEnabled(false);
+    // TODO: export the completed module as PDF/CSV for submission.
+    JButton export = Theme.filledButton("Export",
+        module.isComplete() ? Theme.YELLOW : Theme.DISABLED, Color.BLACK);
+    export.setEnabled(module.isComplete());
     JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
     buttons.setOpaque(false);
     buttons.add(seeInstructions);
@@ -103,8 +115,6 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
         BorderFactory.createEmptyBorder(16, 16, 16, 16)));
     card.add(info, BorderLayout.CENTER);
     card.add(buttons, BorderLayout.SOUTH);
-    Dimension size = card.getPreferredSize();
-    card.setPreferredSize(new Dimension(Math.max(320, size.width), size.height));
     return card;
   }
 
@@ -117,21 +127,38 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
           openQuiz(module);
         },
         () -> {
-          // TODO: reopen the pre-lab where the student left off.
-        },
-        () -> {
           // TODO: clear the student's saved progress for this module.
         }));
     dialog.pack();
     dialog.setLocationRelativeTo(this);
-    dialog.setVisible(true);
+    Theme.showDimmed(dialog);
   }
 
   private void openQuiz(ModuleState module) {
-    quizView.open(module, this::showDashboard, () -> showPage.accept(createNextScene()));
+    HeaderBar header = new HeaderBar("Pre-Procedure Quiz");
+    quizView.open(module, this::showDashboard, () -> showQuizComplete(module));
     JScrollPane scroll = new JScrollPane(quizView);
     scroll.getVerticalScrollBar().setUnitIncrement(16);
-    showPage.accept(scroll);
+    showPage.accept(header.above(scroll));
+  }
+
+  /**
+   * The "Good Job!" popup. Exit Module, Save Progress and closing it go to the dashboard (the
+   * answers are already saved); Proceed to Experiment opens the next scene.
+   */
+  private void showQuizComplete(ModuleState module) {
+    JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), module.getTitle(),
+        Dialog.ModalityType.APPLICATION_MODAL);
+    Runnable[] next = {this::showDashboard};
+    dialog.setContentPane(new QuizCompletePanel(dialog::dispose, dialog::dispose, () -> {
+      next[0] = () -> showPage.accept(new HeaderBar(module.getTitle()).above(createNextScene()));
+      dialog.dispose();
+    }));
+    dialog.pack();
+    dialog.setLocationRelativeTo(this);
+    // Blocks until the popup closes; only then swap the page.
+    Theme.showDimmed(dialog);
+    next[0].run();
   }
 
   private JPanel createNextScene() {
@@ -144,7 +171,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     return scene;
   }
 
-  /** Reloads the modules, so Last Modified is current, then shows the dashboard. */
+  /** Reloads the modules, so Progress is current, then shows the dashboard. */
   private void showDashboard() {
     loadDashboard.execute();
     showPage.accept(this);

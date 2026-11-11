@@ -3,6 +3,7 @@ package usecase.submitquiz;
 import entity.LabModule;
 import entity.QuizQuestion;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import usecase.LabDataAccessInterface;
@@ -44,16 +45,39 @@ public class SubmitQuizInteractor implements SubmitQuizInputBoundary {
           + in.getAnswers().size() + ".");
       return;
     }
+    List<Integer> wrong = new ArrayList<>();
     for (int i = 0; i < questions.size(); i++) {
       if (!questions.get(i).isCorrect(in.getAnswers().get(i))) {
-        presenter.prepareFailView("Answer every question correctly before continuing.");
-        return;
+        wrong.add(i + 1);
       }
     }
+    if (!wrong.isEmpty()) {
+      presenter.prepareFailView(stillWrong(wrong));
+      return;
+    }
 
+    module.setSavedAnswers(in.getAnswers());
     module.setLastEdited(LocalDateTime.now());
     moduleDataAccess.saveModule(module);
     labDataAccess.saveLab(labDataAccess.getLab());
     presenter.prepareSuccessView(new SubmitQuizOutputData(module.getTitle()));
+  }
+
+  /**
+   * Names the questions still wrong, e.g. "Questions 2 and 5 still need a correct answer.".
+   *
+   * @param numbers the 1-based question numbers, in order; at least one
+   * @return the message
+   */
+  private static String stillWrong(List<Integer> numbers) {
+    if (numbers.size() == 1) {
+      return "Question " + numbers.get(0) + " still needs a correct answer.";
+    }
+    StringBuilder list = new StringBuilder();
+    for (int i = 0; i < numbers.size() - 1; i++) {
+      list.append(i == 0 ? "" : ", ").append(numbers.get(i));
+    }
+    return "Questions " + list + " and " + numbers.get(numbers.size() - 1)
+        + " still need a correct answer.";
   }
 }

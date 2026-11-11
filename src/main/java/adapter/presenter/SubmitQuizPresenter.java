@@ -23,7 +23,7 @@ public class SubmitQuizPresenter implements SubmitQuizOutputBoundary {
   @Override
   public void prepareSuccessView(SubmitQuizOutputData out) {
     // No feedback: the labels already show the last check, and the page is about to change.
-    viewModel.setState(List.of(), false, true, "");
+    viewModel.setState(List.of(), true, false, "");
     viewModel.firePropertyChanged();
   }
 

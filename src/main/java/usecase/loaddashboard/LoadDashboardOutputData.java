@@ -3,6 +3,7 @@ package usecase.loaddashboard;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Every module on the dashboard.
@@ -30,8 +31,13 @@ public final class LoadDashboardOutputData {
     private final String title;
     private final LocalDate dueDate;
     private final String overview;
-    private final boolean completed;
+    private final List<String> learningObjectives;
+    private final int quizProgress;
+    private final List<String> partTitles;
+    private final List<Integer> partProgress;
+    private final int progress;
     private final LocalDateTime lastEdited;
+    private final List<Set<Integer>> savedAnswers;
     private final List<QuestionInfo> questions;
 
     /**
@@ -40,17 +46,29 @@ public final class LoadDashboardOutputData {
      * @param title display name
      * @param dueDate submission deadline
      * @param overview short description of the pre-lab
-     * @param completed whether the student has finished it
+     * @param learningObjectives what the student should be able to do afterwards, in order
+     * @param quizProgress percent of the quiz answered correctly
+     * @param partTitles the lab parts after the quiz, in order
+     * @param partProgress percent done of each part, in the same order
+     * @param progress percent done of the whole module; 100 means complete
      * @param lastEdited when the student last worked on it, or null if never
+     * @param savedAnswers the student's saved choice indexes per question, or empty if none
      * @param questions the pre-procedure quiz, without its answers
      */
-    public ModuleInfo(String title, LocalDate dueDate, String overview, boolean completed,
-        LocalDateTime lastEdited, List<QuestionInfo> questions) {
+    public ModuleInfo(String title, LocalDate dueDate, String overview,
+        List<String> learningObjectives, int quizProgress, List<String> partTitles,
+        List<Integer> partProgress, int progress, LocalDateTime lastEdited,
+        List<Set<Integer>> savedAnswers, List<QuestionInfo> questions) {
       this.title = title;
       this.dueDate = dueDate;
       this.overview = overview;
-      this.completed = completed;
+      this.learningObjectives = learningObjectives;
+      this.quizProgress = quizProgress;
+      this.partTitles = partTitles;
+      this.partProgress = partProgress;
+      this.progress = progress;
       this.lastEdited = lastEdited;
+      this.savedAnswers = savedAnswers;
       this.questions = questions;
     }
 
@@ -66,13 +84,33 @@ public final class LoadDashboardOutputData {
       return overview;
     }
 
-    public boolean isCompleted() {
-      return completed;
+    public List<String> getLearningObjectives() {
+      return learningObjectives;
+    }
+
+    public int getQuizProgress() {
+      return quizProgress;
+    }
+
+    public List<String> getPartTitles() {
+      return partTitles;
+    }
+
+    public List<Integer> getPartProgress() {
+      return partProgress;
+    }
+
+    public int getProgress() {
+      return progress;
     }
 
     /** When the student last worked on it, or null if never. */
     public LocalDateTime getLastEdited() {
       return lastEdited;
+    }
+
+    public List<Set<Integer>> getSavedAnswers() {
+      return savedAnswers;
     }
 
     public List<QuestionInfo> getQuestions() {
@@ -87,7 +125,11 @@ public final class LoadDashboardOutputData {
     private final String prompt;
     private final boolean multipleChoice;
     private final boolean imageChoices;
+    private final boolean equation;
+    private final String reactants;
+    private final int blankCount;
     private final List<String> choices;
+    private final boolean savedCorrect;
 
     /**
      * Creates the question info.
@@ -96,14 +138,24 @@ public final class LoadDashboardOutputData {
      * @param multipleChoice true if the student ticks every correct choice, false if they
      *     pick one
      * @param imageChoices true if each choice is an image resource path, not a text label
-     * @param choices choice labels, or image resource paths when {@code imageChoices}
+     * @param equation true if the student fills product tiles into blanks after the reactants
+     * @param reactants the left side of the equation, or empty when not {@code equation}
+     * @param blankCount how many blanks the equation has, or 0 when not {@code equation}
+     * @param choices choice labels, image resource paths when {@code imageChoices}, or
+     *     product tiles when {@code equation}
+     * @param savedCorrect whether the student's saved answer to it is correct
      */
     public QuestionInfo(String prompt, boolean multipleChoice, boolean imageChoices,
-        List<String> choices) {
+        boolean equation, String reactants, int blankCount, List<String> choices,
+        boolean savedCorrect) {
       this.prompt = prompt;
       this.multipleChoice = multipleChoice;
       this.imageChoices = imageChoices;
+      this.equation = equation;
+      this.reactants = reactants;
+      this.blankCount = blankCount;
       this.choices = choices;
+      this.savedCorrect = savedCorrect;
     }
 
     public String getPrompt() {
@@ -118,8 +170,24 @@ public final class LoadDashboardOutputData {
       return imageChoices;
     }
 
+    public boolean isEquation() {
+      return equation;
+    }
+
+    public String getReactants() {
+      return reactants;
+    }
+
+    public int getBlankCount() {
+      return blankCount;
+    }
+
     public List<String> getChoices() {
       return choices;
+    }
+
+    public boolean isSavedCorrect() {
+      return savedCorrect;
     }
   }
 }

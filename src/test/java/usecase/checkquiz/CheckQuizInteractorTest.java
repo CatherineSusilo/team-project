@@ -17,7 +17,7 @@ import usecase.checkquiz.CheckQuizOutputData.QuestionResult;
 
 class CheckQuizInteractorTest {
   private final LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "",
-      false, null, List.of(
+      List.of(), List.of(), null, List.of(
           new QuizQuestion("q1", Type.SINGLE, List.of("a", "b"), Set.of(0), "because a"),
           new QuizQuestion("q2", Type.SINGLE, List.of("a", "b"), Set.of(1), "because b")));
   private final InMemoryLabDataAccessObject dataAccess =

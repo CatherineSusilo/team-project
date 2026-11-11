@@ -35,7 +35,7 @@ public class CheckQuizPresenter implements CheckQuizOutputBoundary {
             result.isCorrect() ? "Correct." : "Not quite.", result.getExplanation()));
       }
     }
-    viewModel.setState(feedback, out.isAllCorrect(), false, "");
+    viewModel.setState(feedback, false, false, "");
     viewModel.firePropertyChanged();
   }
 
