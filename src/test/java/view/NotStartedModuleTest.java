@@ -1,5 +1,6 @@
 package view;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -57,6 +58,33 @@ class NotStartedModuleTest {
     assertTrue(texts.containsAll(List.of("1", "Pre-Procedure Quiz", "80%", "2", "Part A")));
     assertTrue(texts.containsAll(List.of("Reset", "Start")));
     assertFalse(texts.contains("Continue"));
+  }
+
+  @Test
+  void quizCompletePopupRunsEachChoice() {
+    List<String> clicked = new ArrayList<>();
+    QuizCompletePanel popup = new QuizCompletePanel(() -> clicked.add("exit"),
+        () -> clicked.add("save"), () -> clicked.add("proceed"));
+    assertTrue(texts(popup).containsAll(List.of("Good Job!",
+        "You completed the Pre-Procedure Quiz!")));
+    for (String text : List.of("Exit Module", "Save Progress", "Proceed to Experiment")) {
+      button(popup, text).doClick();
+    }
+    assertEquals(List.of("exit", "save", "proceed"), clicked);
+  }
+
+  /** The first button labelled {@code text} inside the component, or null if none. */
+  private static AbstractButton button(Container container, String text) {
+    for (Component child : container.getComponents()) {
+      if (child instanceof AbstractButton && text.equals(((AbstractButton) child).getText())) {
+        return (AbstractButton) child;
+      }
+      AbstractButton inside = child instanceof Container ? button((Container) child, text) : null;
+      if (inside != null) {
+        return inside;
+      }
+    }
+    return null;
   }
 
   /** Text of every label and button inside the component. */

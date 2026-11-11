@@ -136,11 +136,29 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
 
   private void openQuiz(ModuleState module) {
     HeaderBar header = new HeaderBar("Pre-Procedure Quiz");
-    quizView.open(module, this::showDashboard,
-        () -> showPage.accept(new HeaderBar(module.getTitle()).above(createNextScene())));
+    quizView.open(module, this::showDashboard, () -> showQuizComplete(module));
     JScrollPane scroll = new JScrollPane(quizView);
     scroll.getVerticalScrollBar().setUnitIncrement(16);
     showPage.accept(header.above(scroll));
+  }
+
+  /**
+   * The "Good Job!" popup. Exit Module, Save Progress and closing it go to the dashboard (the
+   * answers are already saved); Proceed to Experiment opens the next scene.
+   */
+  private void showQuizComplete(ModuleState module) {
+    JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), module.getTitle(),
+        Dialog.ModalityType.APPLICATION_MODAL);
+    Runnable[] next = {this::showDashboard};
+    dialog.setContentPane(new QuizCompletePanel(dialog::dispose, dialog::dispose, () -> {
+      next[0] = () -> showPage.accept(new HeaderBar(module.getTitle()).above(createNextScene()));
+      dialog.dispose();
+    }));
+    dialog.pack();
+    dialog.setLocationRelativeTo(this);
+    // Blocks until the popup closes; only then swap the page.
+    Theme.showDimmed(dialog);
+    next[0].run();
   }
 
   private JPanel createNextScene() {

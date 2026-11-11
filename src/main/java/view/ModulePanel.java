@@ -6,21 +6,16 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.GridLayout;
-import java.awt.RenderingHints;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
-import javax.swing.SwingConstants;
 
 /**
  * Popup shown when a student clicks "See Instructions" on a module: the title on a green strip,
@@ -113,7 +108,7 @@ public class ModulePanel extends JPanel {
       percent.setFont(Theme.bold(percent.getFont(), 13f));
       JPanel row = new JPanel(new BorderLayout(12, 0));
       row.setOpaque(false);
-      row.add(numberCircle(i + 1), BorderLayout.WEST);
+      row.add(Theme.circle(String.valueOf(i + 1), CIRCLE, 13f), BorderLayout.WEST);
       row.add(new JLabel(parts.get(i).getTitle()), BorderLayout.CENTER);
       row.add(percent, BorderLayout.EAST);
       rows.add(row);
@@ -150,24 +145,5 @@ public class ModulePanel extends JPanel {
     // Wrapping needs a width before Swing can work out how tall the text is.
     area.setSize(TEXT_WIDTH, Short.MAX_VALUE);
     return area;
-  }
-
-  /** A green circle with a white number in it. */
-  private static JComponent numberCircle(int number) {
-    JLabel circle = new JLabel(String.valueOf(number), SwingConstants.CENTER) {
-      @Override
-      protected void paintComponent(Graphics graphics) {
-        Graphics2D g = (Graphics2D) graphics.create();
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g.setColor(Theme.GREEN);
-        g.fillOval(0, 0, getWidth() - 1, getHeight() - 1);
-        g.dispose();
-        super.paintComponent(graphics);
-      }
-    };
-    circle.setForeground(Theme.ON_GREEN);
-    circle.setFont(Theme.bold(circle.getFont(), 13f));
-    circle.setPreferredSize(new Dimension(CIRCLE, CIRCLE));
-    return circle;
   }
 }

@@ -3,16 +3,21 @@ package view;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.font.TextAttribute;
 import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
+import javax.swing.JLabel;
 import javax.swing.JRootPane;
 import javax.swing.RootPaneContainer;
+import javax.swing.SwingConstants;
 
 /**
  * The app's shared colors and button styles, so every page looks the same.
@@ -74,6 +79,34 @@ final class Theme {
     // A modal dialog blocks here until it closes.
     dialog.setVisible(true);
     root.setGlassPane(oldGlass);
+  }
+
+  /**
+   * A green circle with white text in the middle, e.g. a step number or a check mark.
+   *
+   * @param text what goes in the circle
+   * @param size the circle's diameter in pixels
+   * @param fontSize the text size in points
+   * @return the circle
+   */
+  static JComponent circle(String text, int size, float fontSize) {
+    JLabel circle = new JLabel(text, SwingConstants.CENTER) {
+      @Override
+      protected void paintComponent(Graphics graphics) {
+        Graphics2D g = (Graphics2D) graphics.create();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setColor(GREEN);
+        g.fillOval(0, 0, getWidth() - 1, getHeight() - 1);
+        g.dispose();
+        super.paintComponent(graphics);
+      }
+    };
+    circle.setForeground(ON_GREEN);
+    circle.setFont(bold(circle.getFont(), fontSize));
+    Dimension fixed = new Dimension(size, size);
+    circle.setPreferredSize(fixed);
+    circle.setMaximumSize(fixed);
+    return circle;
   }
 
   /**
