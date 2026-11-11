@@ -58,6 +58,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     cardsHolder.add(cards, BorderLayout.CENTER);
     JPanel top = new JPanel(new BorderLayout());
     top.add(cardsHolder, BorderLayout.NORTH);
+    add(new HeaderBar(""), BorderLayout.NORTH);
     add(new JScrollPane(top), BorderLayout.CENTER);
     loadDashboard.execute();
   }
@@ -126,10 +127,12 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   }
 
   private void openQuiz(ModuleState module) {
-    quizView.open(module, this::showDashboard, () -> showPage.accept(createNextScene()));
+    HeaderBar header = new HeaderBar(module.getTitle());
+    quizView.open(module, this::showDashboard,
+        () -> showPage.accept(new HeaderBar(module.getTitle()).above(createNextScene())));
     JScrollPane scroll = new JScrollPane(quizView);
     scroll.getVerticalScrollBar().setUnitIncrement(16);
-    showPage.accept(scroll);
+    showPage.accept(header.above(scroll));
   }
 
   private JPanel createNextScene() {

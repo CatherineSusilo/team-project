@@ -35,6 +35,14 @@ class NotStartedModuleTest {
   }
 
   @Test
+  void headerShowsCourseAndNotebookLink() {
+    List<String> texts = texts(new HeaderBar("Pre-lab 3"));
+    assertTrue(texts.contains("CHM136 Virtual Lab"));
+    assertTrue(texts.contains("Pre-lab 3"));
+    assertTrue(texts.contains("View Lab Notebook"));
+  }
+
+  @Test
   void continueOnlyShowsOnceStarted() {
     assertFalse(texts(panel(false)).contains("Continue"));
     assertTrue(texts(panel(true)).contains("Continue"));
