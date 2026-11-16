@@ -1,21 +1,24 @@
 package data;
 
+import entity.Checkpoint;
 import entity.Lab;
 import entity.LabModule;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import usecase.CheckpointDataAccessInterface;
 import usecase.LabDataAccessInterface;
 import usecase.ModuleDataAccessInterface;
 
 /**
- * Keeps the student's lab and modules in memory.
+ * Keeps the student's lab, modules and checkpoint questions in memory.
  */
 public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
-    ModuleDataAccessInterface {
+    ModuleDataAccessInterface, CheckpointDataAccessInterface {
   // TODO: add the UML's SampleAssigner assigner once sample assignment exists.
   private final Lab lab = new Lab();
   private final List<LabModule> modules;
+  private final List<Checkpoint> checkpoints = PreLab3Checkpoints.checkpoints();
 
   /**
    * Starts with the Pre-lab 3 module.
@@ -52,6 +55,12 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
   @Override
   public Optional<LabModule> getModule(String title) {
     return modules.stream().filter(module -> module.getTitle().equals(title)).findFirst();
+  }
+
+  @Override
+  public Optional<Checkpoint> getCheckpoint(int stepIndex) {
+    return checkpoints.stream().filter(checkpoint -> checkpoint.getStepIndex() == stepIndex)
+        .findFirst();
   }
 
   @Override
