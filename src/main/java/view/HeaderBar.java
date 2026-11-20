@@ -12,7 +12,8 @@ import javax.swing.SwingConstants;
 
 /**
  * The green bar along the top of every page: the course name on the left, an optional page
- * title in the middle and the View Lab Notebook link on the right.
+ * title in the middle and the Compound Lookup and View Lab Notebook links on the right. View Lab
+ * Notebook is only on the dashboard: inside a module the notebook is already on screen.
  */
 class HeaderBar extends JPanel {
 
@@ -20,8 +21,11 @@ class HeaderBar extends JPanel {
    * Builds the bar.
    *
    * @param title the page title shown in the middle, or "" for none
+   * @param openCompoundLookup opens the compound search when its link is clicked
+   * @param openNotebooks opens the student's notebooks when View Lab Notebook is clicked, or
+   *     null to leave the link out
    */
-  HeaderBar(String title) {
+  HeaderBar(String title, Runnable openCompoundLookup, Runnable openNotebooks) {
     // Equal thirds keep the title centered however wide the two sides are.
     super(new GridLayout(1, 3));
     setBackground(Theme.GREEN);
@@ -37,13 +41,16 @@ class HeaderBar extends JPanel {
     page.setFont(Theme.SANS_REGULAR.deriveFont(Theme.HEADER_SIZE));
     add(page);
 
-    JButton notebook = Theme.linkButton("View Lab Notebook", Theme.ON_GREEN);
-    notebook.addActionListener(event -> {
-      // TODO: open the student's lab notebook once it exists.
-    });
+    JButton compoundLookup = Theme.linkButton("Compound Lookup", Theme.ON_GREEN);
+    compoundLookup.addActionListener(event -> openCompoundLookup.run());
     JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
     right.setOpaque(false);
-    right.add(notebook);
+    right.add(compoundLookup);
+    if (openNotebooks != null) {
+      JButton notebooks = Theme.linkButton("View Lab Notebook", Theme.ON_GREEN);
+      notebooks.addActionListener(event -> openNotebooks.run());
+      right.add(notebooks);
+    }
     add(right);
   }
 

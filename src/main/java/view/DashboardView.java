@@ -7,11 +7,14 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dialog;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.KeyboardFocusManager;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -29,6 +32,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   private final DashboardViewModel viewModel;
   private final LoadDashboardController loadDashboard;
   private final QuizView quizView;
+  private final CompoundSearchView compoundSearch;
   private final Consumer<Container> showPage;
   private final JPanel cards = new JPanel(new GridLayout(0, 3, 24, 24));
   private final JLabel message = new JLabel();
@@ -39,14 +43,16 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
    * @param viewModel where the modules to show appear
    * @param loadDashboard reloads the modules, e.g. after the student saves progress
    * @param quizView the page Start opens
+   * @param compoundSearch what the header's Compound Lookup link opens
    * @param showPage shows a page in the app window
    */
   public DashboardView(DashboardViewModel viewModel, LoadDashboardController loadDashboard,
-      QuizView quizView, Consumer<Container> showPage) {
+      QuizView quizView, CompoundSearchView compoundSearch, Consumer<Container> showPage) {
     super(new BorderLayout());
     this.viewModel = viewModel;
     this.loadDashboard = loadDashboard;
     this.quizView = quizView;
+    this.compoundSearch = compoundSearch;
     this.showPage = showPage;
     viewModel.addPropertyChangeListener(this);
 
@@ -62,7 +68,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     cardsHolder.add(cards, BorderLayout.CENTER);
     JPanel top = new JPanel(new BorderLayout());
     top.add(cardsHolder, BorderLayout.NORTH);
-    add(new HeaderBar(""), BorderLayout.NORTH);
+    add(new HeaderBar("", this::showCompoundSearch, this::showNotebooks), BorderLayout.NORTH);
     add(new JScrollPane(top), BorderLayout.CENTER);
     loadDashboard.execute();
   }
@@ -126,15 +132,43 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
           openQuiz(module);
         },
         () -> {
-          // TODO: clear the student's saved progress for this module.
+          // TODO: clear the student's saved progress and notebook for this module.
         }));
     dialog.pack();
     dialog.setLocationRelativeTo(this);
     Theme.showDimmed(dialog);
   }
 
+  /** The View Lab Notebook popup: the student's notebooks, to read and edit outside the lab. */
+  private void showNotebooks() {
+    JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Your Lab Notebooks",
+        Dialog.ModalityType.APPLICATION_MODAL);
+    // TODO: list only the modules that have a saved notebook, once notebooks are saved.
+    dialog.setContentPane(new NotebookListPanel(viewModel.getModules().stream()
+        .map(ModuleState::getTitle).collect(Collectors.toList())));
+    dialog.pack();
+    dialog.setLocationRelativeTo(this);
+    Theme.showDimmed(dialog);
+  }
+
+  /**
+   * The compound search popup. It's the same panel every time, so the last result is still
+   * there when the student opens it again.
+   */
+  private void showCompoundSearch() {
+    // The dashboard isn't on screen while the quiz is, so ask for the window that's in front
+    // instead of the dashboard's own.
+    JDialog dialog = new JDialog(
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow(),
+        "Compound Lookup", Dialog.ModalityType.APPLICATION_MODAL);
+    dialog.setContentPane(compoundSearch);
+    dialog.pack();
+    dialog.setLocationRelativeTo(dialog.getOwner());
+    Theme.showDimmed(dialog);
+  }
+
   private void openQuiz(ModuleState module) {
-    HeaderBar header = new HeaderBar("Pre-Procedure Quiz");
+    HeaderBar header = new HeaderBar("Pre-Procedure Quiz", this::showCompoundSearch, null);
     quizView.open(module, this::showDashboard, () -> showQuizComplete(module));
     JScrollPane scroll = new JScrollPane(quizView);
     scroll.getVerticalScrollBar().setUnitIncrement(16);
@@ -150,7 +184,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
         Dialog.ModalityType.APPLICATION_MODAL);
     Runnable[] next = {this::showDashboard};
     dialog.setContentPane(new QuizCompletePanel(dialog::dispose, dialog::dispose, () -> {
-      next[0] = () -> showPage.accept(new HeaderBar(module.getTitle()).above(createNextScene()));
+      next[0] = () -> showLab(module);
       dialog.dispose();
     }));
     dialog.pack();
@@ -160,13 +194,24 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     next[0].run();
   }
 
+  private void showLab(ModuleState module) {
+    showPage.accept(new HeaderBar(module.getTitle(), this::showCompoundSearch, null)
+        .above(createNextScene()));
+  }
+
   private JPanel createNextScene() {
-    // TODO: build the next scene of the pre-lab; for now it's a blank page.
-    JPanel scene = new JPanel(new FlowLayout(FlowLayout.LEFT, 24, 24));
-    scene.setBackground(Color.WHITE);
+    // TODO: build the lab manual and fume hood; for now the lab is blank apart from the notebook.
+    JPanel lab = new JPanel(new FlowLayout(FlowLayout.LEFT, 24, 24));
+    lab.setBackground(Color.WHITE);
     JButton back = new JButton("Back to Dashboard");
     back.addActionListener(event -> showDashboard());
-    scene.add(back);
+    lab.add(back);
+
+    NotebookPanel notebook = new NotebookPanel();
+    notebook.setPreferredSize(new Dimension(320, 0));
+    JPanel scene = new JPanel(new BorderLayout());
+    scene.add(lab, BorderLayout.CENTER);
+    scene.add(notebook, BorderLayout.EAST);
     return scene;
   }
 

@@ -3,14 +3,18 @@ package app;
 import adapter.controller.CheckQuizController;
 import adapter.controller.LoadDashboardController;
 import adapter.controller.SaveQuizController;
+import adapter.controller.SearchCompoundController;
 import adapter.controller.SubmitQuizController;
 import adapter.presenter.CheckQuizPresenter;
 import adapter.presenter.LoadDashboardPresenter;
 import adapter.presenter.SaveQuizPresenter;
+import adapter.presenter.SearchCompoundPresenter;
 import adapter.presenter.SubmitQuizPresenter;
+import adapter.viewmodel.CompoundViewModel;
 import adapter.viewmodel.DashboardViewModel;
 import adapter.viewmodel.QuizViewModel;
 import data.InMemoryLabDataAccessObject;
+import data.PubChemCompoundDataAccessObject;
 import data.RandomChoiceOrderer;
 import java.awt.GraphicsEnvironment;
 import java.time.Clock;
@@ -20,7 +24,9 @@ import javax.swing.SwingUtilities;
 import usecase.checkquiz.CheckQuizInteractor;
 import usecase.loaddashboard.LoadDashboardInteractor;
 import usecase.savequiz.SaveQuizInteractor;
+import usecase.searchcompound.SearchCompoundInteractor;
 import usecase.submitquiz.SubmitQuizInteractor;
+import view.CompoundSearchView;
 import view.DashboardView;
 import view.QuizView;
 import view.Theme;
@@ -52,14 +58,21 @@ public class LabApp {
     SaveQuizController saveQuizController = new SaveQuizController(
         new SaveQuizInteractor(dataAccess, new SaveQuizPresenter(quizViewModel)));
 
+    CompoundViewModel compoundViewModel = new CompoundViewModel();
+    SearchCompoundController searchCompoundController = new SearchCompoundController(
+        new SearchCompoundInteractor(new PubChemCompoundDataAccessObject(),
+            new SearchCompoundPresenter(compoundViewModel)));
+
     SwingUtilities.invokeLater(() -> {
-      Theme.installDefaultFonts(); 
+      Theme.installDefaultFonts();
       JFrame frame = new JFrame("CHM136 Virtual Lab");
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
       QuizView quizView = new QuizView(quizViewModel, checkQuizController,
           submitQuizController, saveQuizController);
+      CompoundSearchView compoundSearchView =
+          new CompoundSearchView(compoundViewModel, searchCompoundController);
       frame.setContentPane(new DashboardView(dashboardViewModel, loadDashboardController,
-          quizView, page -> {
+          quizView, compoundSearchView, page -> {
             frame.setContentPane(page);
             frame.getRootPane().revalidate();
             frame.getRootPane().repaint();
