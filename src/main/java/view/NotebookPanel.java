@@ -52,10 +52,18 @@ class NotebookPanel extends JPanel {
   private static final Color STYLE_ON = new Color(0xE0E0E0);
   private static final int SHORTCUT = System.getProperty("os.name", "").startsWith("Mac")
       ? InputEvent.META_DOWN_MASK : InputEvent.CTRL_DOWN_MASK;
-  /** Each text style and the HTML tag it is saved as. */
-  private static final Map<Object, String> STYLE_TAGS = Map.of(StyleConstants.Bold, "b",
-      StyleConstants.Italic, "i", StyleConstants.Underline, "u",
-      StyleConstants.StrikeThrough, "s");
+  /**
+   * Each text style and the HTML tag it is saved as. In a fixed order, so the same notes always
+   * save as the same HTML and an unchanged notebook isn't saved again.
+   */
+  private static final Map<Object, String> STYLE_TAGS = new LinkedHashMap<>();
+
+  static {
+    STYLE_TAGS.put(StyleConstants.Bold, "b");
+    STYLE_TAGS.put(StyleConstants.Italic, "i");
+    STYLE_TAGS.put(StyleConstants.Underline, "u");
+    STYLE_TAGS.put(StyleConstants.StrikeThrough, "s");
+  }
 
   // TODO: clear the notes on Reset.
   final JTextPane text = new JTextPane() {

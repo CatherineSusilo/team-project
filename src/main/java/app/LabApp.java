@@ -2,11 +2,13 @@ package app;
 
 import adapter.controller.CheckQuizController;
 import adapter.controller.LoadDashboardController;
+import adapter.controller.SaveNotebookController;
 import adapter.controller.SaveQuizController;
 import adapter.controller.SearchCompoundController;
 import adapter.controller.SubmitQuizController;
 import adapter.presenter.CheckQuizPresenter;
 import adapter.presenter.LoadDashboardPresenter;
+import adapter.presenter.SaveNotebookPresenter;
 import adapter.presenter.SaveQuizPresenter;
 import adapter.presenter.SearchCompoundPresenter;
 import adapter.presenter.SubmitQuizPresenter;
@@ -24,6 +26,7 @@ import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import usecase.checkquiz.CheckQuizInteractor;
 import usecase.loaddashboard.LoadDashboardInteractor;
+import usecase.savenotebook.SaveNotebookInteractor;
 import usecase.savequiz.SaveQuizInteractor;
 import usecase.searchcompound.SearchCompoundInteractor;
 import usecase.submitquiz.SubmitQuizInteractor;
@@ -51,6 +54,8 @@ public class LabApp {
     LoadDashboardController loadDashboardController = new LoadDashboardController(
         new LoadDashboardInteractor(dataAccess, new LoadDashboardPresenter(dashboardViewModel,
             Clock.systemDefaultZone()), new RandomChoiceOrderer(new Random())));
+    SaveNotebookController saveNotebookController = new SaveNotebookController(
+        new SaveNotebookInteractor(dataAccess, new SaveNotebookPresenter(dashboardViewModel)));
 
     QuizViewModel quizViewModel = new QuizViewModel();
     CheckQuizController checkQuizController = new CheckQuizController(
@@ -74,7 +79,7 @@ public class LabApp {
       CompoundSearchView compoundSearchView =
           new CompoundSearchView(compoundViewModel, searchCompoundController);
       frame.setContentPane(new DashboardView(dashboardViewModel, loadDashboardController,
-          quizView, compoundSearchView, page -> {
+          saveNotebookController, quizView, compoundSearchView, page -> {
             frame.setContentPane(page);
             frame.getRootPane().revalidate();
             frame.getRootPane().repaint();

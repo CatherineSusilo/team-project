@@ -1,6 +1,7 @@
 package view;
 
 import adapter.controller.LoadDashboardController;
+import adapter.controller.SaveNotebookController;
 import adapter.viewmodel.DashboardViewModel;
 import adapter.viewmodel.ModuleState;
 import java.awt.BorderLayout;
@@ -14,8 +15,9 @@ import java.awt.GridLayout;
 import java.awt.KeyboardFocusManager;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -32,6 +34,7 @@ import javax.swing.SwingUtilities;
 public class DashboardView extends JPanel implements PropertyChangeListener {
   private final DashboardViewModel viewModel;
   private final LoadDashboardController loadDashboard;
+  private final SaveNotebookController saveNotebook;
   private final QuizView quizView;
   private final CompoundSearchView compoundSearch;
   private final Consumer<Container> showPage;
@@ -43,15 +46,18 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
    *
    * @param viewModel where the modules to show appear
    * @param loadDashboard reloads the modules, e.g. after the student saves progress
+   * @param saveNotebook saves a module's lab notebook
    * @param quizView the page Start opens
    * @param compoundSearch what the header's Compound Lookup link opens
    * @param showPage shows a page in the app window
    */
   public DashboardView(DashboardViewModel viewModel, LoadDashboardController loadDashboard,
-      QuizView quizView, CompoundSearchView compoundSearch, Consumer<Container> showPage) {
+      SaveNotebookController saveNotebook, QuizView quizView, CompoundSearchView compoundSearch,
+      Consumer<Container> showPage) {
     super(new BorderLayout());
     this.viewModel = viewModel;
     this.loadDashboard = loadDashboard;
+    this.saveNotebook = saveNotebook;
     this.quizView = quizView;
     this.compoundSearch = compoundSearch;
     this.showPage = showPage;
@@ -140,16 +146,30 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     Theme.showDimmed(dialog);
   }
 
-  /** The View Lab Notebook popup: the student's notebooks, to read and edit outside the lab. */
+  /**
+   * The View Lab Notebook popup: the modules the student has written notes for, to read and
+   * edit outside the lab. Edits are saved as the student leaves each notebook.
+   */
   private void showNotebooks() {
+    Map<String, String> notebooks = new LinkedHashMap<>();
+    for (ModuleState module : viewModel.getModules()) {
+      if (!module.getNotebook().isEmpty()) {
+        notebooks.put(module.getTitle(), module.getNotebook());
+      }
+    }
+    NotebookListPanel list = new NotebookListPanel(notebooks, saveNotebook::execute);
     JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Your Lab Notebooks",
         Dialog.ModalityType.APPLICATION_MODAL);
-    // TODO: list only the modules that have a saved notebook, once notebooks are saved.
-    dialog.setContentPane(new NotebookListPanel(viewModel.getModules().stream()
-        .map(ModuleState::getTitle).collect(Collectors.toList())));
+    dialog.setContentPane(list);
     dialog.pack();
     dialog.setLocationRelativeTo(this);
+    // Blocks until the popup closes.
     Theme.showDimmed(dialog);
+    list.leaveNotebook();
+    // Reload so the cards and notebooks are current, unless that would hide a save error.
+    if (viewModel.getMessage().isEmpty()) {
+      loadDashboard.execute();
+    }
   }
 
   /**
@@ -173,10 +193,11 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
    * lab, so notes taken during the quiz are still there.
    */
   private void openQuiz(ModuleState module) {
-    // TODO: load the module's saved notebook, and save it on the way back to the dashboard.
     NotebookPanel notebook = new NotebookPanel();
+    notebook.setHtml(module.getNotebook());
     HeaderBar header = new HeaderBar("Pre-Procedure Quiz", this::showCompoundSearch, null);
-    quizView.open(module, this::showDashboard, () -> showQuizComplete(module, notebook));
+    quizView.open(module, () -> leaveModule(module, notebook),
+        () -> showQuizComplete(module, notebook));
     JScrollPane scroll = new JScrollPane(quizView);
     scroll.getVerticalScrollBar().setUnitIncrement(16);
     showPage.accept(header.above(besideNotebook(scroll, notebook)));
@@ -189,7 +210,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   private void showQuizComplete(ModuleState module, NotebookPanel notebook) {
     JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), module.getTitle(),
         Dialog.ModalityType.APPLICATION_MODAL);
-    Runnable[] next = {this::showDashboard};
+    Runnable[] next = {() -> leaveModule(module, notebook)};
     dialog.setContentPane(new QuizCompletePanel(dialog::dispose, dialog::dispose, () -> {
       next[0] = () -> showLab(module, notebook);
       dialog.dispose();
@@ -203,15 +224,15 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
 
   private void showLab(ModuleState module, NotebookPanel notebook) {
     showPage.accept(new HeaderBar(module.getTitle(), this::showCompoundSearch, null)
-        .above(besideNotebook(createNextScene(), notebook)));
+        .above(besideNotebook(createNextScene(() -> leaveModule(module, notebook)), notebook)));
   }
 
-  private JPanel createNextScene() {
+  private JPanel createNextScene(Runnable backToDashboard) {
     // TODO: build the lab manual and fume hood; for now the lab is blank apart from the notebook.
     JPanel lab = new JPanel(new FlowLayout(FlowLayout.LEFT, 24, 24));
     lab.setBackground(Color.WHITE);
     JButton back = new JButton("Back to Dashboard");
-    back.addActionListener(event -> showDashboard());
+    back.addActionListener(event -> backToDashboard.run());
     lab.add(back);
     return lab;
   }
@@ -223,6 +244,22 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     row.add(page, BorderLayout.CENTER);
     row.add(notebook, BorderLayout.EAST);
     return row;
+  }
+
+  /**
+   * Saves the module's notebook if it changed, then goes back to the dashboard. If the save
+   * fails, the dashboard isn't reloaded, so the error stays on screen.
+   */
+  private void leaveModule(ModuleState module, NotebookPanel notebook) {
+    String html = notebook.getHtml();
+    if (!html.equals(module.getNotebook())) {
+      saveNotebook.execute(module.getTitle(), html);
+      if (!viewModel.getMessage().isEmpty()) {
+        showPage.accept(this);
+        return;
+      }
+    }
+    showDashboard();
   }
 
   /** Reloads the modules, so Progress is current, then shows the dashboard. */
