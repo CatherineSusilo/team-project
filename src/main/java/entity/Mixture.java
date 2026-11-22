@@ -44,7 +44,7 @@ public class Mixture {
    * undissolved until the mixture is mixed.
    *
    * @param substance what to add
-   * @param amount mL for water or ether, mmol otherwise
+   * @param amount mL for water or ether, otherwise in the unit it was added in (e.g. g, drops)
    */
   public void add(Substance substance, double amount) {
     //what is in the tube right now, before adding this substance
