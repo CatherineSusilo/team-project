@@ -205,8 +205,8 @@ class NotebookPanel extends JPanel {
 
   /**
    * The notes as HTML, to save. Styles are {@code <b>}, {@code <i>}, {@code <u>} and
-   * {@code <s>}; each equation is an {@code <img>} whose alt text is its LaTeX. It's all inside
-   * {@code <pre>} so spaces and line breaks come back exactly as typed.
+   * {@code <s>}; each equation is an {@code <img>} whose alt text is its LaTeX, and each line
+   * break is a {@code <br>}. It's all inside {@code <pre>} so spaces come back as typed.
    *
    * @return the notes, or empty if nothing is written
    */
@@ -215,8 +215,7 @@ class NotebookPanel extends JPanel {
     if (doc.getLength() == 0) {
       return "";
     }
-    // The HTML parser drops a line break straight after <pre>, so give it one to drop.
-    StringBuilder html = new StringBuilder("<pre>\n");
+    StringBuilder html = new StringBuilder("<pre>");
     try {
       int at = 0;
       while (at < doc.getLength()) {
@@ -236,7 +235,8 @@ class NotebookPanel extends JPanel {
               close.insert(0, "</" + tag + ">");
             }
           });
-          html.append(escape(doc.getText(at, end - at))).append(close);
+          // Swing's HTML parser drops a line break written as text before a closing tag.
+          html.append(escape(doc.getText(at, end - at)).replace("\n", "<br>")).append(close);
         }
         at = end;
       }
@@ -282,7 +282,9 @@ class NotebookPanel extends JPanel {
 
         @Override
         public void handleSimpleTag(HTML.Tag tag, MutableAttributeSet attributes, int pos) {
-          if (tag == HTML.Tag.IMG) {
+          if (tag == HTML.Tag.BR) {
+            append(doc, "\n", style.copyAttributes());
+          } else if (tag == HTML.Tag.IMG) {
             SimpleAttributeSet equation = new SimpleAttributeSet();
             StyleConstants.setIcon(equation, ChemistryLatex.render(
                 (String) attributes.getAttribute(HTML.Attribute.ALT),

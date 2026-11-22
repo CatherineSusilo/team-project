@@ -112,6 +112,22 @@ class NotebookPanelTest {
   }
 
   @Test
+  void lineBreaksSurviveAtTheEndOfAStyleAndOfTheNotes() {
+    NotebookPanel notebook = new NotebookPanel();
+    // A bold line ending in its line break, a blank line, and a line break at the very end.
+    notebook.text.setText("Title\n\nbody\n");
+    notebook.text.select(0, 6);
+    notebook.toggle(StyleConstants.Bold);
+
+    NotebookPanel reopened = new NotebookPanel();
+    reopened.setHtml(notebook.getHtml());
+    assertEquals("Title\n\nbody\n", reopened.text.getText());
+    assertTrue(isOn(styleAt(reopened, 5), "B"), "the bold line break stays bold");
+    assertFalse(isOn(styleAt(reopened, 6), "B"));
+    assertEquals(notebook.getHtml(), reopened.getHtml(), "saving again changes nothing");
+  }
+
+  @Test
   void loadingEmptyNotesClearsTheNotebook() {
     NotebookPanel notebook = new NotebookPanel();
     notebook.text.setText("old");
