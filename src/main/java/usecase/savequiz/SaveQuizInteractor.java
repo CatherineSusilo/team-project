@@ -1,6 +1,7 @@
 package usecase.savequiz;
 
 import entity.LabModule;
+import java.io.UncheckedIOException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import usecase.ModuleDataAccessInterface;
@@ -42,7 +43,12 @@ public class SaveQuizInteractor implements SaveQuizInputBoundary {
 
     module.setSavedAnswers(in.getAnswers());
     module.setLastEdited(LocalDateTime.now());
-    moduleDataAccess.saveModule(module);
+    try {
+      moduleDataAccess.saveModule(module);
+    } catch (UncheckedIOException e) {
+      presenter.prepareFailView("Couldn't save your progress. Please try again.");
+      return;
+    }
     presenter.prepareSuccessView(new SaveQuizOutputData(module.getTitle()));
   }
 }

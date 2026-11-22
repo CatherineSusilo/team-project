@@ -22,7 +22,7 @@ class NotebookListPanelTest {
     Map<String, String> notebooks = new LinkedHashMap<>();
     notebooks.put("Pre-lab 3", "");
     notebooks.put("Lab 4", "");
-    NotebookListPanel panel = new NotebookListPanel(notebooks, (title, html) -> { });
+    NotebookListPanel panel = new NotebookListPanel(notebooks, (title, html) -> true);
     assertTrue(texts(panel).containsAll(List.of("Your Lab Notebooks", "Pre-lab 3", "Lab 4")));
     assertNull(find(panel, NotebookPanel.class));
 
@@ -37,7 +37,7 @@ class NotebookListPanelTest {
 
   @Test
   void noModulesShowsAMessage() {
-    List<String> texts = texts(new NotebookListPanel(Map.of(), (title, html) -> { }));
+    List<String> texts = texts(new NotebookListPanel(Map.of(), (title, html) -> true));
     assertTrue(texts.contains("No notebooks yet. Your notebook starts when you begin the lab."));
     assertEquals(2, texts.size(), "just the heading and the message");
   }
@@ -67,6 +67,27 @@ class NotebookListPanelTest {
     button(panel, "Pre-lab 3").doClick();
     assertEquals("mass 0.61 g", find(panel, NotebookPanel.class).text.getText(),
         "reopening shows the edit");
+  }
+
+  @Test
+  void failedSaveKeepsTheNotebookOpenAndTriesAgain() {
+    List<String> saves = new ArrayList<>();
+    boolean[] works = {false};
+    NotebookListPanel panel = new NotebookListPanel(Map.of("Pre-lab 3", ""), (title, html) -> {
+      saves.add(html);
+      return works[0];
+    });
+    button(panel, "Pre-lab 3").doClick();
+    find(panel, NotebookPanel.class).text.setText("mass 0.61 g");
+
+    button(panel, "← All notebooks").doClick();
+    assertNotNull(find(panel, NotebookPanel.class), "still open, with the unsaved notes");
+    assertEquals(1, saves.size());
+
+    works[0] = true;
+    button(panel, "← All notebooks").doClick();
+    assertNull(find(panel, NotebookPanel.class));
+    assertEquals(2, saves.size(), "saved on the second try");
   }
 
   private static <T> T find(Container root, Class<T> type) {

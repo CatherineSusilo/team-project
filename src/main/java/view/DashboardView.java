@@ -22,6 +22,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
@@ -157,7 +158,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
         notebooks.put(module.getTitle(), module.getNotebook());
       }
     }
-    NotebookListPanel list = new NotebookListPanel(notebooks, saveNotebook::execute);
+    NotebookListPanel list = new NotebookListPanel(notebooks, this::trySaveNotebook);
     JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Your Lab Notebooks",
         Dialog.ModalityType.APPLICATION_MODAL);
     dialog.setContentPane(list);
@@ -165,11 +166,10 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     dialog.setLocationRelativeTo(this);
     // Blocks until the popup closes.
     Theme.showDimmed(dialog);
+    // Any save error has already been shown in a popup.
     list.leaveNotebook();
-    // Reload so the cards and notebooks are current, unless that would hide a save error.
-    if (viewModel.getMessage().isEmpty()) {
-      loadDashboard.execute();
-    }
+    // Reload so the cards and notebooks are current.
+    loadDashboard.execute();
   }
 
   /**
@@ -248,18 +248,31 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
 
   /**
    * Saves the module's notebook if it changed, then goes back to the dashboard. If the save
-   * fails, the dashboard isn't reloaded, so the error stays on screen.
+   * fails, the student stays on the page with their notes, to try again.
    */
   private void leaveModule(ModuleState module, NotebookPanel notebook) {
     String html = notebook.getHtml();
-    if (!html.equals(module.getNotebook())) {
-      saveNotebook.execute(module.getTitle(), html);
-      if (!viewModel.getMessage().isEmpty()) {
-        showPage.accept(this);
-        return;
-      }
+    if (html.equals(module.getNotebook()) || trySaveNotebook(module.getTitle(), html)) {
+      showDashboard();
     }
-    showDashboard();
+  }
+
+  /**
+   * Saves a module's notebook. If that fails, says so in a popup, since the dashboard and its
+   * message may not be on screen.
+   *
+   * @return whether the notebook was saved
+   */
+  private boolean trySaveNotebook(String moduleTitle, String html) {
+    saveNotebook.execute(moduleTitle, html);
+    String error = viewModel.getMessage();
+    if (error.isEmpty()) {
+      return true;
+    }
+    JOptionPane.showMessageDialog(
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow(), error,
+        "Notebook not saved", JOptionPane.WARNING_MESSAGE);
+    return false;
   }
 
   /** Reloads the modules, so Progress is current, then shows the dashboard. */

@@ -8,7 +8,7 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -18,13 +18,13 @@ import javax.swing.SwingConstants;
 /**
  * The dashboard's View Lab Notebook popup: one row per module's notebook. Clicking a row opens
  * that notebook to read and edit, and "← All notebooks" goes back to the list. Leaving a
- * notebook saves it if it changed.
+ * notebook saves it if it changed; if that fails, the notebook stays open.
  */
 class NotebookListPanel extends JPanel {
   private static final Color ROW = new Color(0xF5F5F5);
   /** Module title -> its notes as HTML, kept current as notebooks are saved. */
   private final Map<String, String> notebooks;
-  private final BiConsumer<String, String> onSave;
+  private final BiPredicate<String, String> onSave;
   private String openModule;
   private NotebookPanel openNotebook;
 
@@ -32,9 +32,10 @@ class NotebookListPanel extends JPanel {
    * Builds the popup, showing the list.
    *
    * @param notebooks each module's title and its saved notes as HTML, in display order
-   * @param onSave saves a module's notes, given its title and the notes as HTML
+   * @param onSave saves a module's notes, given its title and the notes as HTML, and says
+   *     whether that worked
    */
-  NotebookListPanel(Map<String, String> notebooks, BiConsumer<String, String> onSave) {
+  NotebookListPanel(Map<String, String> notebooks, BiPredicate<String, String> onSave) {
     super(new BorderLayout(0, 16));
     this.notebooks = new LinkedHashMap<>(notebooks);
     this.onSave = onSave;
@@ -69,8 +70,9 @@ class NotebookListPanel extends JPanel {
   private void open(String module) {
     JButton back = Theme.linkButton("← All notebooks", Theme.GREEN);
     back.addActionListener(event -> {
-      leaveNotebook();
-      showList();
+      if (leaveNotebook()) {
+        showList();
+      }
     });
     // Line the link up with the notebook's left edge, with a gap before the title.
     back.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 16));
@@ -86,17 +88,24 @@ class NotebookListPanel extends JPanel {
     show(top, openNotebook);
   }
 
-  /** Saves the open notebook if it changed. Call it when the popup closes, too. */
-  void leaveNotebook() {
+  /**
+   * Saves the open notebook if it changed. Call it when the popup closes, too.
+   *
+   * @return false if the save failed, so the notebook is still open and unsaved
+   */
+  boolean leaveNotebook() {
     if (openNotebook == null) {
-      return;
+      return true;
     }
     String html = openNotebook.getHtml();
     if (!html.equals(notebooks.get(openModule))) {
-      onSave.accept(openModule, html);
+      if (!onSave.test(openModule, html)) {
+        return false;
+      }
       notebooks.put(openModule, html);
     }
     openNotebook = null;
+    return true;
   }
 
   private void show(Component top, Component body) {

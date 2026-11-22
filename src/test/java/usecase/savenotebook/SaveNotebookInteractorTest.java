@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import data.InMemoryLabDataAccessObject;
 import entity.LabModule;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -43,5 +45,32 @@ class SaveNotebookInteractorTest {
     assertEquals("There is no module called Pre-lab 9.", error);
     assertNull(output);
     assertEquals("", module.getNotebook());
+  }
+
+  @Test
+  void failedWriteReportsAnError() {
+    new SaveNotebookInteractor(failingSaves(module), new SaveNotebookOutputBoundary() {
+      @Override
+      public void prepareSuccessView(SaveNotebookOutputData out) {
+        output = out;
+      }
+
+      @Override
+      public void prepareFailView(String message) {
+        error = message;
+      }
+    }).execute(new SaveNotebookInputData("Pre-lab", "notes"));
+    assertEquals("Couldn't save your notebook. Please try again.", error);
+    assertNull(output);
+  }
+
+  /** Data access whose saves fail, like a full disk. */
+  private static InMemoryLabDataAccessObject failingSaves(LabModule module) {
+    return new InMemoryLabDataAccessObject(List.of(module)) {
+      @Override
+      public void saveModule(LabModule saved) {
+        throw new UncheckedIOException(new IOException("disk full"));
+      }
+    };
   }
 }
