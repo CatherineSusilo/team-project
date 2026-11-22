@@ -41,6 +41,9 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   private final Consumer<Container> showPage;
   private final JPanel cards = new JPanel(new GridLayout(0, 3, 24, 24));
   private final JLabel message = new JLabel();
+  /** The module the student is in, and its notebook; null on the dashboard. */
+  private ModuleState openModule;
+  private NotebookPanel openNotebook;
 
   /**
    * Builds the dashboard and loads its modules.
@@ -195,6 +198,8 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   private void openQuiz(ModuleState module) {
     NotebookPanel notebook = new NotebookPanel();
     notebook.setHtml(module.getNotebook());
+    openModule = module;
+    openNotebook = notebook;
     HeaderBar header = new HeaderBar("Pre-Procedure Quiz", this::showCompoundSearch, null);
     quizView.open(module, () -> leaveModule(module, notebook),
         () -> showQuizComplete(module, notebook));
@@ -253,8 +258,35 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   private void leaveModule(ModuleState module, NotebookPanel notebook) {
     String html = notebook.getHtml();
     if (html.equals(module.getNotebook()) || trySaveNotebook(module.getTitle(), html)) {
+      openModule = null;
+      openNotebook = null;
       showDashboard();
     }
+  }
+
+  /**
+   * Saves the open module's notebook before the app closes. If that fails, asks whether to
+   * close anyway.
+   *
+   * @return whether the app can close: the notebook saved, didn't change or wasn't open, or the
+   *     student chose to close without saving
+   */
+  public boolean saveBeforeClosing() {
+    if (openNotebook == null) {
+      return true;
+    }
+    String html = openNotebook.getHtml();
+    if (html.equals(openModule.getNotebook())) {
+      return true;
+    }
+    saveNotebook.execute(openModule.getTitle(), html);
+    if (viewModel.getMessage().isEmpty()) {
+      return true;
+    }
+    return JOptionPane.showConfirmDialog(this,
+        viewModel.getMessage() + "\nClose anyway? Your notebook changes will be lost.",
+        "Notebook not saved", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE)
+        == JOptionPane.YES_OPTION;
   }
 
   /**

@@ -18,7 +18,11 @@ import adapter.viewmodel.QuizViewModel;
 import data.JsonLabDataAccessObject;
 import data.PubChemCompoundDataAccessObject;
 import data.RandomChoiceOrderer;
+import java.awt.Desktop;
 import java.awt.GraphicsEnvironment;
+import java.awt.desktop.QuitStrategy;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.Random;
@@ -73,17 +77,32 @@ public class LabApp {
     SwingUtilities.invokeLater(() -> {
       Theme.installDefaultFonts();
       JFrame frame = new JFrame("CHM136 Virtual Lab");
-      frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+      // Closing goes through the dashboard first, so an open notebook is saved.
+      frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+      if (Desktop.isDesktopSupported()
+          && Desktop.getDesktop().isSupported(Desktop.Action.APP_QUIT_STRATEGY)) {
+        // Make Cmd+Q on a Mac close the windows (and save) instead of quitting straight away.
+        Desktop.getDesktop().setQuitStrategy(QuitStrategy.CLOSE_ALL_WINDOWS);
+      }
       QuizView quizView = new QuizView(quizViewModel, checkQuizController,
           submitQuizController, saveQuizController);
       CompoundSearchView compoundSearchView =
           new CompoundSearchView(compoundViewModel, searchCompoundController);
-      frame.setContentPane(new DashboardView(dashboardViewModel, loadDashboardController,
+      DashboardView dashboard = new DashboardView(dashboardViewModel, loadDashboardController,
           saveNotebookController, quizView, compoundSearchView, page -> {
             frame.setContentPane(page);
             frame.getRootPane().revalidate();
             frame.getRootPane().repaint();
-          }));
+          });
+      frame.setContentPane(dashboard);
+      frame.addWindowListener(new WindowAdapter() {
+        @Override
+        public void windowClosing(WindowEvent event) {
+          if (dashboard.saveBeforeClosing()) {
+            System.exit(0);
+          }
+        }
+      });
       frame.setBounds(GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds());
       frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
       frame.setVisible(true);
