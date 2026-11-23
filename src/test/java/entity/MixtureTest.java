@@ -310,6 +310,27 @@ class MixtureTest {
     assertEquals(13, tube.getPh());
   }
 
+  // ----- amountOf (A6) -----
+
+  @Test
+  void tenDropsOfNaohIsHalfAMillilitre() {
+    Mixture tube = tubeBeforeMixing();
+    tube.add(Substances.NAOH, 10 * StockBottle.DROP_ML);
+    assertEquals(0.5, tube.amountOf(Substances.NAOH), TOLERANCE);
+  }
+
+  @Test
+  void amountCountsDissolvedToo() {
+    Mixture tube = tubeAfterNaoh();                              // the drug is in the water now
+    assertEquals(DRUG, tube.amountOf(Substances.ASPIRIN), TOLERANCE);
+    assertEquals(VANILLIN, tube.amountOf(Substances.VANILLIN), TOLERANCE);
+  }
+
+  @Test
+  void missingSubstanceIsZero() {
+    assertEquals(0, tubeBeforeMixing().amountOf(Substances.HCL), TOLERANCE);
+  }
+
   // ----- totalVolume -----
 
   @Test

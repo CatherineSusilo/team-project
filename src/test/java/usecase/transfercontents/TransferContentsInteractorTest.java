@@ -338,4 +338,13 @@ class TransferContentsInteractorTest {
         TransferUnit.ML));                                  // won't fit
     assertTrue(bench.getPipette("pipette").isClean());
   }
+  // ----- A6: 10 drops of NaOH -----
+
+  @Test
+  void tenDropsOfNaohAddHalfAMillilitre() {
+    unknownEtherAndWater();
+    interactor.execute(new TransferContentsInputData("naohDropper", "emptyConical", 10,
+        TransferUnit.DROPS));
+    assertEquals(0.5, bench.getMixture("emptyConical").amountOf(Substances.NAOH), TOLERANCE);
+  }
 }
