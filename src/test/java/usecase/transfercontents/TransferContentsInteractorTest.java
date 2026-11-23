@@ -1,6 +1,7 @@
 package usecase.transfercontents;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -10,9 +11,11 @@ import entity.ChemistryEngine;
 import entity.ItemType;
 import entity.Layer;
 import entity.Mixture;
+import entity.PasteurPipette;
 import entity.Substance;
 import entity.Substances;
 import entity.UnknownSample;
+import entity.Vec2;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +51,7 @@ class TransferContentsInteractorTest {
     private final Map<String, Substance> substances = new HashMap<>();
     private final Map<String, ItemType> types = new HashMap<>();
     private final Map<String, Double> capacities = new HashMap<>();
+    private final Map<String, PasteurPipette> pipettes = new HashMap<>();
     private final UnknownSample unknown = new UnknownSample('A', ApiType.ASPIRIN);
 
     FakeBench() {
@@ -73,7 +77,13 @@ class TransferContentsInteractorTest {
     }
 
     private void addVessel(String id, ItemType type, double capacity, Mixture mixture) {
-      mixtures.put(id, mixture);
+      Mixture contents = mixture;
+      if (type == ItemType.PIPETTE) {
+        PasteurPipette pipette = new PasteurPipette(id, new Vec2(0, 0));
+        pipettes.put(id, pipette);
+        contents = pipette.getMixture();                   // a real pipette, so it can be used
+      }
+      mixtures.put(id, contents);
       types.put(id, type);
       capacities.put(id, capacity);
     }
@@ -104,6 +114,11 @@ class TransferContentsInteractorTest {
     @Override
     public double getCapacity(String itemId) {
       return capacities.getOrDefault(itemId, 0.0);
+    }
+
+    @Override
+    public PasteurPipette getPipette(String itemId) {
+      return pipettes.get(itemId);
     }
   }
 
@@ -269,5 +284,58 @@ class TransferContentsInteractorTest {
     interactor.execute(new TransferContentsInputData("pipette", "testTube", 1,
         TransferUnit.ML));
     assertEquals("There's nothing in that to pour.", error);
+  }
+
+  // ----- A5: ether + water, mix 15 (pipette gets used) -----
+
+  /** A3-A5: the 0.200 g unknown, then 4 mL ether and 2 mL water, in the empty conical tube. */
+  private void unknownEtherAndWater() {
+    bench.substances.put("waterBottle", Substances.WATER);
+    interactor.execute(new TransferContentsInputData("unknownJar", "emptyConical", 0.200,
+        TransferUnit.GRAMS));
+    interactor.execute(new TransferContentsInputData("etherBottle", "emptyConical", 4,
+        TransferUnit.ML));
+    interactor.execute(new TransferContentsInputData("waterBottle", "emptyConical", 2,
+        TransferUnit.ML));
+  }
+
+  @Test
+  void etherAndWaterMakeTwoLayers() {
+    unknownEtherAndWater();
+    assertNull(error);
+    assertEquals(List.of("AQUEOUS", "ORGANIC"), output.getLayerPhases());
+    assertEquals(6.0, bench.getMixture("emptyConical").totalVolume(), TOLERANCE);
+  }
+
+  @Test
+  void mixingFifteenTimesIsCloudyAndCounted() {
+    unknownEtherAndWater();
+    interactor.execute(new TransferContentsInputData("pipette", "emptyConical", 15,
+        TransferUnit.MIXES));
+    assertFalse(output.isSettled());                        // the mixing PNG
+    assertEquals("Mixed. 15 pumps so far.", output.getMessage());
+    assertTrue(output.hasSolid());                          // not mixed enough to dissolve
+  }
+
+  @Test
+  void mixingMarksThePipetteUsed() {
+    interactor.execute(new TransferContentsInputData("pipette", "conical", 15,
+        TransferUnit.MIXES));
+    assertFalse(bench.getPipette("pipette").isClean());
+  }
+
+  @Test
+  void drawingEtherMarksThePipetteUsed() {
+    interactor.execute(new TransferContentsInputData("etherBottle", "pipette", 2,
+        TransferUnit.ML));
+    assertNull(error);
+    assertFalse(bench.getPipette("pipette").isClean());
+  }
+
+  @Test
+  void failedTransferLeavesThePipetteClean() {
+    interactor.execute(new TransferContentsInputData("fullEtherCylinder", "pipette", 2.5,
+        TransferUnit.ML));                                  // won't fit
+    assertTrue(bench.getPipette("pipette").isClean());
   }
 }

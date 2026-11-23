@@ -2,6 +2,7 @@ package usecase;
 
 import entity.ItemType;
 import entity.Mixture;
+import entity.PasteurPipette;
 import entity.Substance;
 import entity.UnknownSample;
 
@@ -50,4 +51,12 @@ public interface TransferContentsDataAccessInterface {
    * @return its capacity in mL, e.g. 2.0 for a pipette
    */
   double getCapacity(String itemId);
+
+  /**
+   * Returns the pipette with this id, so it can be marked used after it moves liquid.
+   *
+   * @param itemId the item's id
+   * @return the pipette, or null if this item isn't a pipette
+   */
+  PasteurPipette getPipette(String itemId);
 }
