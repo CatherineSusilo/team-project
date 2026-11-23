@@ -25,9 +25,10 @@ public class TransferContentsController {
    * @param sourceId what was dragged, e.g. the NaOH dropper bottle
    * @param targetId what it was dropped on, e.g. the conical tube
    * @param amount how much, in the given unit
-   * @param unit mL, drops, grams, or pipette pumps for mixing
+   * @param unit "ML", "DROPS", "GRAMS" or "MIXES" (plain text, so the view never imports usecase)
    */
-  public void execute(String sourceId, String targetId, double amount, TransferUnit unit) {
-    interactor.execute(new TransferContentsInputData(sourceId, targetId, amount, unit));
+  public void execute(String sourceId, String targetId, double amount, String unit) {
+    interactor.execute(new TransferContentsInputData(sourceId, targetId, amount,
+        TransferUnit.valueOf(unit)));
   }
 }
