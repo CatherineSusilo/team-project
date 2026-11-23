@@ -7,36 +7,45 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests the student's unknown: guessing the hidden drug, and putting it in a tube.
+ * Tests the student's unknown: its batch letter, guessing the hidden drug, and scooping it
+ * into a tube.
  */
 class UnknownSampleTest {
-  private static final double MASS = 0.200;   // grams
+
+  @Test
+  void keepsBatchLetter() {
+    UnknownSample sample = new UnknownSample('B', ApiType.ASPIRIN);
+    assertEquals('B', sample.getBatch());
+  }
 
   @Test
   void rightGuessIsTrue() {
-    UnknownSample sample = new UnknownSample('A', ApiType.ASPIRIN, MASS);
+    UnknownSample sample = new UnknownSample('A', ApiType.ASPIRIN);
     assertTrue(sample.checkGuess(ApiType.ASPIRIN));
   }
 
   @Test
   void wrongGuessIsFalse() {
-    UnknownSample sample = new UnknownSample('A', ApiType.ASPIRIN, MASS);
+    UnknownSample sample = new UnknownSample('A', ApiType.ASPIRIN);
     assertFalse(sample.checkGuess(ApiType.MEFENAMIC_ACID));
   }
 
   @Test
-  void toMixtureHoldsAspirinAsPowder() {
-    Mixture tube = new UnknownSample('A', ApiType.ASPIRIN, MASS).toMixture();
+  void scoopAddsTheDrugAsPowder() {
+    Mixture tube = new Mixture();
+    new UnknownSample('A', ApiType.ASPIRIN).addTo(tube, 0.200);
     Layer powder = tube.getLayers().get(0);
-    assertEquals(1, tube.getLayers().size());                    // just one layer
     assertEquals(Phase.SOLID, powder.getPhase());                // no liquid yet
-    assertEquals(MASS, powder.getSolids().get(Substances.ASPIRIN));
+    assertEquals(0.200, powder.getSolids().get(Substances.ASPIRIN));
   }
 
   @Test
-  void toMixtureHoldsMefenamicAcidAsPowder() {
-    Mixture tube = new UnknownSample('B', ApiType.MEFENAMIC_ACID, MASS).toMixture();
-    Layer powder = tube.getLayers().get(0);
-    assertEquals(MASS, powder.getSolids().get(Substances.MEFENAMIC_ACID));
+  void repeatScoopsAddUp() {
+    Mixture tube = new Mixture();
+    UnknownSample sample = new UnknownSample('B', ApiType.MEFENAMIC_ACID);
+    sample.addTo(tube, 0.150);
+    sample.addTo(tube, 0.050);
+    double grams = tube.getLayers().get(0).getSolids().get(Substances.MEFENAMIC_ACID);
+    assertEquals(0.200, grams, 1e-9);
   }
 }

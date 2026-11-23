@@ -6,11 +6,10 @@ import java.util.Random;
 import usecase.SampleAssignerInterface;
 
 /**
- * Gives each student a random unknown: batch A or B, which is
- * aspirin or mefenamic acid and has mass of 0.200 g.
+ * Gives each student a random unknown: batch A or B, with aspirin or mefenamic acid
+ * hidden inside.
  */
 public class RandomAssigner implements SampleAssignerInterface {
-  private static final double SAMPLE_MASS = 0.200;   // grams, from the lab manual
   private final Random random;
 
   /**
@@ -24,9 +23,9 @@ public class RandomAssigner implements SampleAssignerInterface {
 
   @Override
   public UnknownSample assign() {
-    ApiType[] apis = ApiType.values();                
-    ApiType api = apis[random.nextInt(apis.length)];  
-    char batch = (char) ('A' + random.nextInt(2));   
-    return new UnknownSample(batch, api, SAMPLE_MASS);
+    ApiType[] apis = ApiType.values();
+    ApiType api = apis[random.nextInt(apis.length)];
+    char batch = (char) ('A' + random.nextInt(2));
+    return new UnknownSample(batch, api);
   }
 }

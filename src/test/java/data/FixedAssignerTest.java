@@ -13,7 +13,7 @@ class FixedAssignerTest {
 
   @Test
   void alwaysGivesTheSameSample() {
-    UnknownSample sample = new UnknownSample('A', ApiType.ASPIRIN, 0.200);
+    UnknownSample sample = new UnknownSample('A', ApiType.ASPIRIN);
     FixedAssigner assigner = new FixedAssigner(sample);
     assertSame(sample, assigner.assign());
     assertSame(sample, assigner.assign());

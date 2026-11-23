@@ -5,5 +5,5 @@ package entity;
  */
 public enum ApiType {
   ASPIRIN,
-  MEFENAMIC_ACID
+  MEFENAMIC_ACID,
 }

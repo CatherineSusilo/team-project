@@ -6,38 +6,43 @@ package entity;
  * guesses it at the end.
  */
 public final class UnknownSample {
+  // Share of every scoop that is vanillin, the impurity (the manual gives no ratio).
+  public static final double VANILLIN_FRACTION = 0.20;
+  
   private final char batch;     // 'A' or 'B', written on the conical tube
   private final ApiType api;    // hidden: the student finds out with checkGuess
-  private final double mass;   
 
   /**
    * Creates an unknown sample.
    *
    * @param batch the batch letter, 'A' or 'B'
    * @param api which drug is in the unknown
-   * @param mass how many grams of the unknown
    */
-  public UnknownSample(char batch, ApiType api, double mass) {
+  public UnknownSample(char batch, ApiType api) {
     this.batch = batch;
     this.api = api;
-    this.mass = mass;
+  }
+
+  public char getBatch() {
+    return batch;
   }
 
   /**
-   * Puts the unknown into a new mixture.
+   * Adds one spatula scoop of the unknown to a container.
    *
-   * @return a mixture holding the drug, still undissolved
+   * @param tube the container it goes into, e.g. the conical tube
+   * @param grams how much was scooped
    */
-  public Mixture toMixture() {
+  public void addTo(Mixture tube, double grams) {
     Substance drug;
     if (api == ApiType.ASPIRIN) {
       drug = Substances.ASPIRIN;
     } else {
       drug = Substances.MEFENAMIC_ACID;
     }
-    Mixture mixture = new Mixture();
-    mixture.add(drug, mass);    // sits as powder until solvent is added and mixed
-    return mixture;
+    double vanillinGrams = grams * VANILLIN_FRACTION;    // e.g. 0.040 g of 0.200 g
+    tube.add(drug, grams - vanillinGrams);
+    tube.add(Substances.VANILLIN, vanillinGrams);  
   }
 
   /**

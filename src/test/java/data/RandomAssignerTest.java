@@ -1,6 +1,5 @@
 package data;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import entity.ApiType;
@@ -9,10 +8,10 @@ import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests that students get a random unknown: either drug, batch A or B, always 0.200 g.
+ * Tests that students get a random unknown: either drug, batch A or B.
  */
 class RandomAssignerTest {
-  private static final int DRAWS = 100;   // enough draws to see both drugs
+  private static final int DRAWS = 100;   // enough draws to see every option
 
   @Test
   void givesBothDrugsOverManyDraws() {
@@ -32,10 +31,19 @@ class RandomAssignerTest {
   }
 
   @Test
-  void alwaysGivesTwoHundredMilligrams() {
+  void givesBothBatchesOverManyDraws() {
     RandomAssigner assigner = new RandomAssigner(new Random(42));
-    UnknownSample sample = assigner.assign();
-    double grams = sample.toMixture().getLayers().get(0).getSolids().values().iterator().next();
-    assertEquals(0.200, grams);
+    boolean sawA = false;
+    boolean sawB = false;
+    for (int i = 0; i < DRAWS; i++) {
+      char batch = assigner.assign().getBatch();
+      if (batch == 'A') {
+        sawA = true;
+      } else if (batch == 'B') {
+        sawB = true;
+      }
+    }
+    assertTrue(sawA);
+    assertTrue(sawB);
   }
 }
