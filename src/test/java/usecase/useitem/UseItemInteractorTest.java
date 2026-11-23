@@ -1,7 +1,9 @@
 package usecase.useitem;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import entity.ItemType;
 import entity.Operation;
@@ -13,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import usecase.UseItemDataAccessInterface;
 
 /**
- * Tests the use item use case with a fake bench: labelling the tubes (A2).
+ * Tests the use item use case with a fake bench: labelling (A2, A3) and covering (A3).
  */
 class UseItemInteractorTest {
   private final FakeBench bench = new FakeBench();
@@ -32,13 +34,15 @@ class UseItemInteractorTest {
         }
       });
 
-  /** A pretend bench with a conical tube and a test tube. */
+  /** A pretend bench with a conical tube, a test tube and the ether cylinder. */
   private static class FakeBench implements UseItemDataAccessInterface {
     private final Map<String, Vessel> vessels = new HashMap<>();
 
     FakeBench() {
       vessels.put("conical", new Vessel("conical", ItemType.CONICAL_TUBE, new Vec2(0, 0), 15, 6));
       vessels.put("testTube", new Vessel("testTube", ItemType.TEST_TUBE, new Vec2(0, 0), 15, 8));
+      vessels.put("etherCylinder",
+          new Vessel("etherCylinder", ItemType.GRADUATED_CYLINDER, new Vec2(0, 0), 10, 20));
     }
 
     @Override
@@ -97,8 +101,43 @@ class UseItemInteractorTest {
   }
 
   @Test
+  void labelsTheEtherCylinder() {
+    interactor.execute(new UseItemInputData("etherCylinder", Operation.LABEL, "ether"));
+    assertEquals("ether", bench.getVessel("etherCylinder").getLabel());    // A3
+  }
+
+  @Test
+  void coversTheEtherCylinder() {
+    interactor.execute(new UseItemInputData("etherCylinder", Operation.COVER, ""));
+    assertNull(error);
+    assertTrue(bench.getVessel("etherCylinder").isCovered());
+    assertTrue(output.isCovered());
+    assertFalse(bench.getVessel("conical").isCovered());
+  }
+
+  @Test
+  void coverTwiceStaysCovered() {
+    interactor.execute(new UseItemInputData("etherCylinder", Operation.COVER, ""));
+    interactor.execute(new UseItemInputData("etherCylinder", Operation.COVER, ""));
+    assertNull(error);
+    assertTrue(bench.getVessel("etherCylinder").isCovered());
+  }
+
+  @Test
+  void coverOnNothingFails() {
+    interactor.execute(new UseItemInputData("bench", Operation.COVER, ""));
+    assertEquals("Pick a container.", error);
+  }
+
+  @Test
   void operationsNotBuiltYetFail() {
-    interactor.execute(new UseItemInputData("conical", Operation.COVER, ""));
+    interactor.execute(new UseItemInputData("conical", Operation.TARE, ""));
     assertEquals("That doesn't work yet.", error);
+  }
+
+  @Test
+  void operationNotBuiltYetFailsEvenOnANonContainer() {
+    interactor.execute(new UseItemInputData("scale", Operation.TARE, ""));
+    assertEquals("That doesn't work yet.", error);             // not "Pick a container."
   }
 }

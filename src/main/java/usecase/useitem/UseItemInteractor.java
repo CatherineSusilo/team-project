@@ -5,7 +5,7 @@ import entity.Vessel;
 import usecase.UseItemDataAccessInterface;
 
 /**
- * Does something to one item: writes its label (LABEL). It doesn't judge
+ * Does something to one item: writes its label (LABEL) or covers it (COVER). It doesn't judge
  * whether the label is right; the step checks that (A2: CheckStep with labelMatches).
  */
 public class UseItemInteractor implements UseItemInputBoundary {
@@ -26,30 +26,49 @@ public class UseItemInteractor implements UseItemInputBoundary {
 
   @Override
   public void execute(UseItemInputData in) {
-    // find the item; labels only go on containers
-    Vessel vessel = dataAccess.getVessel(in.getItemId());
-    if (vessel == null) {
-      presenter.prepareFailView("Pick a container.");
-      return;
-    }
-
+    // each operation finds the item it needs (a container for LABEL / COVER, the scale for
+    // TARE later), so one operation's lookup never blocks another
     if (in.getOperation() == Operation.LABEL) {
-      // an empty label isn't a label
-      if (in.getText() == null || in.getText().isBlank()) {
-        presenter.prepareFailView("Write something on the label.");
-        return;
-      }
-      vessel.setLabel(in.getText().trim());           // " A " is stored as "A"
-      presenter.prepareSuccessView(describe(in.getItemId(), vessel,
-          "Labelled it " + vessel.getLabel() + "."));
+      label(in);
+    } else if (in.getOperation() == Operation.COVER) {
+      cover(in);
     } else {
       // TARE, STIR, ... get handled with their tickets
       presenter.prepareFailView("That doesn't work yet.");
     }
   }
 
-  // Copies what the screen needs out of the vessel (label tape).
+  // LABEL (A2, A3): write the text on a container's label.
+  private void label(UseItemInputData in) {
+    // find the item; labels only go on containers
+    Vessel vessel = dataAccess.getVessel(in.getItemId());
+    if (vessel == null) {
+      presenter.prepareFailView("Pick a container.");
+      return;
+    }
+    // an empty label isn't a label
+    if (in.getText() == null || in.getText().isBlank()) {
+      presenter.prepareFailView("Write something on the label.");
+      return;
+    }
+    vessel.setLabel(in.getText().trim());           // " A " is stored as "A"
+    presenter.prepareSuccessView(describe(in.getItemId(), vessel,
+        "Labelled it " + vessel.getLabel() + "."));
+  }
+
+  // COVER (A3): put the inverted beaker on top of a container, e.g. the ether cylinder.
+  private void cover(UseItemInputData in) {
+    Vessel vessel = dataAccess.getVessel(in.getItemId());
+    if (vessel == null) {
+      presenter.prepareFailView("Pick a container.");   // only containers get covered
+      return;
+    }
+    vessel.cover();
+    presenter.prepareSuccessView(describe(in.getItemId(), vessel, "Covered."));
+  }
+
+  // Copies what the screen needs out of the vessel (label tape, cover).
   private UseItemOutputData describe(String itemId, Vessel vessel, String message) {
-    return new UseItemOutputData(itemId, vessel.getLabel(), message);
+    return new UseItemOutputData(itemId, vessel.getLabel(), vessel.isCovered(), message);
   }
 }
