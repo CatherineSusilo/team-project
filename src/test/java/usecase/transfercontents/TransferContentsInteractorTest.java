@@ -338,6 +338,7 @@ class TransferContentsInteractorTest {
         TransferUnit.ML));                                  // won't fit
     assertTrue(bench.getPipette("pipette").isClean());
   }
+
   // ----- A6: 10 drops of NaOH -----
 
   @Test
@@ -346,5 +347,38 @@ class TransferContentsInteractorTest {
     interactor.execute(new TransferContentsInputData("naohDropper", "emptyConical", 10,
         TransferUnit.DROPS));
     assertEquals(0.5, bench.getMixture("emptyConical").amountOf(Substances.NAOH), TOLERANCE);
+  }
+
+  // ----- A7: mix 30, everything dissolves -----
+
+  @Test
+  void thirtyPumpsAfterNaohDissolveEverything() {
+    unknownEtherAndWater();
+    interactor.execute(new TransferContentsInputData("pipette", "emptyConical", 15,
+        TransferUnit.MIXES));                               // A5
+    interactor.execute(new TransferContentsInputData("naohDropper", "emptyConical", 10,
+        TransferUnit.DROPS));                               // A6
+    interactor.execute(new TransferContentsInputData("pipette", "emptyConical", 30,
+        TransferUnit.MIXES));                               // A7
+
+    assertNull(error);
+    assertFalse(output.hasSolid());                         // all dissolved
+    assertEquals(AcidBaseRule.BASIC_PH, output.getPh());
+    List<Layer> layers = bench.getMixture("emptyConical").getLayers();
+    assertTrue(layers.get(0).getDissolved().containsKey(Substances.ASPIRIN));   // water
+    assertTrue(layers.get(1).getDissolved().containsKey(Substances.VANILLIN));  // ether
+  }
+
+  @Test
+  void naohResetsTheCountSoFifteenMoreIsNotEnough() {
+    unknownEtherAndWater();
+    interactor.execute(new TransferContentsInputData("pipette", "emptyConical", 15,
+        TransferUnit.MIXES));
+    interactor.execute(new TransferContentsInputData("naohDropper", "emptyConical", 10,
+        TransferUnit.DROPS));
+    interactor.execute(new TransferContentsInputData("pipette", "emptyConical", 15,
+        TransferUnit.MIXES));                               // 15 + 15, but NaOH reset it
+    assertEquals("Mixed. 15 pumps so far.", output.getMessage());
+    assertTrue(output.hasSolid());
   }
 }
