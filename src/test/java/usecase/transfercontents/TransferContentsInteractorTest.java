@@ -146,6 +146,16 @@ class TransferContentsInteractorTest {
   }
 
   @Test
+  void fillingTheWaterCylinderFromItsStockWorks() {
+    bench.substances.put("waterBottle", Substances.WATER);
+    interactor.execute(new TransferContentsInputData("waterBottle", "etherCylinder", 6,
+        TransferUnit.ML));                                  // any cylinder works the same
+    assertNull(error);
+    assertEquals(List.of("AQUEOUS"), output.getLayerPhases());
+    assertEquals(Substances.WATER, bench.getSubstance("waterBottle"));  // stock unchanged
+  }
+
+  @Test
   void hclIntoTheConicalTubeIsRejectedAndNothingChanges() {
     interactor.execute(new TransferContentsInputData("hclDropper", "conical", 20,
         TransferUnit.DROPS));
