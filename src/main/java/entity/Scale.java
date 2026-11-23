@@ -52,7 +52,9 @@ public class Scale extends LabItem {
    * @return the reading in grams
    */
   public double reading(Bench bench) {
-    return grossMass(bench) - tare;
+    // subtracting the tare leaves tiny decimal noise (0.21000000000000085 instead of 0.210),
+    // which would make a range check fail at its edges, so round to 3 decimals here
+    return Math.round((grossMass(bench) - tare) * 1000) / 1000.0;
   }
 
   /**
@@ -64,7 +66,7 @@ public class Scale extends LabItem {
   public String display(Bench bench) {
     double grams = reading(bench);
     if (Math.abs(grams) < 0.0005) {
-      grams = 0;                                  // so rounding never shows "-0.000"
+      grams = 0;
     }
     // Locale.ROOT so the scale always shows a dot ("0.200"). Without it, a computer set to
     // French (common in Canada) would show "0,200", and ScaleTest would fail on that machine.

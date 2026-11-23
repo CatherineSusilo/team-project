@@ -67,6 +67,22 @@ class ScaleTest {
   }
 
   @Test
+  void topOfTheRangeReadsExactly() {
+    beakerWithTubeOnScale();
+    scale.tare(bench);
+    new UnknownSample('A', ApiType.ASPIRIN).addTo(tube.getMixture(), 0.210);
+    assertEquals(0.210, scale.reading(bench));                  // exact, no tolerance
+  }
+
+  @Test
+  void bottomOfTheRangeReadsExactly() {
+    beakerWithTubeOnScale();
+    scale.tare(bench);
+    new UnknownSample('A', ApiType.ASPIRIN).addTo(tube.getMixture(), 0.190);
+    assertEquals(0.190, scale.reading(bench));                  // exact, no tolerance
+  }
+
+  @Test
   void removeEmptiesIt() {
     beakerWithTubeOnScale();
     scale.remove();
