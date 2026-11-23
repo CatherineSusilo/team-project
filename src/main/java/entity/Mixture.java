@@ -7,13 +7,13 @@ import java.util.Map;
 
 /**
  * Everything inside one container (a tube, cylinder or beaker): its layers and its pH. It
- * Starts empty. Adding something or mixing builds new layers.
- * THerefore, the layers themselves never change.
+ * starts empty. Adding something or mixing builds new layers, so the layers themselves
+ * never change.
  * Layers are listed bottom first, ex: the water layer sits under the ether layer.
- * Water and ether are measured in mL, otherwise in mmol.
+ * Water and ether are measured in mL, anything else in the unit it was added in (e.g. g, drops).
  */
 public class Mixture {
-  /** Pipette pumps needed to fully mix the tube (lab manual: 30). */
+  // Pipette pumps needed to fully mix the tube (lab manual: 30).
   public static final int FULL_MIX = 30;
 
   private List<Layer> layers;
@@ -47,7 +47,7 @@ public class Mixture {
    * @param amount mL for water or ether, otherwise in the unit it was added in (e.g. g, drops)
    */
   public void add(Substance substance, double amount) {
-    //what is in the tube right now, before adding this substance
+    // what is in the tube right now, before adding this substance
     double aqueousMl = volumeOf(Phase.AQUEOUS);
     double organicMl = volumeOf(Phase.ORGANIC);
     // copy because Layer.getSolids() returns an unmodifiable map, but we want to add to it
@@ -90,13 +90,13 @@ public class Mixture {
     // Goes through every substance in the tube, and puts it in the right layer (or leaves it solid)
     for (Map.Entry<Substance, Double> entry : everything().entrySet()) {
       Substance substance = entry.getKey(); // which substance
-      double mmol = entry.getValue(); // how much of it is in the tube
+      double amount = entry.getValue(); // how much of it is in the tube
       if (aqueousMl > 0 && substance.isSolubleIn(Phase.AQUEOUS, ph)) {
-        aqueous.merge(substance, mmol, Double::sum);         // e.g. the drug after NaOH
+        aqueous.merge(substance, amount, Double::sum);         // e.g. the drug after NaOH
       } else if (organicMl > 0 && substance.isSolubleIn(Phase.ORGANIC, ph)) {
-        organic.merge(substance, mmol, Double::sum);         // e.g. vanillin, or the drug at first
+        organic.merge(substance, amount, Double::sum);         // e.g. vanillin, or the drug at first
       } else {
-        solids.merge(substance, mmol, Double::sum);          // e.g. the drug after HCl
+        solids.merge(substance, amount, Double::sum);          // e.g. the drug after HCl
       }
     }
     layers = buildLayers(aqueousMl, organicMl, aqueous, organic, solids);

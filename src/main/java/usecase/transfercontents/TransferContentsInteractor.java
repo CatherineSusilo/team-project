@@ -36,7 +36,7 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
 
   @Override
   public void execute(TransferContentsInputData in) {
-    // get the mixture in the target container, check if it exits and the amount is valid
+    // get the mixture in the target container, check if it exists and the amount is valid
     Mixture target = dataAccess.getMixture(in.getTargetId());
     // target is null means it was not dropped into a container, return error
     if (target == null) {
@@ -51,7 +51,7 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
 
     // if the student is mixing, execute mixing and return success
     if (in.getUnit() == TransferUnit.MIXES) {
-      target.mix((int) Math.round(in.getAmount()));          
+      target.mix((int) Math.round(in.getAmount())); 
       presenter.prepareSuccessView(describe(in.getTargetId(), target, "Mixed."));
       return;
     }
@@ -66,7 +66,7 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
     // check if the substance is allowed (by the lab manual) to be added to the target container
     ItemType targetType = dataAccess.getType(in.getTargetId());
     if (!isAllowed(added, targetType)) {
-      presenter.prepareFailView(whereItGoes(added));          
+      presenter.prepareFailView(whereItGoes(added));     
       return;
     }
 
@@ -78,11 +78,11 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
   
   // Helper functions
 
-  //Whether this is a valid transfer, referring to the la manual for valid transfers.
+  // Whether this is a valid transfer, referring to the lab manual for valid transfers.
   private boolean isAllowed(Substance added, ItemType target) {
     if (added == Substances.NAOH) {
       // Task A: NaOH is only allowed in the conical tube
-      return target == ItemType.CONICAL_TUBE;             
+      return target == ItemType.CONICAL_TUBE;          
     } else if (added == Substances.HCL) {
       // Task B: HCl is only allowed in the test tube
       return target == ItemType.TEST_TUBE;            
@@ -92,12 +92,12 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
     } else if (added == Substances.ASPIRIN || added == Substances.MEFENAMIC_ACID
         || added == Substances.VANILLIN) {
       // unknowns are only allowed in the conical tube
-      return target == ItemType.CONICAL_TUBE;                
+      return target == ItemType.CONICAL_TUBE;         
     }
-    return false;                                             
+    return false;                                       
   }
 
-  // Extra: Gives a hint to the student after doing something wrong once.
+  // Extra: Gives a hint to the student after doing something wrong every time.
   // The hint shown when the student puts a substance in the wrong place.
   private String whereItGoes(Substance added) {
     if (added == Substances.NAOH) {
@@ -124,7 +124,7 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
         hasSolid = true;
       }
     }
-    // based on the targetid, phases, whether its a solid and ph
+    // based on the targetId, phases, whether it has a solid and the pH
     // the output data tells the presenter what png to show on the screen
     return new TransferContentsOutputData(targetId, phases, hasSolid, mixture.getPh(),
         message);

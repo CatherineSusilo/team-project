@@ -8,7 +8,7 @@ public interface TransferContentsOutputBoundary {
   /**
    * Shows the container after the transfer.
    *
-   * @param output   what the container looks like now
+   * @param output what the container looks like now
    */
   void prepareSuccessView(TransferContentsOutputData output);
 
