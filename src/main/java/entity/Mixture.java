@@ -80,7 +80,8 @@ public class Mixture {
 
   /**
    * How much of one substance is in the tube, dissolved or not. Lets a step check what went
-   * in, e.g. 10 drops of NaOH = 0.5 mL (A6).
+   * in, e.g. 10 drops of NaOH = 0.5 mL (A6). Not for water or ether: they are the layers
+   * themselves, so use that layer's volume instead.
    *
    * @param substance what to look for
    * @return mL for a liquid or reagent, grams for a solid; 0 if it isn't there

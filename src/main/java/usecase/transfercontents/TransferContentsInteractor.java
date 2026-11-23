@@ -54,6 +54,11 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
 
     // if the student is mixing, execute mixing and return success
     if (in.getUnit() == TransferUnit.MIXES) {
+      // pumping only works with liquid in the tube (powder alone can't be mixed)
+      if (target.totalVolume() == 0) {
+        presenter.prepareFailView("There's nothing to mix yet.");
+        return;
+      }
       target.mix((int) Math.round(in.getAmount())); 
       markPipettesUsed(in);
       // A5 mixes 15 times, A7 30 times: the count tells the student when they're done

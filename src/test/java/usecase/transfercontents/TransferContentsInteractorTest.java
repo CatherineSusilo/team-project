@@ -339,6 +339,24 @@ class TransferContentsInteractorTest {
     assertTrue(bench.getPipette("pipette").isClean());
   }
 
+    @Test
+  void mixingAnEmptyTubeFails() {
+    interactor.execute(new TransferContentsInputData("pipette", "emptyConical", 15,
+        TransferUnit.MIXES));
+    assertEquals("There's nothing to mix yet.", error);
+    assertTrue(bench.getPipette("pipette").isClean());     // nothing happened
+  }
+
+  @Test
+  void mixingPowderAloneFails() {
+    interactor.execute(new TransferContentsInputData("unknownJar", "emptyConical", 0.200,
+        TransferUnit.GRAMS));                               // A4: just the powder
+    interactor.execute(new TransferContentsInputData("pipette", "emptyConical", 15,
+        TransferUnit.MIXES));
+    assertEquals("There's nothing to mix yet.", error);
+    assertEquals(0, bench.getMixture("emptyConical").getMixCount());
+  }
+  
   // ----- A6: 10 drops of NaOH -----
 
   @Test
