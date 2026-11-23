@@ -16,7 +16,7 @@ import usecase.ModuleDataAccessInterface;
 public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
     ModuleDataAccessInterface, CheckpointDataAccessInterface {
   // TODO: add the UML's SampleAssigner assigner once sample assignment exists.
-  private final Lab lab = new Lab();
+  private final Lab lab = Lab3Definition.create();
   private final List<LabModule> modules;
   private final List<Checkpoint> checkpoints = PreLab3Checkpoints.checkpoints();
 

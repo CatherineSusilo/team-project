@@ -34,6 +34,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   private final QuizView quizView;
   private final CompoundSearchView compoundSearch;
   private final Consumer<Container> showPage;
+  private final LabView labView;
   private final JPanel cards = new JPanel(new GridLayout(0, 3, 24, 24));
   private final JLabel message = new JLabel();
 
@@ -48,7 +49,24 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
    */
   public DashboardView(DashboardViewModel viewModel, LoadDashboardController loadDashboard,
       QuizView quizView, CompoundSearchView compoundSearch, Consumer<Container> showPage) {
+    this(viewModel, loadDashboard, quizView, compoundSearch, showPage, null);
+  }
+
+  /**
+   * Builds the dashboard with the lab screen that Proceed to Experiment opens.
+   *
+   * @param viewModel what the dashboard shows
+   * @param loadDashboard reloads the modules
+   * @param quizView the pre-procedure quiz
+   * @param compoundSearch the compound lookup popup
+   * @param showPage shows a page in the app window
+   * @param labView the lab screen, or null to show a blank scene
+   */
+  public DashboardView(DashboardViewModel viewModel, LoadDashboardController loadDashboard,
+      QuizView quizView, CompoundSearchView compoundSearch, Consumer<Container> showPage,
+      LabView labView) {
     super(new BorderLayout());
+    this.labView = labView;
     this.viewModel = viewModel;
     this.loadDashboard = loadDashboard;
     this.quizView = quizView;
@@ -200,12 +218,18 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   }
 
   private JPanel createNextScene() {
-    // TODO: build the lab manual and fume hood; for now the lab is blank apart from the notebook.
+    // The lab screen is built when LabApp passes one in; otherwise the scene is blank.
     JPanel lab = new JPanel(new FlowLayout(FlowLayout.LEFT, 24, 24));
     lab.setBackground(Color.WHITE);
     JButton back = new JButton("Back to Dashboard");
     back.addActionListener(event -> showDashboard());
     lab.add(back);
+    if (labView != null) {
+      JPanel withBack = new JPanel(new BorderLayout());
+      withBack.add(back, BorderLayout.NORTH);
+      withBack.add(labView, BorderLayout.CENTER);
+      lab = withBack;
+    }
 
     NotebookPanel notebook = new NotebookPanel();
     notebook.setPreferredSize(new Dimension(320, 0));
