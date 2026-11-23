@@ -155,6 +155,15 @@ class MixtureTest {
   }
 
   @Test
+  void mixingAgainMakesItCloudyAgain() {
+    Mixture tube = tubeBeforeMixing();
+    tube.mix(Mixture.FULL_MIX);
+    tube.advance(Mixture.SETTLE_MINUTES);
+    tube.mix(5);                                                 // cloudy again
+    assertFalse(tube.isSettled());
+  }
+
+  @Test
   void settledAfterOneMinute() {
     Mixture tube = tubeBeforeMixing();
     tube.mix(Mixture.FULL_MIX);
@@ -172,12 +181,12 @@ class MixtureTest {
     Layer taken = pipette.getLayers().get(0);
     assertEquals(Phase.AQUEOUS, taken.getPhase());
     assertEquals(1.0, taken.getVolume(), TOLERANCE);
-    assertEquals(DRUG, taken.getDissolved().get(Substances.ASPIRIN), TOLERANCE); // all of it
+    assertEquals(DRUG / 2, taken.getDissolved().get(Substances.ASPIRIN), TOLERANCE); // half
 
     Layer left = tube.getLayers().get(0);                        // 1 mL of water stays behind
     assertEquals(Phase.AQUEOUS, left.getPhase());
     assertEquals(1.0, left.getVolume(), TOLERANCE);
-    assertTrue(left.getDissolved().isEmpty());                   // with no drug in it
+    assertEquals(DRUG / 2, left.getDissolved().get(Substances.ASPIRIN), TOLERANCE);
   }
 
   @Test
@@ -192,6 +201,26 @@ class MixtureTest {
     assertEquals(1, tube.getLayers().size());                    // only the ether is left
     assertEquals(Phase.ORGANIC, tube.getLayers().get(0).getPhase());
     assertEquals(4.0, tube.getLayers().get(0).getVolume(), TOLERANCE);
+  }
+
+  @Test
+  void drawingAllTheLiquidKeepsThePowder() {
+    Mixture testTube = new Mixture();                            // e.g. after HCl: solid drug
+    testTube.add(Substances.WATER, 2);
+    testTube.add(Substances.ASPIRIN, DRUG);                      // sits as powder
+    testTube.drawFromBottom(5);                                  // draw off all the water
+    assertEquals(Phase.SOLID, testTube.getLayers().get(0).getPhase());
+    assertEquals(DRUG, testTube.getLayers().get(0).getSolids().get(Substances.ASPIRIN),
+        TOLERANCE);                                              // still there to filter
+  }
+
+  @Test
+  void drawingFromPowderOnlyTakesNothing() {
+    Mixture tube = new Mixture();
+    tube.add(Substances.ASPIRIN, DRUG);                          // no liquid at all
+    Mixture pipette = tube.drawFromBottom(1);
+    assertTrue(pipette.getLayers().isEmpty());
+    assertEquals(DRUG, tube.getLayers().get(0).getSolids().get(Substances.ASPIRIN));
   }
 
   @Test
@@ -239,6 +268,30 @@ class MixtureTest {
   }
 
   @Test
+  void pouringResetsMixCount() {
+    Mixture tube = tubeBeforeMixing();
+    tube.mix(Mixture.FULL_MIX);                                  // A7: 30 pumps
+    Mixture pipette = new Mixture();
+    pipette.add(Substances.WATER, 2);
+    tube.pour(pipette);                                          // A9: wash water in
+    assertEquals(0, tube.getMixCount());                         // has to mix 30 again
+  }
+
+  @Test
+  void emptiedPipetteDoesNotCarryItsOldPh() {
+    Mixture pipette = new Mixture();
+    pipette.pour(tubeAfterNaoh().drawFromBottom(2));             // carries the pH 13 water
+    new Mixture().pour(pipette.drawFromBottom(2));               // empties it into a tube
+
+    Mixture cylinder = new Mixture();
+    cylinder.add(Substances.WATER, 5);
+    pipette.pour(cylinder.drawFromBottom(2));                    // now plain water
+    Mixture beaker = new Mixture();
+    beaker.pour(pipette.drawFromBottom(2));
+    assertEquals(7, beaker.getPh());                             // no NaOH, so not basic
+  }
+
+  @Test
   void pourEmptiesTheSource() {
     Mixture pipette = new Mixture();
     pipette.add(Substances.WATER, 2);
@@ -250,9 +303,9 @@ class MixtureTest {
 
   @Test
   void waterIntoBasicTubeStaysBasic() {
-    Mixture tube = tubeAfterNaoh();
+    Mixture tube = tubeAfterNaoh();                              // pH 13
     Mixture pipette = new Mixture();
-    pipette.add(Substances.WATER, 2);
+    pipette.add(Substances.WATER, 2);                            // plain water, pH 7
     tube.pour(pipette);
     assertEquals(13, tube.getPh());
   }

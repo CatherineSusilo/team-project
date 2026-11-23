@@ -165,6 +165,7 @@ public class Mixture {
   /**
    * Draws liquid up from the bottom of the tube with a pipette. Only the bottom layer is ever
    * taken, so asking for more than it holds just takes all of it (never the layer above).
+   * What's dissolved goes along in the same share as the liquid; powder stays in the tube.
    *
    * @param ml how many mL to draw
    * @return a new mixture holding what was drawn, at the same pH
@@ -172,23 +173,25 @@ public class Mixture {
   public Mixture drawFromBottom(double ml) {
     Mixture drawn = new Mixture();
     drawn.ph = this.ph;                                      // same liquid, so same pH
-    if (layers.isEmpty()) {
-      return drawn;                                          // empty tube: nothing to draw
+    if (totalVolume() == 0) {
+      return drawn;                                          // no liquid: nothing to draw
     }
     Layer bottom = layers.get(0);
     double taken = Math.min(ml, bottom.getVolume());         // never more than the bottom layer
-    // the drawn liquid carries whatever is dissolved in that layer (e.g. all of the drug)
-    drawn.layers = List.of(new Layer(bottom.getPhase(), taken, bottom.getDissolved(), Map.of()));
+    double share = taken / bottom.getVolume();               // half the water = half the drug
+    drawn.layers = List.of(new Layer(bottom.getPhase(), taken,
+        scaled(bottom.getDissolved(), share), Map.of()));
 
     List<Layer> remaining = new ArrayList<>(layers);
-    if (taken < bottom.getVolume()) {
-      // a little of the layer stays behind, with nothing dissolved in it
-      remaining.set(0, new Layer(bottom.getPhase(), bottom.getVolume() - taken,
-          Map.of(), bottom.getSolids()));
-    } else {
-      remaining.remove(0);                                   // the whole bottom layer is gone
+    remaining.set(0, new Layer(bottom.getPhase(), bottom.getVolume() - taken,
+        scaled(bottom.getDissolved(), 1 - share), Map.of()));
+    layers = remaining;
+    // rebuild so an emptied layer disappears and its powder drops to the new bottom
+    layers = buildLayers(volumeOf(Phase.AQUEOUS), volumeOf(Phase.ORGANIC),
+        dissolvedIn(Phase.AQUEOUS), dissolvedIn(Phase.ORGANIC), bottom.getSolids());
+    if (layers.isEmpty()) {
+      ph = 7;                                                // an empty tube is neutral again
     }
-    layers = List.copyOf(remaining);
     return drawn;
   }
 
@@ -214,7 +217,7 @@ public class Mixture {
 
     // plain water or ether never changes an acid or a base, so keep our pH unless we are
     // neutral (or empty), then take theirs (e.g. the basic water layer into the test tube)
-    if (ph == 7) {
+    if (layers.isEmpty() || ph == 7) {
       ph = other.ph;
     }
 
@@ -223,10 +226,19 @@ public class Mixture {
     double organicMl = volumeOf(Phase.ORGANIC) + other.volumeOf(Phase.ORGANIC);
     // rebuild our layers with everything combined (water at the bottom, ether on top)
     layers = buildLayers(aqueousMl, organicMl, aqueous, organic, solids);
+    mixCount = 0;                     // something new went in, so it has to be mixed again
 
     // they poured everything in, so they're empty now (e.g. the pipette)
     other.layers = List.of();
     other.ph = 7;
+  }
+
+  // Helper Function
+  // The same amounts, times a share (e.g. 0.5 for half the liquid).
+  private Map<Substance, Double> scaled(Map<Substance, Double> amounts, double share) {
+    Map<Substance, Double> result = new HashMap<>();
+    amounts.forEach((substance, amount) -> result.put(substance, amount * share));
+    return result;
   }
 
   // Helper Function

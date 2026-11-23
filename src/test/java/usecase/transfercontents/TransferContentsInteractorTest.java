@@ -236,10 +236,32 @@ class TransferContentsInteractorTest {
   }
 
   @Test
+  void fortyDropsFillThePipetteExactly() {
+    bench.substances.put("waterBottle", Substances.WATER);
+    for (int i = 0; i < 40; i++) {                          // one drop at a time
+      interactor.execute(new TransferContentsInputData("waterBottle", "pipette", 1,
+          TransferUnit.DROPS));
+    }
+    assertNull(error);                                      // the 40th drop still fits
+    assertEquals(2.0, bench.getMixture("pipette").totalVolume(), TOLERANCE);
+  }
+
+  @Test
   void containerToContainerWithoutPipetteFails() {
     interactor.execute(new TransferContentsInputData("fullEtherCylinder", "emptyConical", 4,
         TransferUnit.ML));
     assertEquals("Use a pipette to move liquid.", error);
+  }
+
+  @Test
+  void pouringFromATubeWithOnlyPowderFails() {
+    interactor.execute(new TransferContentsInputData("unknownJar", "emptyConical", 0.200,
+        TransferUnit.GRAMS));                               // just powder, no liquid
+    error = null;
+    interactor.execute(new TransferContentsInputData("emptyConical", "pipette", 1,
+        TransferUnit.ML));
+    assertEquals("There's nothing in that to pour.", error);
+    assertTrue(bench.getMixture("pipette").getLayers().isEmpty());
   }
 
   @Test

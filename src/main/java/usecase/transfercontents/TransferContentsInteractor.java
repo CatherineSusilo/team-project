@@ -78,7 +78,8 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
       ml = in.getAmount();
     }
     // it has to fit, e.g. a pipette holds 2 mL
-    if (target.totalVolume() + ml > dataAccess.getCapacity(in.getTargetId())) {
+    // (the tiny 1e-9 allows for rounding: 40 drops of 0.05 mL add up to 2.000000000000001)
+    if (target.totalVolume() + ml > dataAccess.getCapacity(in.getTargetId()) + 1e-9) {
       presenter.prepareFailView("That won't fit.");
       return;
     }
@@ -103,7 +104,8 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
 
     // a container (cylinder, tube, pipette): the pipette draws from the bottom and empties
     Mixture source = dataAccess.getMixture(in.getSourceId());
-    if (source != null && !source.getLayers().isEmpty()) {
+    // only if it actually holds liquid (a tube with just powder has nothing to pour)
+    if (source != null && source.totalVolume() > 0) {
       if (!usesPipette(in.getSourceId(), in.getTargetId())) {
         presenter.prepareFailView("Use a pipette to move liquid.");
         return;

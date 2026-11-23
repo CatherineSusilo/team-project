@@ -85,6 +85,23 @@ class VesselTest {
   }
 
   @Test
+  void naohIsNotWeighed() {
+    Vessel tube = conicalTube();
+    new UnknownSample('A', ApiType.ASPIRIN).addTo(tube.getMixture(), 0.200);
+    tube.getMixture().add(Substances.NAOH, 0.5);                 // 10 drops, in mL
+    assertEquals(GLASS + 0.200, tube.massG(), TOLERANCE);
+  }
+
+  @Test
+  void dissolvedSampleIsStillWeighed() {
+    Vessel tube = conicalTube();
+    new UnknownSample('A', ApiType.ASPIRIN).addTo(tube.getMixture(), 0.200);
+    tube.getMixture().add(Substances.ETHER, 4);
+    tube.getMixture().mix(Mixture.FULL_MIX);                     // drug + vanillin dissolve
+    assertEquals(GLASS + 0.200, tube.massG(), TOLERANCE);
+  }
+
+  @Test
   void holdRemembersTheTube() {
     Vessel beaker = new Vessel("beaker-1", ItemType.BEAKER, new Vec2(0, 0), 50, 30);
     beaker.hold("conical-1");                     // A4: tube stands in the beaker

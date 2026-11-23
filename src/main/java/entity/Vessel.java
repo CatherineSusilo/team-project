@@ -1,5 +1,7 @@
 package entity;
 
+import java.util.Map;
+
 /**
  * Anything on the bench that holds liquid or powder: the conical tube, test tube, graduated
  * cylinders, beaker, watch glass and the pipette. Its PNG will be picked from what's inside and
@@ -39,19 +41,30 @@ public class Vessel extends LabItem {
   }
 
   /**
-   * What the scale shows for this vessel: the glass plus any solid in it. Liquids aren't
-   * weighed in this lab.
+   * What the scale shows for this vessel: the glass plus the drug and vanillin in it, whether
+   * they're powder or dissolved. Liquids and reagents (NaOH, HCl) are in mL, so they aren't
+   * weighed.
    *
    * @return the mass in grams
    */
   public double massG() {
     double total = glassMassG;
     for (Layer layer : mixture.getLayers()) {
-      for (double grams : layer.getSolids().values()) {
-        total += grams;                           // e.g. 0.200 g of the unknown in A4
-      }
+      total += sampleGrams(layer.getSolids()) + sampleGrams(layer.getDissolved());
     }
     return total;
+  }
+
+  // Helper Function
+  // Grams of the sample (drug + vanillin) in these amounts; NaOH and HCl are in mL, so skip them.
+  private double sampleGrams(Map<Substance, Double> amounts) {
+    double grams = 0;
+    for (Map.Entry<Substance, Double> entry : amounts.entrySet()) {
+      if (entry.getKey() != Substances.NAOH && entry.getKey() != Substances.HCL) {
+        grams += entry.getValue();
+      }
+    }
+    return grams;
   }
 
   public String getLabel() {
