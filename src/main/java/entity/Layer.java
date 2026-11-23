@@ -4,8 +4,8 @@ import java.util.Map;
 
 /**
  * One liquid layer in a tube (the water layer or the ether layer): what is dissolved in it
- * and any solid sitting in it. Amounts are in mmol, volume in mL. 
- * A layer never changes, the mixture makes new layers when its contents change.
+ * and any solid sitting in it. Volume is in mL; amounts are in the unit they were added in
+ * (e.g. g, drops). A layer never changes; the mixture makes new layers when its contents change.
  */
 public final class Layer {
   private final Phase phase;
@@ -18,8 +18,8 @@ public final class Layer {
    *
    * @param phase AQUEOUS for the water layer, ORGANIC for the ether layer
    * @param volume how many mL
-   * @param dissolved what is dissolved in it, in mmol
-   * @param solids undissolved solid in it, in mmol
+   * @param dissolved what is dissolved in it, and how much
+   * @param solids undissolved solid in it, and how much
    */
   public Layer(Phase phase, double volume, Map<Substance, Double> dissolved,
       Map<Substance, Double> solids) {
