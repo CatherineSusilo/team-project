@@ -115,6 +115,17 @@ class InMemoryLabSnapshotTest {
   }
 
   @Test
+  void firstSnapshotMarksStepZeroSoPrevCanReturnToIt() {
+    dao.pushSnapshot();
+    change(1);
+    dao.markStepStart(1);
+    change(2);
+
+    assertTrue(dao.rewindToStepStart(0));
+    assertEquals(0, count());
+  }
+
+  @Test
   void restoredLabIsAnIndependentCopy() {
     dao.pushSnapshot();
     change(1);

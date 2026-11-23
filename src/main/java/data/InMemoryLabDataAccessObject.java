@@ -55,6 +55,9 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
 
   @Override
   public void pushSnapshot() {
+    if (snapshots.isEmpty()) {
+      markStepStart(0); // Prev needs this to get back to the first step.
+    }
     snapshots.add(new Snapshot(labJson.toJson(lab), lab.getClass(), UNDO_POINT));
   }
 
@@ -67,8 +70,9 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
     if (last.stepStart != UNDO_POINT) {
       return false;
     }
-    snapshots.remove(snapshots.size() - 1);
+    // Parse before removing, so a failed restore keeps this undo point.
     lab = labJson.fromJson(last.json, last.labClass);
+    snapshots.remove(snapshots.size() - 1);
     return true;
   }
 
