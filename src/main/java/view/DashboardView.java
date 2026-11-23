@@ -221,18 +221,17 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     // The lab screen is built when LabApp passes one in; otherwise the scene is blank.
     JPanel lab = new JPanel(new FlowLayout(FlowLayout.LEFT, 24, 24));
     lab.setBackground(Color.WHITE);
-    JButton back = new JButton("Back to Dashboard");
-    back.addActionListener(event -> showDashboard());
-    lab.add(back);
     if (labView != null) {
-      JPanel withBack = new JPanel(new BorderLayout());
-      withBack.add(back, BorderLayout.NORTH);
-      withBack.add(labView, BorderLayout.CENTER);
-      lab = withBack;
+      labView.setOnExit(this::showDashboard);
+      lab = labView;
+    } else {
+      JButton back = new JButton("Back to Dashboard");
+      back.addActionListener(event -> showDashboard());
+      lab.add(back);
     }
 
     NotebookPanel notebook = new NotebookPanel();
-    notebook.setPreferredSize(new Dimension(320, 0));
+    notebook.setPreferredSize(new Dimension(340, 0));
     JPanel scene = new JPanel(new BorderLayout());
     scene.add(lab, BorderLayout.CENTER);
     scene.add(notebook, BorderLayout.EAST);

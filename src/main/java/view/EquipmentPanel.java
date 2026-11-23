@@ -2,8 +2,9 @@ package view;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -12,20 +13,23 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 /**
- * The tray: what the student may take for this step. Each tile is dragged onto the bench.
+ * The tray, drawn as the dark counter under the fume hood: what the student may take for this step.
+ * Each tile is dragged up onto the bench.
  */
 class EquipmentPanel extends JPanel {
 
-  private static final int TILE_HEIGHT = 84;
-  private static final int SPRITE_SIZE = 56;
+  private static final Color COUNTER = new Color(0x3C3C3C);
+  private static final int TILE_WIDTH = 104;
+  private static final int TILE_HEIGHT = 96;
+  private static final int SPRITE_SIZE = 52;
 
   private final DragDropManager manager;
-  private final JPanel tiles = new JPanel();
+  private final JPanel tiles = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+  private final JLabel empty = new JLabel("Nothing to pick up for this step.");
   private List<String> shown = List.of();
 
   /**
@@ -36,15 +40,13 @@ class EquipmentPanel extends JPanel {
   EquipmentPanel(DragDropManager manager) {
     super(new BorderLayout());
     this.manager = manager;
-    setPreferredSize(new Dimension(210, 0));
-    setBackground(Color.WHITE);
-    setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, Theme.DISABLED));
-    JLabel heading = new JLabel("Equipment");
-    heading.setFont(Theme.bold(Theme.HEADER_SIZE));
-    heading.setBorder(BorderFactory.createEmptyBorder(12, 12, 8, 12));
-    add(heading, BorderLayout.NORTH);
-    tiles.setLayout(new BoxLayout(tiles, BoxLayout.Y_AXIS));
+    setPreferredSize(new Dimension(0, 108));
+    setBackground(COUNTER);
+    setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
     tiles.setOpaque(false);
+    empty.setForeground(new Color(0xB8C0BF));
+    empty.setFont(Theme.SANS_REGULAR.deriveFont(Theme.BODY_SIZE_SMALL));
+    tiles.add(empty);
     add(tiles, BorderLayout.CENTER);
   }
 
@@ -59,6 +61,9 @@ class EquipmentPanel extends JPanel {
     }
     shown = List.copyOf(templateIds);
     tiles.removeAll();
+    if (shown.isEmpty()) {
+      tiles.add(empty);
+    }
     for (String templateId : shown) {
       tiles.add(new Tile(templateId));
     }
@@ -83,10 +88,8 @@ class EquipmentPanel extends JPanel {
     Tile(String templateId) {
       this.templateId = templateId;
       setOpaque(false);
-      setMaximumSize(new Dimension(Integer.MAX_VALUE, TILE_HEIGHT));
-      setPreferredSize(new Dimension(190, TILE_HEIGHT));
-      setAlignmentX(Component.LEFT_ALIGNMENT);
-      setBorder(BorderFactory.createEmptyBorder(4, 12, 4, 12));
+      setPreferredSize(new Dimension(TILE_WIDTH, TILE_HEIGHT));
+      setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
       MouseAdapter mouse = new MouseAdapter() {
         @Override
         public void mousePressed(MouseEvent event) {
@@ -115,24 +118,25 @@ class EquipmentPanel extends JPanel {
           RenderingHints.VALUE_INTERPOLATION_BILINEAR);
       g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
           RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+      g.setColor(new Color(0x4A4A4A));
+      g.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
       Image sprite = SpriteCatalog.spriteOf(templateId);
       if (sprite != null) {
         double scale = Math.min(1.0, (double) SPRITE_SIZE
             / Math.max(sprite.getWidth(null), sprite.getHeight(null)));
         int width = (int) Math.round(sprite.getWidth(null) * scale);
         int height = (int) Math.round(sprite.getHeight(null) * scale);
-        g.drawImage(sprite, 12 + (SPRITE_SIZE - width) / 2,
-            (getHeight() - height) / 2, width, height, null);
+        g.drawImage(sprite, (getWidth() - width) / 2, 8 + (SPRITE_SIZE - height) / 2, width,
+            height, null);
       } else {
-        g.setColor(Theme.DISABLED);
-        g.fillRoundRect(12, (getHeight() - SPRITE_SIZE) / 2, SPRITE_SIZE, SPRITE_SIZE, 10, 10);
+        g.setColor(new Color(0x6A6A6A));
+        g.fillRoundRect((getWidth() - SPRITE_SIZE) / 2, 8, SPRITE_SIZE, SPRITE_SIZE, 10, 10);
       }
-      g.setColor(Color.DARK_GRAY);
-      g.setFont(Theme.SANS_REGULAR.deriveFont(Theme.BODY_SIZE));
-      g.drawString(SpriteCatalog.nameOf(templateId), 12 + SPRITE_SIZE + 10,
-          getHeight() / 2 + g.getFontMetrics().getAscent() / 2 - 2);
-      g.setColor(Theme.DISABLED);
-      g.drawLine(0, getHeight() - 1, getWidth(), getHeight() - 1);
+      g.setColor(Color.WHITE);
+      g.setFont(Theme.SANS_REGULAR.deriveFont(Theme.BODY_SIZE_SMALL));
+      String name = SpriteCatalog.nameOf(templateId);
+      g.drawString(name, (getWidth() - g.getFontMetrics().stringWidth(name)) / 2,
+          getHeight() - 10);
       g.dispose();
     }
   }

@@ -31,9 +31,13 @@ public final class LabStateMapper {
       items.add(new ItemData(item.getId(), item.getType().name(), label,
           item.getPosition().getX(), item.getPosition().getY()));
     }
+    List<String> titles = new ArrayList<>();
+    for (LabStep each : lab.getSteps()) {
+      titles.add(each.getTitle());
+    }
     boolean nextLocked = status != StepStatus.COMPLETE || !lab.hasNextStep();
-    return new LabStateData(lab.getCurrentIndex(), lab.getStepCount(), step.getTitle(),
-        step.getInstruction(), status, lab.message(), nextLocked, lab.getCurrentIndex() == 0,
-        step.getTrayTemplates(), items);
+    return new LabStateData(lab.getCurrentIndex(), lab.getStepCount(), titles,
+        step.getTitle(), step.getInstruction(), status, lab.message(), nextLocked,
+        lab.getCurrentIndex() == 0, step.getTrayTemplates(), items);
   }
 }

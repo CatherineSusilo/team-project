@@ -100,4 +100,18 @@ class LabViewTest {
       assertEquals("conical_tube-1", bench.itemAt(new Point(200, 200)));
     });
   }
+
+  @Test
+  void continueButtonNamesTheNextStepAndExitModuleRunsTheExitAction() throws Exception {
+    onEdt(() -> {
+      LabView view = build();
+      boolean[] exited = {false};
+      view.setOnExit(() -> exited[0] = true);
+      NavBar nav = find(view, NavBar.class);
+
+      assertEquals("Continue to Step 2", nav.getNextButton().getText());
+      nav.getExitButton().doClick();
+      assertTrue(exited[0]);
+    });
+  }
 }

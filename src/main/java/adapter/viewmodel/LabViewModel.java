@@ -18,6 +18,7 @@ public class LabViewModel {
   private final PropertyChangeSupport support = new PropertyChangeSupport(this);
   private int stepIndex;
   private int stepCount;
+  private List<String> stepTitles = List.of();
   private String title = "";
   private String instruction = "";
   private String message = "";
@@ -35,6 +36,7 @@ public class LabViewModel {
   public void setState(LabStateData state) {
     this.stepIndex = state.getStepIndex();
     this.stepCount = state.getStepCount();
+    this.stepTitles = List.copyOf(state.getStepTitles());
     this.title = state.getTitle();
     this.instruction = state.getInstruction();
     this.message = state.getMessage();
@@ -79,6 +81,10 @@ public class LabViewModel {
 
   public int getStepCount() {
     return stepCount;
+  }
+
+  public List<String> getStepTitles() {
+    return stepTitles;
   }
 
   public String getTitle() {

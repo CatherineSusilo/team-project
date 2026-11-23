@@ -11,6 +11,7 @@ public final class LabStateData {
 
   private final int stepIndex;
   private final int stepCount;
+  private final List<String> stepTitles;
   private final String title;
   private final String instruction;
   private final StepStatus status;
@@ -25,6 +26,7 @@ public final class LabStateData {
    *
    * @param stepIndex the current step, from 0
    * @param stepCount how many steps the lab has
+   * @param stepTitles every step's name, in order
    * @param title the step's name
    * @param instruction what the student is asked to do
    * @param status where the student stands on the step
@@ -34,11 +36,12 @@ public final class LabStateData {
    * @param trayTemplates the template ids the tray offers now
    * @param items what is on the bench
    */
-  public LabStateData(int stepIndex, int stepCount, String title, String instruction,
-      StepStatus status, String message, boolean nextLocked, boolean prevLocked,
-      List<String> trayTemplates, List<ItemData> items) {
+  public LabStateData(int stepIndex, int stepCount, List<String> stepTitles, String title,
+      String instruction, StepStatus status, String message, boolean nextLocked,
+      boolean prevLocked, List<String> trayTemplates, List<ItemData> items) {
     this.stepIndex = stepIndex;
     this.stepCount = stepCount;
+    this.stepTitles = List.copyOf(stepTitles);
     this.title = title;
     this.instruction = instruction;
     this.status = status;
@@ -55,6 +58,10 @@ public final class LabStateData {
 
   public int getStepCount() {
     return stepCount;
+  }
+
+  public List<String> getStepTitles() {
+    return stepTitles;
   }
 
   public String getTitle() {

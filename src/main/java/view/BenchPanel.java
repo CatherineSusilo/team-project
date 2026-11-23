@@ -20,6 +20,9 @@ import javax.swing.JPanel;
  */
 class BenchPanel extends JPanel {
 
+  private static final Color HOOD = new Color(0xE4E7EC);
+  private static final Color DARK = new Color(0x3A3A3A);
+  private static final int HEADER_HEIGHT = 34;
   private static final int MAX_SIZE = 110;
   private static final int BOX_SIZE = 70;
 
@@ -38,7 +41,7 @@ class BenchPanel extends JPanel {
    */
   BenchPanel(DragDropManager manager) {
     this.manager = manager;
-    setBackground(new Color(0xF3F6F5));
+    setBackground(HOOD);
     setPreferredSize(new Dimension(560, 480));
     MouseAdapter mouse = new MouseAdapter() {
       @Override
@@ -153,6 +156,7 @@ class BenchPanel extends JPanel {
     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
     g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
         RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+    drawHood(g);
     for (ItemState item : items) {
       boolean moving = item.getId().equals(draggedId) && dragCentre != null;
       int x = moving ? dragCentre.x : (int) item.getX();
@@ -163,6 +167,29 @@ class BenchPanel extends JPanel {
       drawThing(g, ghostTemplate, "", ghostCentre.x, ghostCentre.y, 0.5f);
     }
     g.dispose();
+  }
+
+  /** The fume hood itself: the dark title bar, the Vac box and the edge of the counter. */
+  private void drawHood(Graphics2D g) {
+    g.setColor(DARK);
+    g.fillRect(0, 0, getWidth(), HEADER_HEIGHT);
+    g.setFont(new Font(Font.MONOSPACED, Font.BOLD, 11));
+    g.setColor(Color.WHITE);
+    String title = "Fume Hood";
+    g.drawString(title, (getWidth() - g.getFontMetrics().stringWidth(title)) / 2,
+        HEADER_HEIGHT / 2 + 4);
+    int boxLeft = getWidth() - 74;
+    int boxTop = HEADER_HEIGHT + 58;
+    g.setColor(new Color(0xD5D9DF));
+    g.fillRect(boxLeft, boxTop, 62, 28);
+    g.setColor(new Color(0x222222));
+    g.setStroke(new java.awt.BasicStroke(2f));
+    g.drawRect(boxLeft, boxTop, 62, 28);
+    g.setFont(new Font(Font.MONOSPACED, Font.BOLD, 10));
+    g.drawString("Vac", boxLeft + 1, boxTop + 42);
+    g.setStroke(new java.awt.BasicStroke(1f));
+    g.setColor(DARK);
+    g.fillRect(0, getHeight() - 6, getWidth(), 6);
   }
 
   private static void drawThing(Graphics2D g, String templateId, String label, int cx, int cy,
