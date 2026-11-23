@@ -79,6 +79,20 @@ public class Mixture {
   }
 
   /**
+   * How much of one substance is in the tube, dissolved or not. Lets a step check what went
+   * in, e.g. 10 drops of NaOH = 0.5 mL (A6). Not for water or ether: they are the layers
+   * themselves, so use that layer's volume instead.
+   *
+   * @param substance what to look for
+   * @return mL for a liquid or reagent, grams for a solid; 0 if it isn't there
+   */
+  public double amountOf(Substance substance) {
+    // getOrDefault: look for this substance; if it was never added (e.g. HCl in Task A), it's 0.0.
+    // Rounded to 6 decimals: one drop per click adds tiny errors (10 drops = 0.49999999999999994).
+    return Math.round(everything().getOrDefault(substance, 0.0) * 1e6) / 1e6;
+  }
+
+  /**
    * Adds a substance. Water and ether join their layer straight away. Anything else sits
    * undissolved until the mixture is mixed.
    *

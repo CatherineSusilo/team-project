@@ -22,7 +22,7 @@ public class TransferContentsPresenter implements TransferContentsOutputBoundary
   @Override
   public void prepareSuccessView(TransferContentsOutputData out) {
     viewModel.setResult(out.getTargetId(), out.getLayerPhases(),
-        out.hasSolid(), out.getPh(), out.getMessage());
+        out.hasSolid(), out.isSettled(), out.getPh(), out.getMessage());
     viewModel.firePropertyChanged();
   }
 

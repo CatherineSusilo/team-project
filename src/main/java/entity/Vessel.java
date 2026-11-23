@@ -75,6 +75,17 @@ public class Vessel extends LabItem {
     this.label = label;
   }
 
+  /**
+   * Whether the label says what it should, ignoring capitals and spaces (" a " matches "A").
+   *
+   * @param expected what the label should say, e.g. "A" or "aqueous"
+   * @return true if it matches; false if it's wrong or there's no label yet
+   */
+  public boolean labelMatches(String expected) {
+    String written = label.replace(" ", "");
+    return !written.isEmpty() && written.equalsIgnoreCase(expected.replace(" ", ""));
+  }
+
   public boolean isCovered() {
     return covered;
   }

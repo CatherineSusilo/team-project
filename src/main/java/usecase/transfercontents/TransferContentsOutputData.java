@@ -10,6 +10,7 @@ public final class TransferContentsOutputData {
   private final String targetId;
   private final List<String> layerPhases;
   private final boolean hasSolid;
+  private final boolean settled;
   private final double ph;
   private final String message;
 
@@ -19,14 +20,16 @@ public final class TransferContentsOutputData {
    * @param targetId the container that changed
    * @param layerPhases each layer's phase, bottom first, e.g. ["AQUEOUS", "ORGANIC"]
    * @param hasSolid whether there is undissolved solid in the container
+   * @param settled false right after mixing (cloudy), true once the layers separate
    * @param ph the container's pH
    * @param message what happened, to show the student
    */
   public TransferContentsOutputData(String targetId, List<String> layerPhases,
-      boolean hasSolid, double ph, String message) {
+      boolean hasSolid, boolean settled, double ph, String message) {
     this.targetId = targetId;
     this.layerPhases = List.copyOf(layerPhases);
     this.hasSolid = hasSolid;
+    this.settled = settled;
     this.ph = ph;
     this.message = message;
   }
@@ -41,6 +44,10 @@ public final class TransferContentsOutputData {
 
   public boolean hasSolid() {
     return hasSolid;
+  }
+
+  public boolean isSettled() {
+    return settled;
   }
 
   public double getPh() {

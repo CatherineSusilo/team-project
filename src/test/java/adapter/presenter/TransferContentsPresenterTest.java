@@ -24,11 +24,19 @@ class TransferContentsPresenterTest {
   @Test
   void successUpdatesTheContainer() {
     presenter.prepareSuccessView(new TransferContentsOutputData("conical",
-        List.of("AQUEOUS", "ORGANIC"), false, 13, "Added 10 drops."));
+        List.of("AQUEOUS", "ORGANIC"), false, true, 13, "Added 10 drops."));
     assertTrue(viewModel.isSuccess());
     assertEquals("conical", viewModel.getTargetId());
     assertEquals(13, viewModel.getPh());
     assertEquals(1, redraws);
+  }
+
+  @Test
+  void justMixedShowsCloudy() {
+    presenter.prepareSuccessView(new TransferContentsOutputData("conical",
+        List.of("AQUEOUS", "ORGANIC"), true, false, 7, "Mixed. 15 pumps so far."));
+    assertFalse(viewModel.isSettled());                       // the mixing PNG
+    assertEquals("Mixed. 15 pumps so far.", viewModel.getMessage());
   }
 
   @Test

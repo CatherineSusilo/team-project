@@ -31,4 +31,36 @@ class PasteurPipetteTest {
     pipette.markUsed();
     assertFalse(pipette.isClean());
   }
+  // ----- mixing pipette (A5, A7) -----
+
+  @Test
+  void newPipetteCanMixAnyTube() {
+    PasteurPipette pipette = new PasteurPipette("pipette-1", new Vec2(0, 0));
+    assertTrue(pipette.canMix("conical-1"));
+  }
+
+  @Test
+  void mixingPipetteCanKeepMixingItsTube() {
+    PasteurPipette pipette = new PasteurPipette("pipette-1", new Vec2(0, 0));
+    pipette.markMixing("conical-1");                             // A5, pump 1
+    assertFalse(pipette.isClean());
+    assertTrue(pipette.canMix("conical-1"));                     // pump 2, and A7 later
+    assertFalse(pipette.canMix("conical-2"));                    // but not another tube
+  }
+
+  @Test
+  void usedPipetteNeverBecomesTheMixingPipette() {
+    PasteurPipette pipette = new PasteurPipette("pipette-1", new Vec2(0, 0));
+    pipette.markUsed();                                          // it carried ether
+    pipette.markMixing("conical-1");
+    assertFalse(pipette.canMix("conical-1"));
+  }
+
+  @Test
+  void drawingTheWaterLayerKeepsItTheMixingPipette() {
+    PasteurPipette pipette = new PasteurPipette("pipette-1", new Vec2(0, 0));
+    pipette.markMixing("conical-1");                             // A5, A7
+    pipette.markUsed();                                          // A8: draws the water layer
+    assertTrue(pipette.canMix("conical-1"));                     // A9: mixes again, same pipette
+  }
 }

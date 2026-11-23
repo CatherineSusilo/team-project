@@ -18,6 +18,7 @@ public class TransferContentsViewModel {
   private List<String> layerPhases = List.of();
   private List<Double> layerVolumes = List.of();
   private boolean hasSolid;
+  private boolean settled = true;
   private double ph = 7;
   private String message = "";
 
@@ -27,15 +28,17 @@ public class TransferContentsViewModel {
    * @param targetId the container that changed
    * @param layerPhases each layer's phase, bottom first
    * @param hasSolid whether there is undissolved solid in it
+   * @param settled false right after mixing, so the tube shows the cloudy mixing PNG
    * @param ph its pH
    * @param message what happened
    */
   public void setResult(String targetId, List<String> layerPhases,
-      boolean hasSolid, double ph, String message) {
+      boolean hasSolid, boolean settled, double ph, String message) {
     this.success = true;
     this.targetId = targetId;
     this.layerPhases = List.copyOf(layerPhases);
     this.hasSolid = hasSolid;
+    this.settled = settled;
     this.ph = ph;
     this.message = message;
   }
@@ -84,6 +87,10 @@ public class TransferContentsViewModel {
 
   public boolean hasSolid() {
     return hasSolid;
+  }
+
+  public boolean isSettled() {
+    return settled;
   }
 
   public double getPh() {
