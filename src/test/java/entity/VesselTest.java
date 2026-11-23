@@ -115,4 +115,30 @@ class VesselTest {
     beaker.releaseHeld();
     assertNull(beaker.getHoldingId());
   }
+
+  @Test
+  void labelMatchesIgnoringCase() {
+    Vessel tube = conicalTube();
+    tube.setLabel("a");
+    assertTrue(tube.labelMatches("A"));
+  }
+
+  @Test
+  void labelMatchesIgnoringSpaces() {
+    Vessel tube = conicalTube();
+    tube.setLabel(" aque ous ");
+    assertTrue(tube.labelMatches("aqueous"));
+  }
+
+  @Test
+  void wrongLabelDoesNotMatch() {
+    Vessel tube = conicalTube();
+    tube.setLabel("B");
+    assertFalse(tube.labelMatches("A"));
+  }
+
+  @Test
+  void missingLabelDoesNotMatch() {
+    assertFalse(conicalTube().labelMatches("A"));
+  }
 }
