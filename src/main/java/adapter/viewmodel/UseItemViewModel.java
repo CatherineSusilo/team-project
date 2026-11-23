@@ -4,8 +4,8 @@ import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 
 /**
- * What the bench shows after an item is used: its label and cover, or an error. A stand-in
- * until the shared LabViewModel exists (same as TransferContentsViewModel).
+ * What the bench shows after an item is used: its label, cover and scale number, or an
+ * error. A stand-in until the shared LabViewModel exists (same as TransferContentsViewModel).
  */
 public class UseItemViewModel {
   /** Fired when using an item finishes, successful or not. */
@@ -16,6 +16,7 @@ public class UseItemViewModel {
   private String itemId = "";
   private String label = "";
   private boolean covered;
+  private String display = "";
   private String message = "";
 
   /**
@@ -24,13 +25,16 @@ public class UseItemViewModel {
    * @param itemId the item that changed
    * @param label what its label says now
    * @param covered whether it is covered
+   * @param display what the scale shows ("" if it isn't a scale)
    * @param message what happened
    */
-  public void setResult(String itemId, String label, boolean covered, String message) {
+  public void setResult(String itemId, String label, boolean covered, String display,
+      String message) {
     this.success = true;
     this.itemId = itemId;
     this.label = label;
     this.covered = covered;
+    this.display = display;
     this.message = message;
   }
 
@@ -74,6 +78,10 @@ public class UseItemViewModel {
 
   public boolean isCovered() {
     return covered;
+  }
+
+  public String getDisplay() {
+    return display;
   }
 
   public String getMessage() {
