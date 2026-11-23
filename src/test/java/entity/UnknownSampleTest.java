@@ -31,12 +31,13 @@ class UnknownSampleTest {
   }
 
   @Test
-  void scoopAddsTheDrugAsPowder() {
+  void scoopIsDrugPlusVanillinAsPowder() {
     Mixture tube = new Mixture();
     new UnknownSample('A', ApiType.ASPIRIN).addTo(tube, 0.200);
     Layer powder = tube.getLayers().get(0);
-    assertEquals(Phase.SOLID, powder.getPhase());                // no liquid yet
-    assertEquals(0.200, powder.getSolids().get(Substances.ASPIRIN));
+    assertEquals(Phase.SOLID, powder.getPhase());                      // no liquid yet
+    assertEquals(0.160, powder.getSolids().get(Substances.ASPIRIN), 1e-9);
+    assertEquals(0.040, powder.getSolids().get(Substances.VANILLIN), 1e-9);
   }
 
   @Test
@@ -45,7 +46,8 @@ class UnknownSampleTest {
     UnknownSample sample = new UnknownSample('B', ApiType.MEFENAMIC_ACID);
     sample.addTo(tube, 0.150);
     sample.addTo(tube, 0.050);
-    double grams = tube.getLayers().get(0).getSolids().get(Substances.MEFENAMIC_ACID);
-    assertEquals(0.200, grams, 1e-9);
+    Layer powder = tube.getLayers().get(0);
+    assertEquals(0.160, powder.getSolids().get(Substances.MEFENAMIC_ACID), 1e-9);
+    assertEquals(0.040, powder.getSolids().get(Substances.VANILLIN), 1e-9);
   }
 }
