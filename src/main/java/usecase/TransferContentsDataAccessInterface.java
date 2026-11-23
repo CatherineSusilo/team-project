@@ -3,6 +3,7 @@ package usecase;
 import entity.ItemType;
 import entity.Mixture;
 import entity.Substance;
+import entity.UnknownSample;
 
 /**
  * What the transfer use case needs to know about the items on the bench. The lab data class
@@ -33,4 +34,20 @@ public interface TransferContentsDataAccessInterface {
    * @return its type, e.g. CONICAL_TUBE
    */
   ItemType getType(String itemId);
+
+  /**
+   * Returns the student's unknown if this item is the unknown sample jar.
+   *
+   * @param itemId the item's id
+   * @return the unknown, or null if this item isn't the unknown sample
+   */
+  UnknownSample getUnknown(String itemId);
+
+  /**
+   * Returns how much a container holds.
+   *
+   * @param itemId the container's id
+   * @return its capacity in mL, e.g. 2.0 for a pipette
+   */
+  double getCapacity(String itemId);
 }
