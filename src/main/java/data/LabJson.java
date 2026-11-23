@@ -17,8 +17,11 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import entity.ItemType;
 import entity.LabItem;
+import entity.PasteurPipette;
+import entity.StockBottle;
 import entity.Substance;
 import entity.Substances;
+import entity.Vessel;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -41,13 +44,19 @@ public final class LabJson {
 
   private final Gson gson;
 
-  /**
-   * Creates a converter that knows no item subclasses yet. Reading an item then fails with a
-   * clear message.
-   */
-  // TODO: register Vessel, StockBottle, etc. here once they are on main.
+  /** Creates a converter that knows every item class on main. */
+  // TODO: add Scale, IceBath, etc. here as they land on main.
   public LabJson() {
-    this(Map.of());
+    this(Map.ofEntries(
+        Map.entry(ItemType.CONICAL_TUBE, Vessel.class),
+        Map.entry(ItemType.TEST_TUBE, Vessel.class),
+        Map.entry(ItemType.GRADUATED_CYLINDER, Vessel.class),
+        Map.entry(ItemType.BEAKER, Vessel.class),
+        Map.entry(ItemType.WATCH_GLASS, Vessel.class),
+        Map.entry(ItemType.VIAL, Vessel.class),
+        Map.entry(ItemType.PIPETTE, PasteurPipette.class),
+        Map.entry(ItemType.DROPPER, StockBottle.class),
+        Map.entry(ItemType.SOLVENT_BOTTLE, StockBottle.class)));
   }
 
   /**
