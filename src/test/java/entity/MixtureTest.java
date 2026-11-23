@@ -310,6 +310,46 @@ class MixtureTest {
     assertEquals(13, tube.getPh());
   }
 
+  // ----- amountOf (A6) -----
+
+  @Test
+  void tenDropsOfNaohIsHalfAMillilitre() {
+    Mixture tube = tubeBeforeMixing();
+    tube.add(Substances.NAOH, 10 * StockBottle.DROP_ML);
+    assertEquals(0.5, tube.amountOf(Substances.NAOH), TOLERANCE);
+  }
+
+  @Test
+  void amountCountsDissolvedToo() {
+    Mixture tube = tubeAfterNaoh();                              // the drug is in the water now
+    assertEquals(DRUG, tube.amountOf(Substances.ASPIRIN), TOLERANCE);
+    assertEquals(VANILLIN, tube.amountOf(Substances.VANILLIN), TOLERANCE);
+  }
+
+  @Test
+  void tenSingleDropsAreExactlyHalfAMillilitre() {
+    Mixture tube = tubeBeforeMixing();
+    for (int i = 0; i < 10; i++) {
+      tube.add(Substances.NAOH, StockBottle.DROP_ML);              // one click = one drop
+    }
+    assertEquals(0.5, tube.amountOf(Substances.NAOH));            // exact, no tolerance
+  }
+
+  @Test
+  void twentySingleDropsAreExactlyOneMillilitre() {
+    Mixture tube = new Mixture();
+    tube.add(Substances.WATER, 2);
+    for (int i = 0; i < 20; i++) {
+      tube.add(Substances.HCL, StockBottle.DROP_ML);
+    }
+    assertEquals(1.0, tube.amountOf(Substances.HCL));             // exact, no tolerance
+  }
+
+  @Test
+  void missingSubstanceIsZero() {
+    assertEquals(0, tubeBeforeMixing().amountOf(Substances.HCL), TOLERANCE);
+  }
+
   // ----- totalVolume -----
 
   @Test
