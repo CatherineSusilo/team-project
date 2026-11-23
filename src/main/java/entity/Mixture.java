@@ -94,7 +94,7 @@ public class Mixture {
       if (aqueousMl > 0 && substance.isSolubleIn(Phase.AQUEOUS, ph)) {
         aqueous.merge(substance, amount, Double::sum);         // e.g. the drug after NaOH
       } else if (organicMl > 0 && substance.isSolubleIn(Phase.ORGANIC, ph)) {
-        organic.merge(substance, amount, Double::sum);         // e.g. vanillin, or the drug at first
+        organic.merge(substance, amount, Double::sum);         // e.g. vanillin/the drug at first
       } else {
         solids.merge(substance, amount, Double::sum);          // e.g. the drug after HCl
       }
