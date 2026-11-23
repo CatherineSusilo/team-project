@@ -60,7 +60,11 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
         return;
       }
       target.mix((int) Math.round(in.getAmount())); 
-      markPipettesUsed(in);
+      // the pipette becomes this tube's mixing pipette, so it can keep pumping (A5, then A7)
+      PasteurPipette pumping = dataAccess.getPipette(in.getSourceId());
+      if (pumping != null) {
+        pumping.markMixing(in.getTargetId());
+      }
       // A5 mixes 15 times, A7 30 times: the count tells the student when they're done
       presenter.prepareSuccessView(describe(in.getTargetId(), target,
           "Mixed. " + target.getMixCount() + " pumps so far."));

@@ -88,7 +88,8 @@ public class Mixture {
    */
   public double amountOf(Substance substance) {
     // getOrDefault: look for this substance; if it was never added (e.g. HCl in Task A), it's 0.0.
-    return everything().getOrDefault(substance, 0.0);
+    // Rounded to 6 decimals: one drop per click adds tiny errors (10 drops = 0.49999999999999994).
+    return Math.round(everything().getOrDefault(substance, 0.0) * 1e6) / 1e6;
   }
 
   /**

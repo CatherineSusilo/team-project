@@ -327,6 +327,25 @@ class MixtureTest {
   }
 
   @Test
+  void tenSingleDropsAreExactlyHalfAMillilitre() {
+    Mixture tube = tubeBeforeMixing();
+    for (int i = 0; i < 10; i++) {
+      tube.add(Substances.NAOH, StockBottle.DROP_ML);              // one click = one drop
+    }
+    assertEquals(0.5, tube.amountOf(Substances.NAOH));            // exact, no tolerance
+  }
+
+  @Test
+  void twentySingleDropsAreExactlyOneMillilitre() {
+    Mixture tube = new Mixture();
+    tube.add(Substances.WATER, 2);
+    for (int i = 0; i < 20; i++) {
+      tube.add(Substances.HCL, StockBottle.DROP_ML);
+    }
+    assertEquals(1.0, tube.amountOf(Substances.HCL));             // exact, no tolerance
+  }
+
+  @Test
   void missingSubstanceIsZero() {
     assertEquals(0, tubeBeforeMixing().amountOf(Substances.HCL), TOLERANCE);
   }

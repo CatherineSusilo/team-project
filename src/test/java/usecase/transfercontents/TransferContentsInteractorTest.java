@@ -325,6 +325,25 @@ class TransferContentsInteractorTest {
   }
 
   @Test
+  void mixingPipetteCanKeepMixingTheSameTube() {
+    interactor.execute(new TransferContentsInputData("pipette", "conical", 1,
+        TransferUnit.MIXES));                               // pump 1
+    assertTrue(bench.getPipette("pipette").canMix("conical"));   // pump 2 and A7 are fine
+  }
+
+  @Test
+  void sameMixingPipetteThroughA8AndA9() {
+    unknownEtherAndWater();
+    interactor.execute(new TransferContentsInputData("naohDropper", "emptyConical", 10,
+        TransferUnit.DROPS));
+    interactor.execute(new TransferContentsInputData("pipette", "emptyConical", 30,
+        TransferUnit.MIXES));                               // A7
+    interactor.execute(new TransferContentsInputData("emptyConical", "pipette", 1.5,
+        TransferUnit.ML));                                  // A8: draw the water layer
+    assertTrue(bench.getPipette("pipette").canMix("emptyConical"));   // A9 can mix again
+  }
+
+  @Test
   void drawingEtherMarksThePipetteUsed() {
     interactor.execute(new TransferContentsInputData("etherBottle", "pipette", 2,
         TransferUnit.ML));
@@ -365,6 +384,16 @@ class TransferContentsInteractorTest {
     interactor.execute(new TransferContentsInputData("naohDropper", "emptyConical", 10,
         TransferUnit.DROPS));
     assertEquals(0.5, bench.getMixture("emptyConical").amountOf(Substances.NAOH), TOLERANCE);
+  }
+
+  @Test
+  void tenSingleClicksOfNaohAddExactlyHalfAMillilitre() {
+    unknownEtherAndWater();
+    for (int i = 0; i < 10; i++) {                          // the A6 UI: one drop per click
+      interactor.execute(new TransferContentsInputData("naohDropper", "emptyConical", 1,
+          TransferUnit.DROPS));
+    }
+    assertEquals(0.5, bench.getMixture("emptyConical").amountOf(Substances.NAOH));
   }
 
   // ----- A7: mix 30, everything dissolves -----
