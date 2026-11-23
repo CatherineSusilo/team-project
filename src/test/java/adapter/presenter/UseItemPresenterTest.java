@@ -22,7 +22,8 @@ class UseItemPresenterTest {
 
   @Test
   void successShowsTheLabel() {
-    presenter.prepareSuccessView(new UseItemOutputData("conical", "A", false, "Labelled it A."));
+    presenter.prepareSuccessView(new UseItemOutputData("conical", "A", false, "",
+        "Labelled it A."));
     assertTrue(viewModel.isSuccess());
     assertEquals("conical", viewModel.getItemId());
     assertEquals("A", viewModel.getLabel());
@@ -32,9 +33,16 @@ class UseItemPresenterTest {
 
   @Test
   void successShowsTheCover() {
-    presenter.prepareSuccessView(new UseItemOutputData("etherCylinder", "ether", true,
+    presenter.prepareSuccessView(new UseItemOutputData("etherCylinder", "ether", true, "",
         "Covered."));
     assertTrue(viewModel.isCovered());
+    assertEquals(1, redraws);
+  }
+
+  @Test
+  void successShowsTheScaleNumber() {
+    presenter.prepareSuccessView(new UseItemOutputData("scale", "", false, "0.000", "Tared."));
+    assertEquals("0.000", viewModel.getDisplay());
     assertEquals(1, redraws);
   }
 
@@ -48,7 +56,8 @@ class UseItemPresenterTest {
 
   @Test
   void failureAfterSuccessKeepsTheLabel() {
-    presenter.prepareSuccessView(new UseItemOutputData("conical", "A", false, "Labelled it A."));
+    presenter.prepareSuccessView(new UseItemOutputData("conical", "A", false, "",
+        "Labelled it A."));
     presenter.prepareFailView("Write something on the label.");
     assertFalse(viewModel.isSuccess());
     assertEquals("A", viewModel.getLabel());                    // the tube still says "A"

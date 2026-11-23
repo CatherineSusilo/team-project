@@ -5,8 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import entity.ApiType;
+import entity.Bench;
 import entity.ItemType;
 import entity.Operation;
+import entity.Scale;
+import entity.UnknownSample;
 import entity.Vec2;
 import entity.Vessel;
 import java.util.HashMap;
@@ -15,7 +19,8 @@ import org.junit.jupiter.api.Test;
 import usecase.UseItemDataAccessInterface;
 
 /**
- * Tests the use item use case with a fake bench: labelling (A2, A3) and covering (A3).
+ * Tests the use item use case with a fake bench: labelling (A2, A3), covering (A3) and
+ * taring the scale (A4).
  */
 class UseItemInteractorTest {
   private final FakeBench bench = new FakeBench();
@@ -34,20 +39,42 @@ class UseItemInteractorTest {
         }
       });
 
-  /** A pretend bench with a conical tube, a test tube and the ether cylinder. */
+  /** A pretend bench: tubes, the ether cylinder, a beaker holding the tube, and the scale. */
   private static class FakeBench implements UseItemDataAccessInterface {
     private final Map<String, Vessel> vessels = new HashMap<>();
+    private final Bench realBench = new Bench();
+    private final Scale scale = new Scale("scale", new Vec2(0, 0));
 
     FakeBench() {
       vessels.put("conical", new Vessel("conical", ItemType.CONICAL_TUBE, new Vec2(0, 0), 15, 6));
       vessels.put("testTube", new Vessel("testTube", ItemType.TEST_TUBE, new Vec2(0, 0), 15, 8));
       vessels.put("etherCylinder",
           new Vessel("etherCylinder", ItemType.GRADUATED_CYLINDER, new Vec2(0, 0), 10, 20));
+      vessels.put("beaker", new Vessel("beaker", ItemType.BEAKER, new Vec2(0, 0), 50, 30));
+      for (Vessel vessel : vessels.values()) {
+        realBench.addItem(vessel, new Vec2(0, 0));
+      }
+      realBench.addItem(scale, new Vec2(0, 0));
+      vessels.get("beaker").hold("conical");               // A4: tube in the beaker
+      scale.place("beaker");                               // beaker on the scale
     }
 
     @Override
     public Vessel getVessel(String itemId) {
       return vessels.get(itemId);
+    }
+
+    @Override
+    public Scale getScale(String itemId) {
+      if (itemId.equals("scale")) {
+        return scale;
+      }
+      return null;
+    }
+
+    @Override
+    public Bench getBench() {
+      return realBench;
     }
   }
 
@@ -130,14 +157,28 @@ class UseItemInteractorTest {
   }
 
   @Test
-  void operationsNotBuiltYetFail() {
-    interactor.execute(new UseItemInputData("conical", Operation.TARE, ""));
-    assertEquals("That doesn't work yet.", error);
+  void tareZeroesTheScale() {
+    interactor.execute(new UseItemInputData("scale", Operation.TARE, ""));
+    assertNull(error);
+    assertEquals("0.000", output.getDisplay());
   }
 
   @Test
-  void operationNotBuiltYetFailsEvenOnANonContainer() {
+  void scoopAfterTareShowsOnTheScale() {
     interactor.execute(new UseItemInputData("scale", Operation.TARE, ""));
-    assertEquals("That doesn't work yet.", error);             // not "Pick a container."
+    new UnknownSample('A', ApiType.ASPIRIN).addTo(bench.getVessel("conical").getMixture(), 0.200);
+    assertEquals("0.200", bench.scale.display(bench.getBench()));
+  }
+
+  @Test
+  void tareOnAVesselFails() {
+    interactor.execute(new UseItemInputData("conical", Operation.TARE, ""));
+    assertEquals("Use the scale's Tare button.", error);
+  }
+
+  @Test
+  void operationsNotBuiltYetFail() {
+    interactor.execute(new UseItemInputData("conical", Operation.STIR, ""));
+    assertEquals("That doesn't work yet.", error);
   }
 }

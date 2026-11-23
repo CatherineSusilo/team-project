@@ -5,8 +5,8 @@ import usecase.useitem.UseItemOutputBoundary;
 import usecase.useitem.UseItemOutputData;
 
 /**
- * Turns the result of using an item into what the bench shows: the item's label and cover,
- * or an error.
+ * Turns the result of using an item into what the bench shows: the item's label, cover
+ * and scale number, or an error.
  */
 public class UseItemPresenter implements UseItemOutputBoundary {
   private final UseItemViewModel viewModel;
@@ -22,7 +22,8 @@ public class UseItemPresenter implements UseItemOutputBoundary {
 
   @Override
   public void prepareSuccessView(UseItemOutputData out) {
-    viewModel.setResult(out.getItemId(), out.getLabel(), out.isCovered(), out.getMessage());
+    viewModel.setResult(out.getItemId(), out.getLabel(), out.isCovered(), out.getDisplay(),
+        out.getMessage());
     viewModel.firePropertyChanged();
   }
 
