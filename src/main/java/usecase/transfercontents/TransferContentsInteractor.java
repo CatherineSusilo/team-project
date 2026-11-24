@@ -4,6 +4,7 @@ import entity.ChemistryEngine;
 import entity.ItemType;
 import entity.Layer;
 import entity.Mixture;
+import entity.PasteurPipette;
 import entity.StockBottle;
 import entity.Substance;
 import entity.Substances;
@@ -53,8 +54,20 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
 
     // if the student is mixing, execute mixing and return success
     if (in.getUnit() == TransferUnit.MIXES) {
+      // pumping only works with liquid in the tube (powder alone can't be mixed)
+      if (target.totalVolume() == 0) {
+        presenter.prepareFailView("There's nothing to mix yet.");
+        return;
+      }
       target.mix((int) Math.round(in.getAmount())); 
-      presenter.prepareSuccessView(describe(in.getTargetId(), target, "Mixed."));
+      // the pipette becomes this tube's mixing pipette, so it can keep pumping (A5, then A7)
+      PasteurPipette pumping = dataAccess.getPipette(in.getSourceId());
+      if (pumping != null) {
+        pumping.markMixing(in.getTargetId());
+      }
+      // A5 mixes 15 times, A7 30 times: the count tells the student when they're done
+      presenter.prepareSuccessView(describe(in.getTargetId(), target,
+          "Mixed. " + target.getMixCount() + " pumps so far."));
       return;
     }
 
@@ -97,6 +110,7 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
 
       // after checking everything is valid, add the substance to the mixture and return success
       chemistry.addReagent(target, added, ml);
+      markPipettesUsed(in);                       // e.g. a pipette drawing ether (A5)
       presenter.prepareSuccessView(describe(in.getTargetId(), target,
           "Added " + added.getName() + "."));
       return;
@@ -111,6 +125,7 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
         return;
       }
       target.pour(source.drawFromBottom(ml));
+      markPipettesUsed(in);
       presenter.prepareSuccessView(describe(in.getTargetId(), target, "Moved the liquid."));
       return;
     }
@@ -148,6 +163,19 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
         || dataAccess.getType(targetId) == ItemType.PIPETTE;
   }
 
+  // A pipette that has touched liquid is used, so the student takes a new one where the lab
+  // manual says to (A5: new pipette for mixing, B4: new dry one for the ether rinse).
+  private void markPipettesUsed(TransferContentsInputData in) {
+    PasteurPipette source = dataAccess.getPipette(in.getSourceId());
+    if (source != null) {
+      source.markUsed();
+    }
+    PasteurPipette target = dataAccess.getPipette(in.getTargetId());
+    if (target != null) {
+      target.markUsed();
+    }
+  }
+
   // Extra: Gives a hint to the student after doing something wrong every time.
   // The hint shown when the student puts a substance in the wrong place.
   private String whereItGoes(Substance added) {
@@ -177,7 +205,7 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
     }
     // based on the targetId, phases, whether it has a solid and the pH
     // the output data tells the presenter what png to show on the screen
-    return new TransferContentsOutputData(targetId, phases, hasSolid, mixture.getPh(),
-        message);
+    return new TransferContentsOutputData(targetId, phases, hasSolid, mixture.isSettled(),
+        mixture.getPh(), message);
   }
 }

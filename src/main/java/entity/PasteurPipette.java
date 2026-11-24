@@ -13,6 +13,7 @@ public class PasteurPipette extends Vessel {
   public static final double CAPACITY_ML = 2.0;
 
   private boolean clean = true;
+  private String mixingTubeId;        // the tube this pipette is mixing (A5, A7), or null
 
   /**
    * Creates a new, clean, empty pipette.
@@ -30,5 +31,28 @@ public class PasteurPipette extends Vessel {
 
   public void markUsed() {
     clean = false;
+  }
+
+  /**
+   * Records a pump in this tube. Only a new pipette becomes that tube's mixing pipette, so an
+   * ether or water pipette never does.
+   *
+   * @param tubeId the tube being mixed
+   */
+  public void markMixing(String tubeId) {
+    if (clean) {
+      mixingTubeId = tubeId;
+    }
+    clean = false;
+  }
+
+  /**
+   * Whether this pipette may mix this tube: it's new, or it's already the one mixing it (A5, A7).
+   *
+   * @param tubeId the tube to mix
+   * @return true if it's new or already mixing this tube
+   */
+  public boolean canMix(String tubeId) {
+    return clean || tubeId.equals(mixingTubeId);
   }
 }
