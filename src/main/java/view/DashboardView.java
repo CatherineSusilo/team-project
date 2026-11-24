@@ -36,6 +36,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   private final DashboardViewModel viewModel;
   private final LoadDashboardController loadDashboard;
   private final SaveNotebookController saveNotebook;
+  private final LabView labView;
   private final QuizView quizView;
   private final CompoundSearchView compoundSearch;
   private final Consumer<Container> showPage;
@@ -58,7 +59,25 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   public DashboardView(DashboardViewModel viewModel, LoadDashboardController loadDashboard,
       SaveNotebookController saveNotebook, QuizView quizView, CompoundSearchView compoundSearch,
       Consumer<Container> showPage) {
+    this(viewModel, loadDashboard, saveNotebook, quizView, compoundSearch, showPage, null);
+  }
+
+  /**
+   * Builds the dashboard with the lab screen that Proceed to Experiment opens.
+   *
+   * @param viewModel where the modules to show appear
+   * @param loadDashboard reloads the modules, e.g. after the student saves progress
+   * @param saveNotebook saves a module's lab notebook
+   * @param quizView the page Start opens
+   * @param compoundSearch what the header's Compound Lookup link opens
+   * @param showPage shows a page in the app window
+   * @param labView the lab screen, or null to show a blank scene
+   */
+  public DashboardView(DashboardViewModel viewModel, LoadDashboardController loadDashboard,
+      SaveNotebookController saveNotebook, QuizView quizView, CompoundSearchView compoundSearch,
+      Consumer<Container> showPage, LabView labView) {
     super(new BorderLayout());
+    this.labView = labView;
     this.viewModel = viewModel;
     this.loadDashboard = loadDashboard;
     this.saveNotebook = saveNotebook;
@@ -233,7 +252,11 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   }
 
   private JPanel createNextScene(Runnable backToDashboard) {
-    // TODO: build the lab manual and fume hood; for now the lab is blank apart from the notebook.
+    // The lab screen is built when LabApp passes one in; otherwise the scene is blank.
+    if (labView != null) {
+      labView.setOnExit(backToDashboard);
+      return labView;
+    }
     JPanel lab = new JPanel(new FlowLayout(FlowLayout.LEFT, 24, 24));
     lab.setBackground(Color.WHITE);
     JButton back = new JButton("Back to Dashboard");
@@ -244,7 +267,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
 
   /** A page with the module's notebook as a column on its right. */
   private static JPanel besideNotebook(Component page, NotebookPanel notebook) {
-    notebook.setPreferredSize(new Dimension(320, 0));
+    notebook.setPreferredSize(new Dimension(340, 0));
     JPanel row = new JPanel(new BorderLayout());
     row.add(page, BorderLayout.CENTER);
     row.add(notebook, BorderLayout.EAST);
