@@ -139,6 +139,20 @@ class InMemoryLabSnapshotTest {
   }
 
   @Test
+  void markingAStepDropsUndoPointsItCanNoLongerReach() {
+    dao.pushSnapshot();
+    change(1);
+    dao.pushSnapshot();
+    change(2);
+    dao.markStepStart(1);
+
+    assertEquals(2, dao.getSnapshots().size());
+    assertFalse(dao.popSnapshot());
+    assertTrue(dao.rewindToStepStart(0));
+    assertEquals(0, count());
+  }
+
+  @Test
   void historyCopiedToAnotherDaoStillUndoes() {
     dao.pushSnapshot();
     change(1);

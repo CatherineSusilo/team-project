@@ -91,6 +91,9 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
 
   @Override
   public void markStepStart(int index) {
+    // Undo stops at this marker and Prev lands on a marker, 
+    // so earlier undo points are never restored again.
+    snapshots.removeIf(snapshot -> snapshot.stepStart == UNDO_POINT);
     snapshots.add(new Snapshot(labJson.toJson(lab), index));
   }
 
