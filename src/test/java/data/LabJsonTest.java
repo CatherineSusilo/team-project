@@ -13,6 +13,7 @@ import entity.LabItem;
 import entity.Layer;
 import entity.PasteurPipette;
 import entity.Phase;
+import entity.Scale;
 import entity.StockBottle;
 import entity.Substances;
 import entity.Vec2;
@@ -124,5 +125,24 @@ class LabJsonTest {
     assertEquals(original.massG(), tube.massG());
     assertFalse(pipette.isClean());
     assertSame(Substances.NAOH, bottle.getSubstance());
+  }
+
+  @Test
+  void defaultConverterRestoresScale() {
+    Vessel tube = new Vessel("tube-1", ItemType.CONICAL_TUBE, new Vec2(0, 0), 15, 5);
+    tube.getMixture().add(Substances.WATER, 2);
+    Scale scale = new Scale("scale-1", new Vec2(0, 0));
+    Bench bench = new Bench();
+    bench.addItem(tube, new Vec2(1, 2));
+    bench.addItem(scale, new Vec2(3, 4));
+    scale.place("tube-1");
+    scale.tare(bench);
+
+    LabJson converter = new LabJson();
+    Bench copy = converter.fromJson(converter.toJson(bench), Bench.class);
+
+    Scale restored = (Scale) copy.getItems().get(1);
+    assertEquals("tube-1", restored.getPlacedId());
+    assertEquals(0.0, restored.reading(copy));
   }
 }

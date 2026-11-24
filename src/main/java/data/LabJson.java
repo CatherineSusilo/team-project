@@ -18,6 +18,7 @@ import com.google.gson.stream.JsonWriter;
 import entity.ItemType;
 import entity.LabItem;
 import entity.PasteurPipette;
+import entity.Scale;
 import entity.StockBottle;
 import entity.Substance;
 import entity.Substances;
@@ -45,7 +46,7 @@ public final class LabJson {
   private final Gson gson;
 
   /** Creates a converter that knows every item class on main. */
-  // TODO: add Scale, IceBath, etc. here as they land on main.
+  // TODO: add IceBath, BuchnerFunnel, etc. here as they land on main.
   public LabJson() {
     this(Map.ofEntries(
         Map.entry(ItemType.CONICAL_TUBE, Vessel.class),
@@ -56,7 +57,8 @@ public final class LabJson {
         Map.entry(ItemType.VIAL, Vessel.class),
         Map.entry(ItemType.PIPETTE, PasteurPipette.class),
         Map.entry(ItemType.DROPPER, StockBottle.class),
-        Map.entry(ItemType.SOLVENT_BOTTLE, StockBottle.class)));
+        Map.entry(ItemType.SOLVENT_BOTTLE, StockBottle.class),
+        Map.entry(ItemType.SCALE, Scale.class)));
   }
 
   /**
