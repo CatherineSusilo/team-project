@@ -151,9 +151,11 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
     } catch (JsonParseException e) {
       // Only the lab is lost; the quiz and notebook stay. Keep a copy of the file to look at.
       // Anything other than bad saved text is a bug, so it isn't caught here.
-      copyAside();
+      Path copy = copyAside();
       System.err.println("Couldn't read the saved lab (" + e.getMessage()
-          + "), so it starts fresh. The save was copied to " + brokenFile());
+          + "), so it starts fresh. The save was copied to " + copy);
+      // Save the fresh lab now, so the next start doesn't copy the same damaged lab again.
+      write();
     }
   }
 
@@ -184,22 +186,32 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
 
   private void moveAside() {
     try {
-      Files.move(file, brokenFile(), StandardCopyOption.REPLACE_EXISTING);
+      Files.move(file, brokenFile());
     } catch (IOException e) {
       throw new UncheckedIOException("Couldn't move aside unreadable " + file, e);
     }
   }
 
-  private void copyAside() {
+  private Path copyAside() {
+    Path copy = brokenFile();
     try {
-      Files.copy(file, brokenFile(), StandardCopyOption.REPLACE_EXISTING);
+      Files.copy(file, copy);
     } catch (IOException e) {
       throw new UncheckedIOException("Couldn't copy aside unreadable lab in " + file, e);
     }
+    return copy;
   }
 
+  /**
+   * The first free name of {@code <file>.broken}, {@code <file>.broken-2}, -3 and so on, so an
+   * older broken save is never replaced.
+   */
   private Path brokenFile() {
-    return file.resolveSibling(file.getFileName() + ".broken");
+    Path broken = file.resolveSibling(file.getFileName() + ".broken");
+    for (int n = 2; Files.exists(broken); n++) {
+      broken = file.resolveSibling(file.getFileName() + ".broken-" + n);
+    }
+    return broken;
   }
 
   private void write() {

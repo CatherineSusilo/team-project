@@ -107,13 +107,15 @@ class JsonLabDataAccessObjectTest {
         "{\"modules\":{\"Pre-lab\":{\"notebook\":\"x\",\"lastEdited\":\"yesterday\"}}}",
         "{\"modules\":{\"Pre-lab\":{\"notebook\":\"x\",\"savedAnswers\":[null,[1]]}}}",
         "{\"modules\":{\"Pre-lab\":{\"savedAnswers\":[[0],[1,null]]}}}")) {
-      Path file = folder.resolve("save.json");
+      // A folder per case, since a second broken file would go to save.json.broken-2.
+      Path caseFolder = Files.createTempDirectory(folder, "case");
+      Path file = caseFolder.resolve("save.json");
       Files.writeString(file, json);
       LabModule module = open(file).getModule("Pre-lab").orElseThrow();
       assertEquals("", module.getNotebook(), json);
       assertEquals(List.of(), module.getSavedAnswers(), json);
       assertFalse(Files.exists(file), json);
-      assertEquals(json, Files.readString(folder.resolve("save.json.broken")));
+      assertEquals(json, Files.readString(caseFolder.resolve("save.json.broken")));
     }
   }
 
@@ -239,6 +241,22 @@ class JsonLabDataAccessObjectTest {
     assertEquals("n", dataAccess.getModule("Pre-lab").orElseThrow().getNotebook());
     assertEquals(1, items(dataAccess));
     assertEquals(json, Files.readString(folder.resolve("save.json.broken")));
+  }
+
+  @Test
+  void brokenCopiesNeverReplaceEachOther() throws IOException {
+    Path file = folder.resolve("save.json");
+    Files.writeString(file, "not json {");
+    open(file);
+    String badLab = "{\"modules\":{\"Pre-lab\":{\"notebook\":\"n\"}},\"lab\":\"{not json\"}";
+    Files.writeString(file, badLab);
+    open(file);
+    open(file);
+
+    assertEquals("not json {", Files.readString(folder.resolve("save.json.broken")));
+    assertEquals(badLab, Files.readString(folder.resolve("save.json.broken-2")));
+    assertFalse(Files.exists(folder.resolve("save.json.broken-3")));
+    assertEquals("n", open(file).getModule("Pre-lab").orElseThrow().getNotebook());
   }
 
   @Test
