@@ -225,4 +225,46 @@ class JsonLabDataAccessObjectTest {
     assertFalse(dataAccess.popSnapshot());
     assertFalse(Files.exists(folder.resolve("save.json.broken")));
   }
+
+  @Test
+  void badLabKeepsQuizAndNotebook() throws IOException {
+    Path file = folder.resolve("save.json");
+    String json = "{\"modules\":{\"Pre-lab\":{\"notebook\":\"n\"}},\"lab\":\"{not json\"}";
+    Files.writeString(file, json);
+
+    JsonLabDataAccessObject dataAccess = openWithLab(file);
+    assertEquals("n", dataAccess.getModule("Pre-lab").orElseThrow().getNotebook());
+    assertEquals(0, count(dataAccess));
+    assertEquals(json, Files.readString(folder.resolve("save.json.broken")));
+  }
+
+  @Test
+  void badSnapshotDropsTheLabAndHistory() throws IOException {
+    assertLabAndHistoryDropped("[{\"json\":\"{\\\"count\\\":1}\",\"stepStart\":0},"
+        + "{\"json\":\"{bad\",\"stepStart\":-1}]");
+  }
+
+  @Test
+  void snapshotWithNoJsonIsRejected() throws IOException {
+    assertLabAndHistoryDropped("[{\"stepStart\":-1}]");
+  }
+
+  @Test
+  void snapshotWithAnInvalidStepIsRejected() throws IOException {
+    assertLabAndHistoryDropped("[{\"json\":\"{\\\"count\\\":1}\",\"stepStart\":-2}]");
+  }
+
+  /** A valid lab with the given undo history loads as a fresh lab, and the notebook stays. */
+  private void assertLabAndHistoryDropped(String snapshots) throws IOException {
+    Path file = folder.resolve("save.json");
+    Files.writeString(file, "{\"modules\":{\"Pre-lab\":{\"notebook\":\"n\"}},"
+        + "\"lab\":\"{\\\"count\\\":3}\",\"snapshots\":" + snapshots + "}");
+
+    JsonLabDataAccessObject dataAccess = openWithLab(file);
+    assertEquals("n", dataAccess.getModule("Pre-lab").orElseThrow().getNotebook());
+    assertEquals(0, count(dataAccess));
+    assertFalse(dataAccess.popSnapshot());
+    assertFalse(dataAccess.rewindToStepStart(0));
+    assertTrue(Files.exists(folder.resolve("save.json.broken")));
+  }
 }

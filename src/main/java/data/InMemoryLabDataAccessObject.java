@@ -16,7 +16,7 @@ import usecase.ModuleDataAccessInterface;
 public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
     ModuleDataAccessInterface, CheckpointDataAccessInterface {
   // TODO: add the UML's SampleAssigner assigner once sample assignment exists.
-  private static final int UNDO_POINT = -1;
+  static final int UNDO_POINT = -1;
 
   private final LabJson labJson = new LabJson();
   // Saved lab states, oldest first. A step-start marker carries its step index; an undo point

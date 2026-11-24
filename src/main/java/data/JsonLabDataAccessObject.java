@@ -2,6 +2,7 @@ package data;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParseException;
 import data.InMemoryLabDataAccessObject.Snapshot;
 import entity.Lab;
 import entity.LabModule;
@@ -43,7 +44,8 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
   /**
    * Starts with the given modules and the progress saved in the file. If the file can't be
    * read as a save file (bad JSON or bad values), it is moved aside to {@code <file>.broken}
-   * and the student starts fresh, so the next save doesn't overwrite it.
+   * and the student starts fresh, so the next save doesn't overwrite it. If only the lab or its
+   * undo history is bad, the file is copied there instead and only the lab starts fresh.
    *
    * @param file the save file; it is created on the first save
    * @param modules the modules assigned to the student
@@ -118,8 +120,9 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
     // Check every value before changing any module, so a bad file changes nothing.
     List<Runnable> updates = new ArrayList<>();
     Map<String, ModuleProgress> others = new LinkedHashMap<>();
+    SaveFile saved;
     try {
-      SaveFile saved = gson.fromJson(json, SaveFile.class);
+      saved = gson.fromJson(json, SaveFile.class);
       if (saved == null || saved.getModules() == null) {
         return;
       }
@@ -130,12 +133,6 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
           updates.addAll(updatesFor(module, progress));
         }
       }
-      if (saved.getLab() != null) {
-        Lab savedLab = labJson.fromJson(saved.getLab(), getLab().getClass());
-        List<Snapshot> history =
-            saved.getSnapshots() == null ? List.of() : saved.getSnapshots();
-        updates.add(() -> restoreHistory(savedLab, history));
-      }
     } catch (RuntimeException e) {
       // Gson, date-parsing and null errors all mean the file isn't a valid save.
       moveAside();
@@ -143,6 +140,34 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
     }
     updates.forEach(Runnable::run);
     otherModules.putAll(others);
+    if (saved.getLab() == null) {
+      return;
+    }
+    // Read the lab and every snapshot first, so a bad one leaves the starting lab as it is.
+    try {
+      Class<? extends Lab> labClass = getLab().getClass();
+      Lab savedLab = readLab(saved.getLab(), labClass);
+      List<Snapshot> history = saved.getSnapshots() == null ? List.of() : saved.getSnapshots();
+      for (Snapshot snapshot : history) {
+        if (snapshot.getStepStart() < UNDO_POINT) {
+          throw new JsonParseException("Snapshot has no step: " + snapshot.getStepStart());
+        }
+        readLab(snapshot.getJson(), labClass);
+      }
+      restoreHistory(savedLab, history);
+    } catch (RuntimeException e) {
+      // Only the lab is lost; the quiz and notebook stay. Keep a copy of the file to look at.
+      copyAside();
+    }
+  }
+
+  /** Reads a saved lab, throwing if the text is bad or missing. */
+  private Lab readLab(String json, Class<? extends Lab> labClass) {
+    Lab lab = labJson.fromJson(json, labClass);
+    if (lab == null) {
+      throw new JsonParseException("No lab saved");
+    }
+    return lab;
   }
 
   /** The changes that put a module's saved progress back, each value already checked. */
@@ -172,11 +197,22 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
 
   private void moveAside() {
     try {
-      Files.move(file, file.resolveSibling(file.getFileName() + ".broken"),
-          StandardCopyOption.REPLACE_EXISTING);
+      Files.move(file, brokenFile(), StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException e) {
       throw new UncheckedIOException("Couldn't move aside unreadable " + file, e);
     }
+  }
+
+  private void copyAside() {
+    try {
+      Files.copy(file, brokenFile(), StandardCopyOption.REPLACE_EXISTING);
+    } catch (IOException e) {
+      throw new UncheckedIOException("Couldn't copy aside unreadable lab in " + file, e);
+    }
+  }
+
+  private Path brokenFile() {
+    return file.resolveSibling(file.getFileName() + ".broken");
   }
 
   private void write() {
