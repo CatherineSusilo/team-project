@@ -1,28 +1,38 @@
 package data;
 
 import entity.Checkpoint;
+import entity.ItemType;
 import entity.Lab;
+import entity.LabItem;
 import entity.LabModule;
+import entity.PasteurPipette;
+import entity.Scale;
+import entity.StockBottle;
+import entity.TemplateItem;
+import entity.Vessel;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import usecase.CheckpointDataAccessInterface;
 import usecase.LabDataAccessInterface;
 import usecase.ModuleDataAccessInterface;
+import usecase.SampleAssignerInterface;
 
 /**
  * Keeps the student's lab, modules and checkpoint questions in memory.
  */
 public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
     ModuleDataAccessInterface, CheckpointDataAccessInterface {
-  // TODO: add the UML's SampleAssigner assigner once sample assignment exists.
   static final int UNDO_POINT = -1;
 
-  private final LabJson labJson = new LabJson();
+  private final LabJson labJson = new LabJson(itemClasses());
   // Saved lab states, oldest first. A step-start marker carries its step index; an undo point
   // carries UNDO_POINT.
   private final List<Snapshot> snapshots = new ArrayList<>();
-  private Lab lab = new Lab();
+  private Lab lab;
   private final List<LabModule> modules;
   private final List<Checkpoint> checkpoints = PreLab3Checkpoints.checkpoints();
 
@@ -39,7 +49,18 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
    * @param modules the modules assigned to the student
    */
   public InMemoryLabDataAccessObject(List<LabModule> modules) {
+    this(modules, new RandomAssigner(new Random()));
+  }
+
+  /**
+   * Starts with the given modules and an unknown sample from the given assigner.
+   *
+   * @param modules the modules assigned to the student
+   * @param assigner picks the student's unknown sample
+   */
+  public InMemoryLabDataAccessObject(List<LabModule> modules, SampleAssignerInterface assigner) {
     this.modules = new ArrayList<>(modules);
+    this.lab = Lab3Definition.create(assigner.assign());
   }
 
   @Override
@@ -70,7 +91,7 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
       return false;
     }
     // Parse before removing, so a failed restore keeps this undo point.
-    lab = labJson.fromJson(last.json, lab.getClass());
+    lab = restore(last);
     snapshots.remove(snapshots.size() - 1);
     return true;
   }
@@ -84,7 +105,7 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
   public boolean rewindToStepStart(int index) {
     for (int i = snapshots.size() - 1; i >= 0; i--) {
       if (snapshots.get(i).stepStart == index) {
-        lab = labJson.fromJson(snapshots.get(i).json, lab.getClass());
+        lab = restore(snapshots.get(i));
         snapshots.subList(i + 1, snapshots.size()).clear();
         return true;
       }
@@ -128,6 +149,36 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
   @Override
   public void saveModule(LabModule module) {
     modules.replaceAll(saved -> saved.getTitle().equals(module.getTitle()) ? module : saved);
+  }
+
+  /**
+   * Builds a lab back from a snapshot, as the current lab's class. The steps hold tests that
+   * can't be saved as JSON, so a restored Lab 3 gets them again from its definition.
+   */
+  private Lab restore(Snapshot snapshot) {
+    Lab restored = labJson.fromJson(snapshot.json, lab.getClass());
+    if (restored.getClass() == Lab.class) {
+      restored.attachSteps(Lab3Definition.steps());
+    }
+    return restored;
+  }
+
+  /** Which class to build for each kind of item when a lab is read back from JSON. */
+  private static Map<ItemType, Class<? extends LabItem>> itemClasses() {
+    Map<ItemType, Class<? extends LabItem>> classes = new EnumMap<>(ItemType.class);
+    for (ItemType type : ItemType.values()) {
+      classes.put(type, TemplateItem.class);
+    }
+    for (ItemType type : List.of(ItemType.CONICAL_TUBE, ItemType.TEST_TUBE,
+        ItemType.GRADUATED_CYLINDER, ItemType.BEAKER, ItemType.WATCH_GLASS,
+        ItemType.FILTRATION_FLASK)) {
+      classes.put(type, Vessel.class);
+    }
+    classes.put(ItemType.PIPETTE, PasteurPipette.class);
+    classes.put(ItemType.DROPPER, StockBottle.class);
+    classes.put(ItemType.SOLVENT_BOTTLE, StockBottle.class);
+    classes.put(ItemType.SCALE, Scale.class);
+    return classes;
   }
 
   /**

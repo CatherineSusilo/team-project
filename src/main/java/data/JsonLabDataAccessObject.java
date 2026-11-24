@@ -51,7 +51,9 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
    * @param modules the modules assigned to the student
    */
   public JsonLabDataAccessObject(Path file, List<LabModule> modules) {
-    this(file, modules, new Lab());
+    super(modules);
+    this.file = file;
+    load();
   }
 
   /**
