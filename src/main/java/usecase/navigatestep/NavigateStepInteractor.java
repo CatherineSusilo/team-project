@@ -38,11 +38,22 @@ public class NavigateStepInteractor implements NavigateStepInputBoundary {
         presenter.prepareFailView("That was the last step.");
         return;
       }
-    } else if (!lab.goBack()) {
-      presenter.prepareFailView("You are already on the first step.");
-      return;
+      dataAccess.saveLab(lab);
+      // The bench as the new step starts, so Prev can come back to exactly this.
+      dataAccess.markStepStart(lab.getCurrentIndex());
+    } else {
+      int previous = lab.getCurrentIndex() - 1;
+      if (previous < 0) {
+        presenter.prepareFailView("You are already on the first step.");
+        return;
+      }
+      // Rewinding also puts the bench back as it was when the previous step started.
+      if (!dataAccess.rewindToStepStart(previous)) {
+        lab.goBack();
+        dataAccess.saveLab(lab);
+      }
+      lab = dataAccess.getLab();
     }
-    dataAccess.saveLab(lab);
     presenter.prepareSuccessView(new NavigateStepOutputData(LabStateMapper.from(lab)));
   }
 }

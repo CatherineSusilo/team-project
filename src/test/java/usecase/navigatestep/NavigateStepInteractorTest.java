@@ -8,6 +8,8 @@ import data.Lab3Definition;
 import entity.ApiType;
 import entity.Lab;
 import entity.UnknownSample;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import usecase.LabDataAccessInterface;
 import usecase.LabStateData;
@@ -17,6 +19,9 @@ class NavigateStepInteractorTest {
   private static final class FakeDataAccess implements LabDataAccessInterface {
     private final Lab lab = Lab3Definition.create(new UnknownSample('A', ApiType.ASPIRIN));
     private int saves;
+    private final List<Integer> marked = new ArrayList<>();
+    private boolean canRewind;
+    private int rewoundTo = -1;
 
     @Override
     public Lab getLab() {
@@ -39,11 +44,13 @@ class NavigateStepInteractorTest {
 
     @Override
     public void markStepStart(int index) {
+      marked.add(index);
     }
 
     @Override
     public boolean rewindToStepStart(int index) {
-      return false;
+      rewoundTo = index;
+      return canRewind;
     }
   }
 
@@ -101,5 +108,41 @@ class NavigateStepInteractorTest {
     dataAccess.getLab().advance();
     interactor.execute(new NavigateStepInputData(false));
     assertEquals(0, presenter.state.getStepIndex());
+  }
+
+  @Test
+  void nextMarksWhereTheNewStepStarts() {
+    FakeDataAccess dataAccess = new FakeDataAccess();
+
+    new NavigateStepInteractor(dataAccess, new RecordingPresenter())
+        .execute(new NavigateStepInputData(true));
+
+    assertEquals(List.of(1), dataAccess.marked);
+  }
+
+  @Test
+  void prevRewindsTheBenchToTheStartOfThePreviousStep() {
+    FakeDataAccess dataAccess = new FakeDataAccess();
+    dataAccess.canRewind = true;
+    dataAccess.getLab().advance();
+    RecordingPresenter presenter = new RecordingPresenter();
+
+    new NavigateStepInteractor(dataAccess, presenter).execute(new NavigateStepInputData(false));
+
+    assertEquals(0, dataAccess.rewoundTo);
+    assertEquals(0, dataAccess.saves);
+    assertEquals(1, dataAccess.getLab().getCurrentIndex());
+  }
+
+  @Test
+  void prevJustStepsBackWhenThereIsNothingToRewindTo() {
+    FakeDataAccess dataAccess = new FakeDataAccess();
+    dataAccess.getLab().advance();
+    RecordingPresenter presenter = new RecordingPresenter();
+
+    new NavigateStepInteractor(dataAccess, presenter).execute(new NavigateStepInputData(false));
+
+    assertEquals(0, presenter.state.getStepIndex());
+    assertEquals(1, dataAccess.saves);
   }
 }
