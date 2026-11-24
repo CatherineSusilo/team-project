@@ -49,7 +49,6 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
 
   @Override
   public void saveLab(Lab lab) {
-    // TODO: optionally also write the lab and its snapshots to a JSON file.
     this.lab = lab;
   }
 

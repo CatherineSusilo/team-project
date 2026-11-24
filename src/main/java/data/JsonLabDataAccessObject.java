@@ -2,6 +2,8 @@ package data;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import data.InMemoryLabDataAccessObject.Snapshot;
+import entity.Lab;
 import entity.LabModule;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -18,14 +20,14 @@ import java.util.Set;
 /**
  * Keeps the student's lab, modules and checkpoint questions in memory, and writes the student's
  * progress to a JSON file so it is still there when the app opens again. Only progress is saved
- * (each module's answers, notebook and when it was last edited); the module content stays in
- * code.
+ * (each module's answers, notebook and when it was last edited, plus the lab and its undo
+ * history); the module content stays in code.
  */
 public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
-  // TODO: also save the lab and its undo snapshots, with data.LabJson, once Lab has fields.
   private final Path file;
   // No HTML escaping, so notebooks read as written ("<b>", not "\u003cb\u003e").
   private final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+  private final LabJson labJson = new LabJson();
   /** Saved progress for modules this app doesn't have, kept so a save doesn't erase it. */
   private final Map<String, ModuleProgress> otherModules = new LinkedHashMap<>();
 
@@ -47,8 +49,21 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
    * @param modules the modules assigned to the student
    */
   public JsonLabDataAccessObject(Path file, List<LabModule> modules) {
+    this(file, modules, new Lab());
+  }
+
+  /**
+   * Starts with the given modules and lab, then the progress saved in the file. A saved lab is
+   * read back as the same class as {@code startingLab}.
+   *
+   * @param file the save file; it is created on the first save
+   * @param modules the modules assigned to the student
+   * @param startingLab the lab to use if the file has none
+   */
+  JsonLabDataAccessObject(Path file, List<LabModule> modules, Lab startingLab) {
     super(modules);
     this.file = file;
+    restoreHistory(startingLab, List.of());
     load();
   }
 
@@ -56,6 +71,38 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
   public void saveModule(LabModule module) {
     super.saveModule(module);
     write();
+  }
+
+  @Override
+  public void saveLab(Lab lab) {
+    super.saveLab(lab);
+    write();
+  }
+
+  // pushSnapshot doesn't write: the change it comes before is saved by the next saveLab.
+
+  @Override
+  public boolean popSnapshot() {
+    boolean undone = super.popSnapshot();
+    if (undone) {
+      write();
+    }
+    return undone;
+  }
+
+  @Override
+  public void markStepStart(int index) {
+    super.markStepStart(index);
+    write();
+  }
+
+  @Override
+  public boolean rewindToStepStart(int index) {
+    boolean rewound = super.rewindToStepStart(index);
+    if (rewound) {
+      write();
+    }
+    return rewound;
   }
 
   private void load() {
@@ -82,6 +129,12 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
         if (progress != null) {
           updates.addAll(updatesFor(module, progress));
         }
+      }
+      if (saved.getLab() != null) {
+        Lab savedLab = labJson.fromJson(saved.getLab(), getLab().getClass());
+        List<Snapshot> history =
+            saved.getSnapshots() == null ? List.of() : saved.getSnapshots();
+        updates.add(() -> restoreHistory(savedLab, history));
       }
     } catch (RuntimeException e) {
       // Gson, date-parsing and null errors all mean the file isn't a valid save.
@@ -140,7 +193,8 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
       Files.createDirectories(parent);
       // Write a temporary file first so a crash mid-write can't leave a half-written save.
       temporary = Files.createTempFile(parent, "save", ".tmp");
-      Files.writeString(temporary, gson.toJson(new SaveFile(progress)));
+      Files.writeString(temporary,
+          gson.toJson(new SaveFile(progress, labJson.toJson(getLab()), getSnapshots())));
       Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING,
           StandardCopyOption.ATOMIC_MOVE);
     } catch (IOException e) {
@@ -155,16 +209,31 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
     }
   }
 
-  /** The save file's contents: each module's progress, by module title. */
+  /**
+   * The save file's contents: each module's progress, by module title, then the lab as
+   * {@link LabJson} text and its undo history. Files from before the lab was saved have no lab.
+   */
   private static final class SaveFile {
     private final Map<String, ModuleProgress> modules;
+    private final String lab;
+    private final List<Snapshot> snapshots;
 
-    SaveFile(Map<String, ModuleProgress> modules) {
+    SaveFile(Map<String, ModuleProgress> modules, String lab, List<Snapshot> snapshots) {
       this.modules = modules;
+      this.lab = lab;
+      this.snapshots = snapshots;
     }
 
     Map<String, ModuleProgress> getModules() {
       return modules;
+    }
+
+    String getLab() {
+      return lab;
+    }
+
+    List<Snapshot> getSnapshots() {
+      return snapshots;
     }
   }
 

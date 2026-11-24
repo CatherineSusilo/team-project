@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import data.InMemoryLabSnapshotTest.CountingLab;
 import entity.LabModule;
 import entity.QuizQuestion;
 import entity.QuizQuestion.Type;
@@ -36,6 +37,19 @@ class JsonLabDataAccessObjectTest {
 
   private JsonLabDataAccessObject open(Path file) {
     return new JsonLabDataAccessObject(file, List.of(module()));
+  }
+
+  /** Opens the file with a lab that has a number in it, so restored states can be told apart. */
+  private JsonLabDataAccessObject openWithLab(Path file) {
+    return new JsonLabDataAccessObject(file, List.of(module()), new CountingLab(0));
+  }
+
+  private static int count(JsonLabDataAccessObject dataAccess) {
+    return ((CountingLab) dataAccess.getLab()).getCount();
+  }
+
+  private static void change(JsonLabDataAccessObject dataAccess, int newCount) {
+    ((CountingLab) dataAccess.getLab()).setCount(newCount);
   }
 
   @Test
@@ -136,5 +150,79 @@ class JsonLabDataAccessObjectTest {
     try (Stream<Path> files = Files.list(folder)) {
       assertEquals(List.of(file), files.collect(Collectors.toList()));
     }
+  }
+
+  @Test
+  void labAndUndoHistoryComeBackAfterReopening() {
+    Path file = folder.resolve("save.json");
+    JsonLabDataAccessObject first = openWithLab(file);
+    first.pushSnapshot();
+    change(first, 1);
+    first.saveLab(first.getLab());
+    first.pushSnapshot();
+    change(first, 2);
+    first.saveLab(first.getLab());
+
+    JsonLabDataAccessObject reopened = openWithLab(file);
+    assertEquals(2, count(reopened));
+    assertTrue(reopened.popSnapshot());
+    assertEquals(1, count(reopened));
+    assertTrue(reopened.popSnapshot());
+    assertEquals(0, count(reopened));
+    assertFalse(reopened.popSnapshot());
+  }
+
+  @Test
+  void stepStartStillStopsUndoAfterReopening() {
+    Path file = folder.resolve("save.json");
+    JsonLabDataAccessObject first = openWithLab(file);
+    first.pushSnapshot();
+    change(first, 1);
+    first.markStepStart(1);
+
+    JsonLabDataAccessObject reopened = openWithLab(file);
+    assertFalse(reopened.popSnapshot());
+    assertEquals(1, count(reopened));
+    assertTrue(reopened.rewindToStepStart(0));
+    assertEquals(0, count(reopened));
+  }
+
+  @Test
+  void undoIsSavedWithoutAnotherSaveLab() {
+    Path file = folder.resolve("save.json");
+    JsonLabDataAccessObject first = openWithLab(file);
+    first.pushSnapshot();
+    change(first, 1);
+    first.saveLab(first.getLab());
+    assertTrue(first.popSnapshot());
+
+    assertEquals(0, count(openWithLab(file)));
+  }
+
+  @Test
+  void savingAModuleKeepsTheLab() {
+    Path file = folder.resolve("save.json");
+    JsonLabDataAccessObject first = openWithLab(file);
+    first.pushSnapshot();
+    change(first, 1);
+    first.saveLab(first.getLab());
+    first.saveModule(first.getModule("Pre-lab").orElseThrow());
+
+    JsonLabDataAccessObject reopened = openWithLab(file);
+    assertEquals(1, count(reopened));
+    assertTrue(reopened.popSnapshot());
+    assertEquals(0, count(reopened));
+  }
+
+  @Test
+  void saveWithoutALabStillLoads() throws IOException {
+    Path file = folder.resolve("save.json");
+    Files.writeString(file, "{\"modules\":{\"Pre-lab\":{\"notebook\":\"n\"}}}");
+
+    JsonLabDataAccessObject dataAccess = openWithLab(file);
+    assertEquals("n", dataAccess.getModule("Pre-lab").orElseThrow().getNotebook());
+    assertEquals(0, count(dataAccess));
+    assertFalse(dataAccess.popSnapshot());
+    assertFalse(Files.exists(folder.resolve("save.json.broken")));
   }
 }
