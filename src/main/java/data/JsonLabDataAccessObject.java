@@ -133,12 +133,16 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
     // Read the lab and every snapshot first, so a bad one leaves the starting lab as it is.
     try {
       Lab savedLab = readLab(saved.getLab());
-      List<Snapshot> history = saved.getSnapshots() == null ? List.of() : saved.getSnapshots();
-      for (Snapshot snapshot : history) {
-        if (snapshot.getStepStart() < UNDO_POINT) {
-          throw new JsonParseException("Snapshot has no step: " + snapshot.getStepStart());
+      List<Snapshot> history = new ArrayList<>();
+      if (saved.getSnapshots() != null) {
+        for (SavedSnapshot snapshot : saved.getSnapshots()) {
+          Integer step = snapshot.getStepStart();
+          if (step == null || step < UNDO_POINT) {
+            throw new JsonParseException("Snapshot has no step: " + step);
+          }
+          readLab(snapshot.getJson());
+          history.add(new Snapshot(snapshot.getJson(), step));
         }
-        readLab(snapshot.getJson());
       }
       restoreHistory(savedLab, history);
     } catch (RuntimeException e) {
@@ -206,8 +210,12 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
       Files.createDirectories(parent);
       // Write a temporary file first so a crash mid-write can't leave a half-written save.
       temporary = Files.createTempFile(parent, "save", ".tmp");
+      List<SavedSnapshot> history = new ArrayList<>();
+      for (Snapshot snapshot : getSnapshots()) {
+        history.add(new SavedSnapshot(snapshot.getJson(), snapshot.getStepStart()));
+      }
       Files.writeString(temporary,
-          gson.toJson(new SaveFile(progress, labJson.toJson(getLab()), getSnapshots())));
+          gson.toJson(new SaveFile(progress, labJson.toJson(getLab()), history)));
       Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING,
           StandardCopyOption.ATOMIC_MOVE);
     } catch (IOException e) {
@@ -229,9 +237,9 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
   private static final class SaveFile {
     private final Map<String, ModuleProgress> modules;
     private final String lab;
-    private final List<Snapshot> snapshots;
+    private final List<SavedSnapshot> snapshots;
 
-    SaveFile(Map<String, ModuleProgress> modules, String lab, List<Snapshot> snapshots) {
+    SaveFile(Map<String, ModuleProgress> modules, String lab, List<SavedSnapshot> snapshots) {
       this.modules = modules;
       this.lab = lab;
       this.snapshots = snapshots;
@@ -245,8 +253,30 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
       return lab;
     }
 
-    List<Snapshot> getSnapshots() {
+    List<SavedSnapshot> getSnapshots() {
       return snapshots;
+    }
+  }
+
+  /**
+   * One undo snapshot as the file holds it. The step is an {@code Integer} so a missing one
+   * reads as null, not as step 0.
+   */
+  private static final class SavedSnapshot {
+    private final String json;
+    private final Integer stepStart;
+
+    SavedSnapshot(String json, Integer stepStart) {
+      this.json = json;
+      this.stepStart = stepStart;
+    }
+
+    String getJson() {
+      return json;
+    }
+
+    Integer getStepStart() {
+      return stepStart;
     }
   }
 
