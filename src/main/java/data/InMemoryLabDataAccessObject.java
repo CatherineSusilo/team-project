@@ -58,7 +58,7 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
     if (snapshots.isEmpty()) {
       markStepStart(0); // Prev needs this to get back to the first step.
     }
-    snapshots.add(new Snapshot(labJson.toJson(lab), lab.getClass(), UNDO_POINT));
+    snapshots.add(new Snapshot(labJson.toJson(lab), UNDO_POINT));
   }
 
   @Override
@@ -71,26 +71,43 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
       return false;
     }
     // Parse before removing, so a failed restore keeps this undo point.
-    lab = labJson.fromJson(last.json, last.labClass);
+    lab = labJson.fromJson(last.json, lab.getClass());
     snapshots.remove(snapshots.size() - 1);
     return true;
   }
 
   @Override
   public void markStepStart(int index) {
-    snapshots.add(new Snapshot(labJson.toJson(lab), lab.getClass(), index));
+    snapshots.add(new Snapshot(labJson.toJson(lab), index));
   }
 
   @Override
   public boolean rewindToStepStart(int index) {
     for (int i = snapshots.size() - 1; i >= 0; i--) {
       if (snapshots.get(i).stepStart == index) {
-        lab = labJson.fromJson(snapshots.get(i).json, snapshots.get(i).labClass);
+        lab = labJson.fromJson(snapshots.get(i).json, lab.getClass());
         snapshots.subList(i + 1, snapshots.size()).clear();
         return true;
       }
     }
     return false;
+  }
+
+  /** The undo history, oldest first, so the save file can keep it. */
+  List<Snapshot> getSnapshots() {
+    return List.copyOf(snapshots);
+  }
+
+  /**
+   * Puts back a saved lab and its undo history, replacing the current ones.
+   *
+   * @param savedLab the lab as it was saved
+   * @param saved the undo history from {@link #getSnapshots()}
+   */
+  void restoreHistory(Lab savedLab, List<Snapshot> saved) {
+    lab = savedLab;
+    snapshots.clear();
+    snapshots.addAll(saved);
   }
 
   @Override
@@ -114,16 +131,25 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
     modules.replaceAll(saved -> saved.getTitle().equals(module.getTitle()) ? module : saved);
   }
 
-  /** The lab as JSON text, plus the step it started if this is a step-start marker. */
-  private static final class Snapshot {
+  /**
+   * The lab as JSON text, plus the step it started if this is a step-start marker. It is read
+   * back as the current lab's class, so it holds no {@code Class} that would stop it being saved.
+   */
+  static final class Snapshot {
     private final String json;
-    private final Class<? extends Lab> labClass;
     private final int stepStart;
 
-    Snapshot(String json, Class<? extends Lab> labClass, int stepStart) {
+    Snapshot(String json, int stepStart) {
       this.json = json;
-      this.labClass = labClass;
       this.stepStart = stepStart;
+    }
+
+    String getJson() {
+      return json;
+    }
+
+    int getStepStart() {
+      return stepStart;
     }
   }
 }
