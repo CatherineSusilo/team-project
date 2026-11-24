@@ -8,6 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonParseException;
 import entity.Bench;
+import entity.ItemFactory;
+import entity.ItemTemplate;
+import entity.ItemTemplates;
 import entity.ItemType;
 import entity.LabItem;
 import entity.Layer;
@@ -125,6 +128,24 @@ class LabJsonTest {
     assertEquals(original.massG(), tube.massG());
     assertFalse(pipette.isClean());
     assertSame(Substances.NAOH, bottle.getSubstance());
+  }
+
+  @Test
+  void everyTrayItemComesBackAsTheClassItemFactoryMade() {
+    Bench bench = new Bench();
+    for (ItemTemplate template : ItemTemplates.all()) {
+      bench.addItem(new ItemFactory().create(template, bench.nextId(template.getTemplateId())),
+          new Vec2(0, 0));
+    }
+
+    LabJson converter = new LabJson();
+    Bench copy = converter.fromJson(converter.toJson(bench), Bench.class);
+
+    assertEquals(bench.getItems().size(), copy.getItems().size());
+    for (int i = 0; i < bench.getItems().size(); i++) {
+      LabItem original = bench.getItems().get(i);
+      assertEquals(original.getClass(), copy.getItems().get(i).getClass(), original.getId());
+    }
   }
 
   @Test

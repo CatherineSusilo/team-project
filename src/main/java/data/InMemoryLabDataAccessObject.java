@@ -2,19 +2,10 @@ package data;
 
 import com.google.gson.JsonParseException;
 import entity.Checkpoint;
-import entity.ItemType;
 import entity.Lab;
-import entity.LabItem;
 import entity.LabModule;
-import entity.PasteurPipette;
-import entity.Scale;
-import entity.StockBottle;
-import entity.TemplateItem;
-import entity.Vessel;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import usecase.CheckpointDataAccessInterface;
@@ -29,7 +20,8 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
     ModuleDataAccessInterface, CheckpointDataAccessInterface {
   static final int UNDO_POINT = -1;
 
-  private final LabJson labJson = new LabJson(itemClasses());
+  // Shared with JsonLabDataAccessObject, so the save file and undo read items the same way.
+  final LabJson labJson = new LabJson();
   // Saved lab states, oldest first. A step-start marker carries its step index; an undo point
   // carries UNDO_POINT.
   private final List<Snapshot> snapshots = new ArrayList<>();
@@ -174,24 +166,6 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
       restored.attachSteps(Lab3Definition.steps());
     }
     return restored;
-  }
-
-  /** Which class to build for each kind of item when a lab is read back from JSON. */
-  private static Map<ItemType, Class<? extends LabItem>> itemClasses() {
-    Map<ItemType, Class<? extends LabItem>> classes = new EnumMap<>(ItemType.class);
-    for (ItemType type : ItemType.values()) {
-      classes.put(type, TemplateItem.class);
-    }
-    for (ItemType type : List.of(ItemType.CONICAL_TUBE, ItemType.TEST_TUBE,
-        ItemType.GRADUATED_CYLINDER, ItemType.BEAKER, ItemType.WATCH_GLASS,
-        ItemType.FILTRATION_FLASK)) {
-      classes.put(type, Vessel.class);
-    }
-    classes.put(ItemType.PIPETTE, PasteurPipette.class);
-    classes.put(ItemType.DROPPER, StockBottle.class);
-    classes.put(ItemType.SOLVENT_BOTTLE, StockBottle.class);
-    classes.put(ItemType.SCALE, Scale.class);
-    return classes;
   }
 
   /**

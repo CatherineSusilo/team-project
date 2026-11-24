@@ -15,6 +15,7 @@ import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import entity.ItemFactory;
 import entity.ItemType;
 import entity.LabItem;
 import entity.PasteurPipette;
@@ -22,12 +23,15 @@ import entity.Scale;
 import entity.StockBottle;
 import entity.Substance;
 import entity.Substances;
+import entity.TemplateItem;
 import entity.Vessel;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -45,20 +49,30 @@ public final class LabJson {
 
   private final Gson gson;
 
-  /** Creates a converter that knows every item class on main. */
-  // TODO: add IceBath, BuchnerFunnel, etc. here as they land on main.
+  /**
+   * Creates a converter that reads each item back as the class {@link ItemFactory} makes for
+   * it. Types without their own class yet are {@link TemplateItem}s.
+   */
+  // Keep in step with ItemFactory; LabJsonTest checks every tray item comes back the same.
   public LabJson() {
-    this(Map.ofEntries(
-        Map.entry(ItemType.CONICAL_TUBE, Vessel.class),
-        Map.entry(ItemType.TEST_TUBE, Vessel.class),
-        Map.entry(ItemType.GRADUATED_CYLINDER, Vessel.class),
-        Map.entry(ItemType.BEAKER, Vessel.class),
-        Map.entry(ItemType.WATCH_GLASS, Vessel.class),
-        Map.entry(ItemType.VIAL, Vessel.class),
-        Map.entry(ItemType.PIPETTE, PasteurPipette.class),
-        Map.entry(ItemType.DROPPER, StockBottle.class),
-        Map.entry(ItemType.SOLVENT_BOTTLE, StockBottle.class),
-        Map.entry(ItemType.SCALE, Scale.class)));
+    this(itemFactoryClasses());
+  }
+
+  private static Map<ItemType, Class<? extends LabItem>> itemFactoryClasses() {
+    Map<ItemType, Class<? extends LabItem>> classes = new EnumMap<>(ItemType.class);
+    for (ItemType type : ItemType.values()) {
+      classes.put(type, TemplateItem.class);
+    }
+    for (ItemType type : List.of(ItemType.CONICAL_TUBE, ItemType.TEST_TUBE,
+        ItemType.GRADUATED_CYLINDER, ItemType.BEAKER, ItemType.WATCH_GLASS,
+        ItemType.FILTRATION_FLASK)) {
+      classes.put(type, Vessel.class);
+    }
+    classes.put(ItemType.PIPETTE, PasteurPipette.class);
+    classes.put(ItemType.DROPPER, StockBottle.class);
+    classes.put(ItemType.SOLVENT_BOTTLE, StockBottle.class);
+    classes.put(ItemType.SCALE, Scale.class);
+    return classes;
   }
 
   /**

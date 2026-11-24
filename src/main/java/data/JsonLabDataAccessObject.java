@@ -28,7 +28,6 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
   private final Path file;
   // No HTML escaping, so notebooks read as written ("<b>", not "\u003cb\u003e").
   private final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-  private final LabJson labJson = new LabJson();
   /** Saved progress for modules this app doesn't have, kept so a save doesn't erase it. */
   private final Map<String, ModuleProgress> otherModules = new LinkedHashMap<>();
 
