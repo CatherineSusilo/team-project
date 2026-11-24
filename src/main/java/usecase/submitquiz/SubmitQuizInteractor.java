@@ -2,6 +2,7 @@ package usecase.submitquiz;
 
 import entity.LabModule;
 import entity.QuizQuestion;
+import java.io.UncheckedIOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,8 +59,13 @@ public class SubmitQuizInteractor implements SubmitQuizInputBoundary {
 
     module.setSavedAnswers(in.getAnswers());
     module.setLastEdited(LocalDateTime.now());
-    moduleDataAccess.saveModule(module);
-    labDataAccess.saveLab(labDataAccess.getLab());
+    try {
+      moduleDataAccess.saveModule(module);
+      labDataAccess.saveLab(labDataAccess.getLab());
+    } catch (UncheckedIOException e) {
+      presenter.prepareFailView("Couldn't save your progress. Please try again.");
+      return;
+    }
     presenter.prepareSuccessView(new SubmitQuizOutputData(module.getTitle()));
   }
 

@@ -4,7 +4,6 @@ import entity.LabModule;
 import entity.QuizQuestion;
 import entity.QuizQuestion.Type;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -55,12 +54,10 @@ public final class PreLab3Quiz {
    * @return the Pre-lab 3 module
    */
   public static LabModule module() {
-    // TODO: load the student's real progress, and replace the placeholder due date.
+    // TODO: replace the placeholder due date.
+    // Never worked on (null); JsonLabDataAccessObject fills in the student's saved progress.
     return new LabModule("Pre-lab 3: Extraction Lab", LocalDate.of(2026, 11, 30), OVERVIEW,
-        LEARNING_OBJECTIVES, List.of("Part A", "Part B"),
-        // Sample value; null means never worked on.
-        LocalDateTime.of(2026, 11, 5, 14, 30),
-        questions());
+        LEARNING_OBJECTIVES, List.of("Part A", "Part B"), null, questions());
   }
 
   /**

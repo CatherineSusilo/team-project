@@ -29,6 +29,7 @@ class LoadDashboardPresenterTest {
     assertEquals("Part A", parts.get(1).getTitle());
     assertEquals("0%", parts.get(1).getProgress());
     assertEquals("Part B", parts.get(2).getTitle());
+    assertEquals("<b>notes</b>", module.getNotebook());
   }
 
   @Test
@@ -57,7 +58,7 @@ class LoadDashboardPresenterTest {
     new LoadDashboardPresenter(viewModel, clock).prepareSuccessView(new LoadDashboardOutputData(
         List.of(new ModuleInfo("Pre-lab", LocalDate.of(2026, 11, 30), "", List.of(),
             quizProgress, List.of("Part A", "Part B"), List.of(0, 0), progress, null,
-            List.of(), List.of()))));
+            List.of(), List.of(), "<b>notes</b>"))));
     return viewModel.getModules().get(0);
   }
 }

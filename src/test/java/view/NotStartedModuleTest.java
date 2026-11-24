@@ -35,7 +35,7 @@ class NotStartedModuleTest {
         new InMemoryLabDataAccessObject(List.of(NOT_STARTED)),
         new LoadDashboardPresenter(viewModel, Clock.systemDefaultZone()),
         ChoiceOrderer.IN_ORDER));
-    List<String> texts = texts(new DashboardView(viewModel, controller, null, null,
+    List<String> texts = texts(new DashboardView(viewModel, controller, null, null, null,
         page -> { }));
     assertTrue(texts.contains("Modules"));
     assertTrue(texts.contains("Progress:"));
@@ -66,7 +66,7 @@ class NotStartedModuleTest {
   void popupShowsProgressRowsAndNoContinue() {
     ModuleState module = new ModuleState("Pre-lab 3", "Nov 30, 2026", "26%", false,
         "overview", List.of("goal"), List.of(new PartState("Pre-Procedure Quiz", "80%"),
-            new PartState("Part A", "0%")), List.of(), List.of());
+            new PartState("Part A", "0%")), List.of(), List.of(), "");
     List<String> texts = texts(new ModulePanel(module, () -> { }, () -> { }));
     assertTrue(texts.contains("Due: Nov 30, 2026"));
     assertTrue(texts.contains("Your Progress"));

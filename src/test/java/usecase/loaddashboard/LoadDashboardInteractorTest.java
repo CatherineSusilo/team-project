@@ -56,6 +56,15 @@ class LoadDashboardInteractorTest {
   }
 
   @Test
+  void carriesTheNotebook() {
+    LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "", List.of(),
+        List.of(), null, List.of());
+    assertEquals("", load(module).getNotebook());
+    module.setNotebook("<b>notes</b>");
+    assertEquals("<b>notes</b>", load(module).getNotebook());
+  }
+
+  @Test
   void choicesComeBackShuffledAndTheOrderMapsThemToTheOriginals() {
     List<String> original = List.of("a", "b", "c", "d");
     LabModule module = new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "", List.of(),

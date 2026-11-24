@@ -20,9 +20,10 @@ public class LabModule {
   private LocalDateTime lastEdited;
   private final List<QuizQuestion> preProcedureQuestions;
   private List<Set<Integer>> savedAnswers = List.of();
+  private String notebook = "";
 
   /**
-   * Creates a module with no saved quiz answers.
+   * Creates a module with no saved quiz answers and an empty notebook.
    *
    * @param title display name, e.g. "Pre-lab 3"
    * @param dueDate submission deadline
@@ -102,6 +103,19 @@ public class LabModule {
       copy.add(Set.copyOf(answer));
     }
     savedAnswers = List.copyOf(copy);
+  }
+
+  /**
+   * The student's lab notebook for this module, as HTML.
+   *
+   * @return the notebook, or empty if the student hasn't written anything
+   */
+  public String getNotebook() {
+    return notebook;
+  }
+
+  public void setNotebook(String notebook) {
+    this.notebook = notebook;
   }
 
   /**

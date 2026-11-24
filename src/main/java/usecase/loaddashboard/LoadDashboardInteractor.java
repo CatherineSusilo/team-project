@@ -58,7 +58,7 @@ public class LoadDashboardInteractor implements LoadDashboardInputBoundary {
       infos.add(new ModuleInfo(module.getTitle(), module.getDueDate(), module.getOverview(),
           module.getLearningObjectives(), module.getQuizProgress(), module.getPartTitles(),
           module.getPartProgress(), module.getProgress(), module.getLastEdited().orElse(null),
-          module.getSavedAnswers(), questions));
+          module.getSavedAnswers(), questions, module.getNotebook()));
     }
     presenter.prepareSuccessView(new LoadDashboardOutputData(infos));
   }
