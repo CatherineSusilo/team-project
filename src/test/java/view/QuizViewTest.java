@@ -165,7 +165,7 @@ class QuizViewTest {
     // Tiles are shown as E, C, D: original indexes 2, 0, 1. Saved: C (0) and E (2).
     ModuleState shuffled = new ModuleState("Pre-lab", "", "", false, "", List.of(), List.of(),
         List.of(Set.of(2, 0)), List.of(new QuestionState("q", false, false, true, "A + B", 2,
-            List.of("E", "C", "D"), List.of(2, 0, 1), false)));
+            List.of("E", "C", "D"), List.of(2, 0, 1), false)), "");
     quiz.open(shuffled, () -> { }, () -> { });
     List<String> texts = buttons(quiz).stream().map(AbstractButton::getText)
         .collect(Collectors.toList());
@@ -189,7 +189,7 @@ class QuizViewTest {
         new QuestionState("q1", false, false, false, "", 0, List.of("wrong", "right"),
             List.of(1, 0), false),
         new QuestionState("q2", true, false, false, "", 0, List.of("also yes", "no", "yes"),
-            List.of(2, 1, 0), false)));
+            List.of(2, 1, 0), false)), "");
   }
 
   /** The two {@link #QUESTIONS}; {@code firstCorrect} marks q1's saved answer as right. */
@@ -198,13 +198,13 @@ class QuizViewTest {
         new QuestionState("q1", false, false, false, "", 0, List.of("right", "wrong"),
             firstCorrect),
         new QuestionState("q2", true, false, false, "", 0, List.of("yes", "no", "also yes"),
-            false)));
+            false)), "");
   }
 
   /** One equation question, A + B → ? + ?, with tiles C, D and E. */
   private static ModuleState equation(List<Set<Integer>> saved) {
     return new ModuleState("Pre-lab", "", "", false, "", List.of(), List.of(), saved, List.of(
-        new QuestionState("q", false, false, true, "A + B", 2, List.of("C", "D", "E"), false)));
+        new QuestionState("q", false, false, true, "A + B", 2, List.of("C", "D", "E"), false)), "");
   }
 
   /** A quiz page backed by the real use cases, with {@code module} as the only module. */

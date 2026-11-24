@@ -16,6 +16,7 @@ public final class ModuleState {
   private final List<PartState> parts;
   private final List<Set<Integer>> savedAnswers;
   private final List<QuestionState> questions;
+  private final String notebook;
 
   /**
    * Creates the module state.
@@ -29,10 +30,11 @@ public final class ModuleState {
    * @param parts the progress rows: the quiz first, then each lab part
    * @param savedAnswers the student's saved choice indexes per question, or empty if none
    * @param questions the pre-procedure quiz
+   * @param notebook the student's lab notebook as HTML, or empty if they haven't written any
    */
   public ModuleState(String title, String dueDate, String progress, boolean complete,
       String overview, List<String> learningObjectives, List<PartState> parts,
-      List<Set<Integer>> savedAnswers, List<QuestionState> questions) {
+      List<Set<Integer>> savedAnswers, List<QuestionState> questions, String notebook) {
     this.title = title;
     this.dueDate = dueDate;
     this.progress = progress;
@@ -42,6 +44,7 @@ public final class ModuleState {
     this.parts = parts;
     this.savedAnswers = savedAnswers;
     this.questions = questions;
+    this.notebook = notebook;
   }
 
   public String getTitle() {
@@ -78,5 +81,9 @@ public final class ModuleState {
 
   public List<QuestionState> getQuestions() {
     return questions;
+  }
+
+  public String getNotebook() {
+    return notebook;
   }
 }

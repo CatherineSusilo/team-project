@@ -242,8 +242,9 @@ public class QuizView extends JPanel implements PropertyChangeListener {
 
   private JPanel createChoices(QuestionState question, Set<Integer> saved, Runnable onChange) {
     boolean images = question.isImageChoices();
+    // Two images per row, so the quiz still fits beside the notebook.
     JPanel choicesPanel = images
-        ? new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0))
+        ? new JPanel(new GridLayout(0, 2, 12, 12))
         : new JPanel(new GridLayout(0, 1));
     ButtonGroup group = new ButtonGroup();
     List<AbstractButton> buttons = new ArrayList<>();

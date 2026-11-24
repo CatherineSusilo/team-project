@@ -39,6 +39,7 @@ public final class LoadDashboardOutputData {
     private final LocalDateTime lastEdited;
     private final List<Set<Integer>> savedAnswers;
     private final List<QuestionInfo> questions;
+    private final String notebook;
 
     /**
      * Creates the module info.
@@ -54,11 +55,12 @@ public final class LoadDashboardOutputData {
      * @param lastEdited when the student last worked on it, or null if never
      * @param savedAnswers the student's saved choice indexes per question, or empty if none
      * @param questions the pre-procedure quiz, without its answers
+     * @param notebook the student's lab notebook as HTML, or empty if they haven't written any
      */
     public ModuleInfo(String title, LocalDate dueDate, String overview,
         List<String> learningObjectives, int quizProgress, List<String> partTitles,
         List<Integer> partProgress, int progress, LocalDateTime lastEdited,
-        List<Set<Integer>> savedAnswers, List<QuestionInfo> questions) {
+        List<Set<Integer>> savedAnswers, List<QuestionInfo> questions, String notebook) {
       this.title = title;
       this.dueDate = dueDate;
       this.overview = overview;
@@ -70,6 +72,7 @@ public final class LoadDashboardOutputData {
       this.lastEdited = lastEdited;
       this.savedAnswers = savedAnswers;
       this.questions = questions;
+      this.notebook = notebook;
     }
 
     public String getTitle() {
@@ -115,6 +118,10 @@ public final class LoadDashboardOutputData {
 
     public List<QuestionInfo> getQuestions() {
       return questions;
+    }
+
+    public String getNotebook() {
+      return notebook;
     }
   }
 

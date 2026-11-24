@@ -58,7 +58,7 @@ public class LoadDashboardPresenter implements LoadDashboardOutputBoundary {
       modules.add(new ModuleState(module.getTitle(), dueDate(module.getDueDate()),
           complete ? "Complete" : module.getProgress() + "%", complete,
           module.getOverview(), module.getLearningObjectives(),
-          parts, module.getSavedAnswers(), questions));
+          parts, module.getSavedAnswers(), questions, module.getNotebook()));
     }
     viewModel.setState(modules, "");
     viewModel.firePropertyChanged();

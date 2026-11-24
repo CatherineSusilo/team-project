@@ -12,11 +12,14 @@ import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.font.TextAttribute;
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
+import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -29,9 +32,14 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.LineBorder;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.Element;
+import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
+import javax.swing.text.html.HTML;
+import javax.swing.text.html.HTMLEditorKit;
+import javax.swing.text.html.parser.ParserDelegator;
 
 /**
  * The student's lab notebook: a rich-text page beside the lab that stays open for the whole
@@ -44,9 +52,20 @@ class NotebookPanel extends JPanel {
   private static final Color STYLE_ON = new Color(0xE0E0E0);
   private static final int SHORTCUT = System.getProperty("os.name", "").startsWith("Mac")
       ? InputEvent.META_DOWN_MASK : InputEvent.CTRL_DOWN_MASK;
+  /**
+   * Each text style and the HTML tag it is saved as. In a fixed order, so the same notes always
+   * save as the same HTML and an unchanged notebook isn't saved again.
+   */
+  private static final Map<Object, String> STYLE_TAGS = new LinkedHashMap<>();
 
-  // TODO: save the notes when the student exits the module, load them when it opens again and
-  //  clear them on Reset (through RecordResultController, as Notebook.record("notes", html)).
+  static {
+    STYLE_TAGS.put(StyleConstants.Bold, "b");
+    STYLE_TAGS.put(StyleConstants.Italic, "i");
+    STYLE_TAGS.put(StyleConstants.Underline, "u");
+    STYLE_TAGS.put(StyleConstants.StrikeThrough, "s");
+  }
+
+  // TODO: clear the notes on Reset.
   final JTextPane text = new JTextPane() {
     @Override
     protected void paintComponent(Graphics graphics) {
@@ -182,6 +201,115 @@ class NotebookPanel extends JPanel {
     }
     // Continue typing on the line after the equation.
     text.setCaretPosition(at + 2);
+  }
+
+  /**
+   * The notes as HTML, to save. Styles are {@code <b>}, {@code <i>}, {@code <u>} and
+   * {@code <s>}; each equation is an {@code <img>} whose alt text is its LaTeX, and each line
+   * break is a {@code <br>}. It's all inside {@code <pre>} so spaces come back as typed.
+   *
+   * @return the notes, or empty if nothing is written
+   */
+  String getHtml() {
+    StyledDocument doc = text.getStyledDocument();
+    if (doc.getLength() == 0) {
+      return "";
+    }
+    StringBuilder html = new StringBuilder("<pre>");
+    try {
+      int at = 0;
+      while (at < doc.getLength()) {
+        Element run = doc.getCharacterElement(at);
+        int end = Math.min(run.getEndOffset(), doc.getLength());
+        AttributeSet style = run.getAttributes();
+        Icon icon = StyleConstants.getIcon(style);
+        if (icon instanceof ChemistryLatex.EquationIcon) {
+          // One character per equation.
+          String latex = escape(((ChemistryLatex.EquationIcon) icon).getLatex());
+          html.append(("<img alt=\"" + latex + "\">").repeat(end - at));
+        } else {
+          StringBuilder close = new StringBuilder();
+          STYLE_TAGS.forEach((attribute, tag) -> {
+            if (Boolean.TRUE.equals(style.getAttribute(attribute))) {
+              html.append('<').append(tag).append('>');
+              close.insert(0, "</" + tag + ">");
+            }
+          });
+          // Swing's HTML parser drops a line break written as text before a closing tag.
+          html.append(escape(doc.getText(at, end - at)).replace("\n", "<br>")).append(close);
+        }
+        at = end;
+      }
+    } catch (BadLocationException e) {
+      throw new IllegalStateException(e);
+    }
+    return html.append("</pre>").toString();
+  }
+
+  /**
+   * Replaces the notes with saved ones.
+   *
+   * @param html notes from {@link #getHtml()}, or empty for a blank notebook
+   */
+  void setHtml(String html) {
+    StyledDocument doc = text.getStyledDocument();
+    SimpleAttributeSet style = new SimpleAttributeSet();
+    try {
+      doc.remove(0, doc.getLength());
+      new ParserDelegator().parse(new StringReader(html), new HTMLEditorKit.ParserCallback() {
+        @Override
+        public void handleStartTag(HTML.Tag tag, MutableAttributeSet attributes, int pos) {
+          STYLE_TAGS.forEach((attribute, name) -> {
+            if (name.equals(tag.toString())) {
+              style.addAttribute(attribute, true);
+            }
+          });
+        }
+
+        @Override
+        public void handleEndTag(HTML.Tag tag, int pos) {
+          STYLE_TAGS.forEach((attribute, name) -> {
+            if (name.equals(tag.toString())) {
+              style.removeAttribute(attribute);
+            }
+          });
+        }
+
+        @Override
+        public void handleText(char[] data, int pos) {
+          append(doc, new String(data), style.copyAttributes());
+        }
+
+        @Override
+        public void handleSimpleTag(HTML.Tag tag, MutableAttributeSet attributes, int pos) {
+          if (tag == HTML.Tag.BR) {
+            append(doc, "\n", style.copyAttributes());
+          } else if (tag == HTML.Tag.IMG) {
+            SimpleAttributeSet equation = new SimpleAttributeSet();
+            StyleConstants.setIcon(equation, ChemistryLatex.render(
+                (String) attributes.getAttribute(HTML.Attribute.ALT),
+                EquationPanel.EQUATION_SIZE));
+            append(doc, " ", equation);
+          }
+        }
+      }, true);
+    } catch (IOException | BadLocationException e) {
+      throw new IllegalStateException(e);
+    }
+    text.setCaretPosition(0);
+  }
+
+  private static void append(StyledDocument doc, String added, AttributeSet style) {
+    try {
+      doc.insertString(doc.getLength(), added, style);
+    } catch (BadLocationException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  private static String escape(String plain) {
+    return plain.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        .replace("\"", "&quot;");
   }
 
   private void openEquationPopup() {

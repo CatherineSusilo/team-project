@@ -1,10 +1,12 @@
 package view;
 
 import adapter.controller.LoadDashboardController;
+import adapter.controller.SaveNotebookController;
 import adapter.viewmodel.DashboardViewModel;
 import adapter.viewmodel.ModuleState;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dialog;
 import java.awt.Dimension;
@@ -13,12 +15,14 @@ import java.awt.GridLayout;
 import java.awt.KeyboardFocusManager;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
@@ -31,26 +35,33 @@ import javax.swing.SwingUtilities;
 public class DashboardView extends JPanel implements PropertyChangeListener {
   private final DashboardViewModel viewModel;
   private final LoadDashboardController loadDashboard;
+  private final SaveNotebookController saveNotebook;
   private final QuizView quizView;
   private final CompoundSearchView compoundSearch;
   private final Consumer<Container> showPage;
   private final JPanel cards = new JPanel(new GridLayout(0, 3, 24, 24));
   private final JLabel message = new JLabel();
+  /** The module the student is in, and its notebook; null on the dashboard. */
+  private ModuleState openModule;
+  private NotebookPanel openNotebook;
 
   /**
    * Builds the dashboard and loads its modules.
    *
    * @param viewModel where the modules to show appear
    * @param loadDashboard reloads the modules, e.g. after the student saves progress
+   * @param saveNotebook saves a module's lab notebook
    * @param quizView the page Start opens
    * @param compoundSearch what the header's Compound Lookup link opens
    * @param showPage shows a page in the app window
    */
   public DashboardView(DashboardViewModel viewModel, LoadDashboardController loadDashboard,
-      QuizView quizView, CompoundSearchView compoundSearch, Consumer<Container> showPage) {
+      SaveNotebookController saveNotebook, QuizView quizView, CompoundSearchView compoundSearch,
+      Consumer<Container> showPage) {
     super(new BorderLayout());
     this.viewModel = viewModel;
     this.loadDashboard = loadDashboard;
+    this.saveNotebook = saveNotebook;
     this.quizView = quizView;
     this.compoundSearch = compoundSearch;
     this.showPage = showPage;
@@ -139,16 +150,29 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     Theme.showDimmed(dialog);
   }
 
-  /** The View Lab Notebook popup: the student's notebooks, to read and edit outside the lab. */
+  /**
+   * The View Lab Notebook popup: the modules the student has written notes for, to read and
+   * edit outside the lab. Edits are saved as the student leaves each notebook.
+   */
   private void showNotebooks() {
+    Map<String, String> notebooks = new LinkedHashMap<>();
+    for (ModuleState module : viewModel.getModules()) {
+      if (!module.getNotebook().isEmpty()) {
+        notebooks.put(module.getTitle(), module.getNotebook());
+      }
+    }
+    NotebookListPanel list = new NotebookListPanel(notebooks, this::trySaveNotebook);
     JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Your Lab Notebooks",
         Dialog.ModalityType.APPLICATION_MODAL);
-    // TODO: list only the modules that have a saved notebook, once notebooks are saved.
-    dialog.setContentPane(new NotebookListPanel(viewModel.getModules().stream()
-        .map(ModuleState::getTitle).collect(Collectors.toList())));
+    dialog.setContentPane(list);
     dialog.pack();
     dialog.setLocationRelativeTo(this);
+    // Blocks until the popup closes.
     Theme.showDimmed(dialog);
+    // Any save error has already been shown in a popup.
+    list.leaveNotebook();
+    // Reload so the cards and notebooks are current.
+    loadDashboard.execute();
   }
 
   /**
@@ -167,24 +191,33 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     Theme.showDimmed(dialog);
   }
 
+  /**
+   * Opens the quiz with the module's notebook beside it. The same notebook carries on into the
+   * lab, so notes taken during the quiz are still there.
+   */
   private void openQuiz(ModuleState module) {
+    NotebookPanel notebook = new NotebookPanel();
+    notebook.setHtml(module.getNotebook());
+    openModule = module;
+    openNotebook = notebook;
     HeaderBar header = new HeaderBar("Pre-Procedure Quiz", this::showCompoundSearch, null);
-    quizView.open(module, this::showDashboard, () -> showQuizComplete(module));
+    quizView.open(module, () -> leaveModule(module, notebook),
+        () -> showQuizComplete(module, notebook));
     JScrollPane scroll = new JScrollPane(quizView);
     scroll.getVerticalScrollBar().setUnitIncrement(16);
-    showPage.accept(header.above(scroll));
+    showPage.accept(header.above(besideNotebook(scroll, notebook)));
   }
 
   /**
    * The "Good Job!" popup. Exit Module, Save Progress and closing it go to the dashboard (the
    * answers are already saved); Proceed to Experiment opens the next scene.
    */
-  private void showQuizComplete(ModuleState module) {
+  private void showQuizComplete(ModuleState module, NotebookPanel notebook) {
     JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), module.getTitle(),
         Dialog.ModalityType.APPLICATION_MODAL);
-    Runnable[] next = {this::showDashboard};
+    Runnable[] next = {() -> leaveModule(module, notebook)};
     dialog.setContentPane(new QuizCompletePanel(dialog::dispose, dialog::dispose, () -> {
-      next[0] = () -> showLab(module);
+      next[0] = () -> showLab(module, notebook);
       dialog.dispose();
     }));
     dialog.pack();
@@ -194,25 +227,84 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
     next[0].run();
   }
 
-  private void showLab(ModuleState module) {
+  private void showLab(ModuleState module, NotebookPanel notebook) {
     showPage.accept(new HeaderBar(module.getTitle(), this::showCompoundSearch, null)
-        .above(createNextScene()));
+        .above(besideNotebook(createNextScene(() -> leaveModule(module, notebook)), notebook)));
   }
 
-  private JPanel createNextScene() {
+  private JPanel createNextScene(Runnable backToDashboard) {
     // TODO: build the lab manual and fume hood; for now the lab is blank apart from the notebook.
     JPanel lab = new JPanel(new FlowLayout(FlowLayout.LEFT, 24, 24));
     lab.setBackground(Color.WHITE);
     JButton back = new JButton("Back to Dashboard");
-    back.addActionListener(event -> showDashboard());
+    back.addActionListener(event -> backToDashboard.run());
     lab.add(back);
+    return lab;
+  }
 
-    NotebookPanel notebook = new NotebookPanel();
+  /** A page with the module's notebook as a column on its right. */
+  private static JPanel besideNotebook(Component page, NotebookPanel notebook) {
     notebook.setPreferredSize(new Dimension(320, 0));
-    JPanel scene = new JPanel(new BorderLayout());
-    scene.add(lab, BorderLayout.CENTER);
-    scene.add(notebook, BorderLayout.EAST);
-    return scene;
+    JPanel row = new JPanel(new BorderLayout());
+    row.add(page, BorderLayout.CENTER);
+    row.add(notebook, BorderLayout.EAST);
+    return row;
+  }
+
+  /**
+   * Saves the module's notebook if it changed, then goes back to the dashboard. If the save
+   * fails, the student stays on the page with their notes, to try again.
+   */
+  private void leaveModule(ModuleState module, NotebookPanel notebook) {
+    String html = notebook.getHtml();
+    if (html.equals(module.getNotebook()) || trySaveNotebook(module.getTitle(), html)) {
+      openModule = null;
+      openNotebook = null;
+      showDashboard();
+    }
+  }
+
+  /**
+   * Saves the open module's notebook before the app closes. If that fails, asks whether to
+   * close anyway.
+   *
+   * @return whether the app can close: the notebook saved, didn't change or wasn't open, or the
+   *     student chose to close without saving
+   */
+  public boolean saveBeforeClosing() {
+    if (openNotebook == null) {
+      return true;
+    }
+    String html = openNotebook.getHtml();
+    if (html.equals(openModule.getNotebook())) {
+      return true;
+    }
+    saveNotebook.execute(openModule.getTitle(), html);
+    if (viewModel.getMessage().isEmpty()) {
+      return true;
+    }
+    return JOptionPane.showConfirmDialog(this,
+        viewModel.getMessage() + "\nClose anyway? Your notebook changes will be lost.",
+        "Notebook not saved", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE)
+        == JOptionPane.YES_OPTION;
+  }
+
+  /**
+   * Saves a module's notebook. If that fails, says so in a popup, since the dashboard and its
+   * message may not be on screen.
+   *
+   * @return whether the notebook was saved
+   */
+  private boolean trySaveNotebook(String moduleTitle, String html) {
+    saveNotebook.execute(moduleTitle, html);
+    String error = viewModel.getMessage();
+    if (error.isEmpty()) {
+      return true;
+    }
+    JOptionPane.showMessageDialog(
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow(), error,
+        "Notebook not saved", JOptionPane.WARNING_MESSAGE);
+    return false;
   }
 
   /** Reloads the modules, so Progress is current, then shows the dashboard. */
