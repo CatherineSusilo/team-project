@@ -67,7 +67,8 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
     write();
   }
 
-  // pushSnapshot doesn't write: the change it comes before is saved by the next saveLab.
+  // pushSnapshot isn't overridden: the change it comes before is saved by the next saveLab. The
+  // first undo point still writes once, through markStepStart(0).
 
   @Override
   public boolean popSnapshot() {
