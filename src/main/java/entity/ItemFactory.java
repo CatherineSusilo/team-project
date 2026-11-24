@@ -13,6 +13,25 @@ public class ItemFactory {
    * @return the item, at the bench's origin until it is placed
    */
   public LabItem create(ItemTemplate template, String id) {
-    return new TemplateItem(id, template, new Vec2(0, 0));
+    Vec2 origin = new Vec2(0, 0);
+    switch (template.getType()) {
+      case CONICAL_TUBE:
+      case TEST_TUBE:
+      case GRADUATED_CYLINDER:
+      case BEAKER:
+      case WATCH_GLASS:
+      case FILTRATION_FLASK:
+        return new Vessel(id, template.getType(), origin, template.getCapacity(),
+            template.getGlassMassG());
+      case PIPETTE:
+        return new PasteurPipette(id, origin);
+      case DROPPER:
+      case SOLVENT_BOTTLE:
+        return new StockBottle(id, template.getType(), origin, template.getSubstance());
+      case SCALE:
+        return new Scale(id, origin);
+      default:
+        return new TemplateItem(id, template, origin);
+    }
   }
 }

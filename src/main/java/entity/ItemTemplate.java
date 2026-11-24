@@ -9,7 +9,6 @@ public final class ItemTemplate {
   private final String templateId;
   private final ItemType type;
   private final Substance substance;
-  private final double molarity;
   private final double capacity;
   private final double glassMassG;
 
@@ -19,16 +18,14 @@ public final class ItemTemplate {
    * @param templateId the id the tray and the lab definition use
    * @param type what kind of item it makes
    * @param substance what a stock bottle holds, or null for anything else
-   * @param molarity the strength of a stock bottle in mol/L, else 0
    * @param capacity what a vessel holds in mL, else 0
    * @param glassMassG what an empty vessel weighs in grams, else 0
    */
-  public ItemTemplate(String templateId, ItemType type, Substance substance, double molarity,
+  public ItemTemplate(String templateId, ItemType type, Substance substance,
       double capacity, double glassMassG) {
     this.templateId = templateId;
     this.type = type;
     this.substance = substance;
-    this.molarity = molarity;
     this.capacity = capacity;
     this.glassMassG = glassMassG;
   }
@@ -45,9 +42,6 @@ public final class ItemTemplate {
     return substance;
   }
 
-  public double getMolarity() {
-    return molarity;
-  }
 
   public double getCapacity() {
     return capacity;

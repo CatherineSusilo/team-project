@@ -4,11 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import entity.ApiType;
 import entity.ItemTemplates;
 import entity.Lab;
 import entity.LabStep;
 import entity.StepStatus;
 import entity.TemplateItem;
+import entity.UnknownSample;
 import entity.Vec2;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -28,7 +30,7 @@ class Lab3DefinitionTest {
 
   @Test
   void startsOnTheFirstStepWithTheUnknownVialOnTheBench() {
-    Lab lab = Lab3Definition.create();
+    Lab lab = Lab3Definition.create(new UnknownSample('A', ApiType.ASPIRIN));
 
     assertEquals(0, lab.getCurrentIndex());
     assertEquals(1, lab.getBench().countOf("unknown_vial"));
@@ -46,7 +48,7 @@ class Lab3DefinitionTest {
 
   @Test
   void theSecondStepNeedsBothTubes() {
-    Lab lab = Lab3Definition.create();
+    Lab lab = Lab3Definition.create(new UnknownSample('A', ApiType.ASPIRIN));
     assertTrue(lab.advance());
     assertEquals(StepStatus.INCOMPLETE, lab.status());
 

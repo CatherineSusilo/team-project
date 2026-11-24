@@ -8,6 +8,7 @@ import entity.ItemFactory;
 import entity.ItemTemplates;
 import entity.Lab;
 import entity.LabStep;
+import entity.UnknownSample;
 import entity.Vec2;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,14 +32,15 @@ public final class Lab3Definition {
   /**
    * Builds a new lab at its first step.
    *
+   * @param unknown the student's unknown sample
    * @return the lab, with the unknown sample's vial on the bench
    */
-  public static Lab create() {
+  public static Lab create(UnknownSample unknown) {
     Bench bench = new Bench();
     String vialId = bench.nextId("unknown_vial");
     bench.addItem(new ItemFactory().create(ItemTemplates.find("unknown_vial").orElseThrow(),
         vialId), new Vec2(90, 380));
-    return new Lab(steps(), bench);
+    return new Lab(steps(), bench, unknown);
   }
 
   /**

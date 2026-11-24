@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import data.Lab3Definition;
+import entity.ApiType;
 import entity.Lab;
+import entity.UnknownSample;
 import org.junit.jupiter.api.Test;
 import usecase.LabDataAccessInterface;
 import usecase.LabStateData;
@@ -13,7 +15,7 @@ import usecase.LabStateData;
 class NavigateStepInteractorTest {
 
   private static final class FakeDataAccess implements LabDataAccessInterface {
-    private final Lab lab = Lab3Definition.create();
+    private final Lab lab = Lab3Definition.create(new UnknownSample('A', ApiType.ASPIRIN));
     private int saves;
 
     @Override
@@ -24,6 +26,24 @@ class NavigateStepInteractorTest {
     @Override
     public void saveLab(Lab saved) {
       saves++;
+    }
+
+    @Override
+    public void pushSnapshot() {
+    }
+
+    @Override
+    public boolean popSnapshot() {
+      return false;
+    }
+
+    @Override
+    public void markStepStart(int index) {
+    }
+
+    @Override
+    public boolean rewindToStepStart(int index) {
+      return false;
     }
   }
 

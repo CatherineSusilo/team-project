@@ -22,7 +22,8 @@ class LabTest {
   }
 
   private static Lab twoStepLab() {
-    return new Lab(List.of(needing(0, "beaker"), needing(1, "scale")), new Bench());
+    return new Lab(List.of(needing(0, "beaker"), needing(1, "scale")), new Bench(),
+        new UnknownSample('A', ApiType.ASPIRIN));
   }
 
   @Test
@@ -96,11 +97,18 @@ class LabTest {
   void aMultiPartStepIsCompleteOnlyWhenEveryPartIs() {
     MultiPartStep both = new MultiPartStep(0, "Both", "Do both", "Hint", List.of(), false,
         List.of(needing(0, "beaker"), needing(0, "scale")));
-    Lab lab = new Lab(List.of(both), new Bench());
+    Lab lab = new Lab(List.of(both), new Bench(), new UnknownSample('A', ApiType.ASPIRIN));
 
     put(lab, "scale");
     assertEquals(StepStatus.INCOMPLETE, lab.status());
     put(lab, "beaker");
     assertEquals(StepStatus.COMPLETE, lab.status());
+  }
+
+  @Test
+  void keepsTheStudentsUnknownSample() {
+    Lab lab = twoStepLab();
+
+    assertEquals('A', lab.getUnknown().getBatch());
   }
 }

@@ -47,7 +47,8 @@ public class LabViewModel {
     List<ItemState> shown = new ArrayList<>();
     for (ItemData item : state.getItems()) {
       shown.add(new ItemState(item.getId(), item.getType(), item.getLabel(), item.getX(),
-          item.getY()));
+          item.getY(), item.getLayerPhases(), item.getLayerVolumes(), item.hasSolid(),
+          item.isSettled(), item.isCovered(), item.isCold(), item.getDisplay(), item.getPh()));
     }
     this.items = List.copyOf(shown);
   }

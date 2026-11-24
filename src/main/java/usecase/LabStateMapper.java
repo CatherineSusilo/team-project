@@ -3,8 +3,11 @@ package usecase;
 import entity.Lab;
 import entity.LabItem;
 import entity.LabStep;
+import entity.Layer;
+import entity.Scale;
 import entity.StepStatus;
 import entity.TemplateItem;
+import entity.Vessel;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +17,42 @@ import java.util.List;
 public final class LabStateMapper {
 
   private LabStateMapper() {
+  }
+
+  /**
+   * Describes one item: where it is, what is written on it and, for a vessel or a scale, what
+   * the screen needs to pick its picture.
+   */
+  private static ItemData describe(LabItem item, Lab lab) {
+    String label = item instanceof Vessel ? ((Vessel) item).getLabel()
+        : item instanceof TemplateItem ? ((TemplateItem) item).getLabel() : "";
+    List<String> phases = new ArrayList<>();
+    List<Double> volumes = new ArrayList<>();
+    boolean hasSolid = false;
+    boolean settled = true;
+    boolean covered = false;
+    boolean cold = false;
+    String display = "";
+    double ph = 7;
+    if (item instanceof Vessel) {
+      Vessel vessel = (Vessel) item;
+      for (Layer layer : vessel.getMixture().getLayers()) {
+        phases.add(layer.getPhase().name());
+        volumes.add(layer.getVolume());
+        if (!layer.getSolids().isEmpty()) {
+          hasSolid = true;
+        }
+      }
+      settled = vessel.getMixture().isSettled();
+      covered = vessel.isCovered();
+      cold = vessel.isCold();
+      ph = vessel.getMixture().getPh();
+    } else if (item instanceof Scale) {
+      display = ((Scale) item).display(lab.getBench());
+    }
+    return new ItemData(item.getId(), item.getType().name(), label,
+        item.getPosition().getX(), item.getPosition().getY(), phases, volumes, hasSolid,
+        settled, covered, cold, display, ph);
   }
 
   /**
@@ -27,9 +66,7 @@ public final class LabStateMapper {
     StepStatus status = lab.status();
     List<ItemData> items = new ArrayList<>();
     for (LabItem item : lab.getBench().getItems()) {
-      String label = item instanceof TemplateItem ? ((TemplateItem) item).getLabel() : "";
-      items.add(new ItemData(item.getId(), item.getType().name(), label,
-          item.getPosition().getX(), item.getPosition().getY()));
+      items.add(describe(item, lab));
     }
     List<String> titles = new ArrayList<>();
     for (LabStep each : lab.getSteps()) {

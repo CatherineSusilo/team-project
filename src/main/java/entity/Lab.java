@@ -17,6 +17,7 @@ public class Lab {
   private transient List<LabStep> steps;
   private int currentIndex;
   private final Bench bench;
+  private final UnknownSample unknown;
   private final Set<Integer> completedSteps = new HashSet<>();
   private String standingMistake;
 
@@ -25,10 +26,17 @@ public class Lab {
    *
    * @param steps the lab-manual steps, in order
    * @param bench the starting bench
+   * @param unknown the student's unknown sample
    */
-  public Lab(List<LabStep> steps, Bench bench) {
+  public Lab(List<LabStep> steps, Bench bench, UnknownSample unknown) {
     this.steps = List.copyOf(steps);
     this.bench = bench;
+    this.unknown = unknown;
+  }
+
+  /** An empty lab with no steps, for tests that only need something to save and restore. */
+  protected Lab() {
+    this(List.of(), new Bench(), null);
   }
 
   /**
@@ -138,6 +146,10 @@ public class Lab {
 
   public List<LabStep> getSteps() {
     return new ArrayList<>(steps);
+  }
+
+  public UnknownSample getUnknown() {
+    return unknown;
   }
 
   public Bench getBench() {
