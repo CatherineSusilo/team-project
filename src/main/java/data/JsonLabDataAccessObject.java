@@ -56,21 +56,6 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
     load();
   }
 
-  /**
-   * Starts with the given modules and lab, then the progress saved in the file. A saved lab is
-   * read back as the same class as {@code startingLab}.
-   *
-   * @param file the save file; it is created on the first save
-   * @param modules the modules assigned to the student
-   * @param startingLab the lab to use if the file has none
-   */
-  JsonLabDataAccessObject(Path file, List<LabModule> modules, Lab startingLab) {
-    super(modules);
-    this.file = file;
-    restoreHistory(startingLab, List.of());
-    load();
-  }
-
   @Override
   public void saveModule(LabModule module) {
     super.saveModule(module);
@@ -147,29 +132,19 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
     }
     // Read the lab and every snapshot first, so a bad one leaves the starting lab as it is.
     try {
-      Class<? extends Lab> labClass = getLab().getClass();
-      Lab savedLab = readLab(saved.getLab(), labClass);
+      Lab savedLab = readLab(saved.getLab());
       List<Snapshot> history = saved.getSnapshots() == null ? List.of() : saved.getSnapshots();
       for (Snapshot snapshot : history) {
         if (snapshot.getStepStart() < UNDO_POINT) {
           throw new JsonParseException("Snapshot has no step: " + snapshot.getStepStart());
         }
-        readLab(snapshot.getJson(), labClass);
+        readLab(snapshot.getJson());
       }
       restoreHistory(savedLab, history);
     } catch (RuntimeException e) {
       // Only the lab is lost; the quiz and notebook stay. Keep a copy of the file to look at.
       copyAside();
     }
-  }
-
-  /** Reads a saved lab, throwing if the text is bad or missing. */
-  private Lab readLab(String json, Class<? extends Lab> labClass) {
-    Lab lab = labJson.fromJson(json, labClass);
-    if (lab == null) {
-      throw new JsonParseException("No lab saved");
-    }
-    return lab;
   }
 
   /** The changes that put a module's saved progress back, each value already checked. */

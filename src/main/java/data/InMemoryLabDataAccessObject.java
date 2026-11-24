@@ -1,5 +1,6 @@
 package data;
 
+import com.google.gson.JsonParseException;
 import entity.Checkpoint;
 import entity.ItemType;
 import entity.Lab;
@@ -151,12 +152,24 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
     modules.replaceAll(saved -> saved.getTitle().equals(module.getTitle()) ? module : saved);
   }
 
-  /**
-   * Builds a lab back from a snapshot, as the current lab's class. The steps hold tests that
-   * can't be saved as JSON, so a restored Lab 3 gets them again from its definition.
-   */
   private Lab restore(Snapshot snapshot) {
-    Lab restored = labJson.fromJson(snapshot.json, lab.getClass());
+    return readLab(snapshot.json);
+  }
+
+  /**
+   * Builds a lab back from its JSON text, as the current lab's class. The steps hold tests that
+   * can't be saved as JSON, so a restored Lab 3 gets them again from its definition. Undo, Prev
+   * and the save file all restore through here.
+   *
+   * @param json text from a snapshot or the save file
+   * @return the restored lab
+   * @throws JsonParseException if the text is bad or holds no lab
+   */
+  Lab readLab(String json) {
+    Lab restored = labJson.fromJson(json, lab.getClass());
+    if (restored == null) {
+      throw new JsonParseException("No lab saved");
+    }
     if (restored.getClass() == Lab.class) {
       restored.attachSteps(Lab3Definition.steps());
     }
