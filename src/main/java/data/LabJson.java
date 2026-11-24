@@ -137,6 +137,9 @@ public final class LabJson {
     @Override
     public Substance deserialize(JsonElement json, Type type,
         JsonDeserializationContext context) {
+      if (!json.isJsonPrimitive()) {
+        throw new JsonParseException("Substance is not a name: " + json);
+      }
       Substance substance = byName.get(json.getAsString());
       if (substance == null) {
         throw new JsonParseException("Unknown substance: " + json.getAsString());
@@ -181,10 +184,15 @@ public final class LabJson {
             return null;
           }
           JsonObject object = tree.getAsJsonObject();
-          if (!object.has(TYPE_FIELD)) {
+          if (!object.has(TYPE_FIELD) || !object.get(TYPE_FIELD).isJsonPrimitive()) {
             throw new JsonParseException("Item has no type.");
           }
-          ItemType type = ItemType.valueOf(object.get(TYPE_FIELD).getAsString());
+          ItemType type;
+          try {
+            type = ItemType.valueOf(object.get(TYPE_FIELD).getAsString());
+          } catch (IllegalArgumentException e) {
+            throw new JsonParseException("Unknown item type: " + object.get(TYPE_FIELD), e);
+          }
           Class<? extends LabItem> subclass = itemClasses.get(type);
           if (subclass == null) {
             throw new JsonParseException("No item class registered for " + type);

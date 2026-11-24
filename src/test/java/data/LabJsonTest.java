@@ -102,6 +102,30 @@ class LabJsonTest {
   }
 
   @Test
+  void itemWithAnUnknownTypeIsRejected() {
+    Bench bench = new Bench();
+    bench.addItem(new NotedItem("tube-1", ItemType.TEST_TUBE, new Vec2(0, 0), "x"),
+        new Vec2(1, 1));
+    String json = labJson.toJson(bench).replace("\"TEST_TUBE\"", "\"NOPE\"");
+    assertThrows(JsonParseException.class, () -> labJson.fromJson(json, Bench.class));
+  }
+
+  @Test
+  void namesThatAreNotTextAreRejected() {
+    assertThrows(JsonParseException.class, () -> labJson.fromJson(
+        "{\"phase\":\"AQUEOUS\",\"volume\":1,\"dissolved\":{},\"solids\":[[{},1.0]]}",
+        Layer.class));
+    assertThrows(JsonParseException.class,
+        () -> labJson.fromJson("{\"items\":[{\"type\":{}}],\"idCounts\":{}}", Bench.class));
+  }
+
+  @Test
+  void itemThatIsNotAnObjectIsRejected() {
+    assertThrows(JsonParseException.class,
+        () -> labJson.fromJson("{\"items\":[5],\"idCounts\":{}}", Bench.class));
+  }
+
+  @Test
   void defaultConverterRestoresRealItems() {
     Vessel original = new Vessel("tube-1", ItemType.CONICAL_TUBE, new Vec2(0, 0), 15, 5);
     original.setLabel("A");

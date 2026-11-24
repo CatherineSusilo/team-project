@@ -136,6 +136,9 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
       List<Snapshot> history = new ArrayList<>();
       if (saved.getSnapshots() != null) {
         for (SavedSnapshot snapshot : saved.getSnapshots()) {
+          if (snapshot == null) {
+            throw new JsonParseException("Snapshot is null");
+          }
           Integer step = snapshot.getStepStart();
           if (step == null || step < UNDO_POINT) {
             throw new JsonParseException("Snapshot has no step: " + step);
@@ -145,9 +148,12 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
         }
       }
       restoreHistory(savedLab, history);
-    } catch (RuntimeException e) {
+    } catch (JsonParseException e) {
       // Only the lab is lost; the quiz and notebook stay. Keep a copy of the file to look at.
+      // Anything other than bad saved text is a bug, so it isn't caught here.
       copyAside();
+      System.err.println("Couldn't read the saved lab (" + e.getMessage()
+          + "), so it starts fresh. The save was copied to " + brokenFile());
     }
   }
 

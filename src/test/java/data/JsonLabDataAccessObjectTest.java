@@ -253,6 +253,11 @@ class JsonLabDataAccessObjectTest {
   }
 
   @Test
+  void nullSnapshotIsRejected() throws IOException {
+    assertLabAndHistoryDropped("[null]");
+  }
+
+  @Test
   void snapshotWithNoStepIsRejected() throws IOException {
     // Without the check, a missing step would read as 0 and turn an undo point into a marker.
     assertLabAndHistoryDropped("[{\"json\":\"{}\"}]");
