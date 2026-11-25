@@ -15,6 +15,7 @@ import java.util.Set;
 public class Lab {
 
   private transient List<LabStep> steps;
+  private transient List<MistakeRule> rules = List.of();
   private int currentIndex;
   private final Bench bench;
   private final UnknownSample unknown;
@@ -29,7 +30,20 @@ public class Lab {
    * @param unknown the student's unknown sample
    */
   public Lab(List<LabStep> steps, Bench bench, UnknownSample unknown) {
+    this(steps, List.of(), bench, unknown);
+  }
+
+  /**
+   * Creates a lab at its first step, with rules that flag the student's mistakes.
+   *
+   * @param steps the lab-manual steps, in order
+   * @param rules the mistake rules, asked in order after every action
+   * @param bench the starting bench
+   * @param unknown the student's unknown sample
+   */
+  public Lab(List<LabStep> steps, List<MistakeRule> rules, Bench bench, UnknownSample unknown) {
     this.steps = List.copyOf(steps);
+    this.rules = List.copyOf(rules);
     this.bench = bench;
     this.unknown = unknown;
   }
@@ -46,6 +60,15 @@ public class Lab {
    */
   public void attachSteps(List<LabStep> restoredSteps) {
     this.steps = List.copyOf(restoredSteps);
+  }
+
+  /**
+   * Puts the mistake rules back after the lab was restored from a save.
+   *
+   * @param restoredRules the mistake rules, asked in order after every action
+   */
+  public void attachRules(List<MistakeRule> restoredRules) {
+    this.rules = List.copyOf(restoredRules);
   }
 
   /**
@@ -83,17 +106,37 @@ public class Lab {
   }
 
   /**
-   * Notes something the student did: if it finishes the step, the step is marked complete for
-   * good.
+   * Notes something the student did. The mistake rules are asked first, and the first hint
+   * becomes the standing mistake. It stays until the student undoes or goes back, even if they
+   * then do something right. Then, if the action finishes the step, the step is marked complete
+   * for good.
    *
    * @param action what the student just did
    * @return where the student stands on the current step now
    */
   public StepStatus record(Action action) {
+    if (standingMistake == null) {
+      standingMistake = firstMistake(action);
+    }
     if (currentStep().isComplete(this)) {
       completedSteps.add(currentIndex);
     }
     return status();
+  }
+
+  // The first rule's hint, or null if no rule objects. A lab restored from a save has no rules
+  // until attachRules is called.
+  private String firstMistake(Action action) {
+    if (rules == null) {
+      return null;
+    }
+    for (MistakeRule rule : rules) {
+      String hint = rule.check(this, action);
+      if (hint != null) {
+        return hint;
+      }
+    }
+    return null;
   }
 
   /**
