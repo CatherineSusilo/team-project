@@ -12,11 +12,14 @@ public class RecoveryCalculator {
    * @param startG the unknown weighed into the tube in A4, in grams
    * @param endG the dry solid weighed in B6 (watch glass with solid minus empty glass), in grams
    * @return endG / startG x 100, rounded to one decimal
-   * @throws IllegalArgumentException if startG is not more than 0
+   * @throws IllegalArgumentException if startG is not more than 0, or endG is negative or NaN
    */
   public double percentRecovery(double startG, double endG) {
     if (!(startG > 0)) {                                          // also catches NaN
       throw new IllegalArgumentException("Start mass must be more than 0 g, was " + startG);
+    }
+    if (!(endG >= 0)) {                                           // also catches NaN
+      throw new IllegalArgumentException("Final mass can't be negative, was " + endG);
     }
     return Math.round(endG / startG * 1000) / 10.0;               // x100 for %, x10 for 0.1
   }

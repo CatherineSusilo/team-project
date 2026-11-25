@@ -51,4 +51,16 @@ class RecoveryCalculatorTest {
     assertThrows(IllegalArgumentException.class,
         () -> calculator.percentRecovery(Double.NaN, 0.1));
   }
+
+  @Test
+  void negativeEndThrows() {
+    // e.g. the final mass not weighed yet: 0 - watch glass mass
+    assertThrows(IllegalArgumentException.class, () -> calculator.percentRecovery(0.2, -0.1));
+  }
+
+  @Test
+  void nanEndThrows() {
+    assertThrows(IllegalArgumentException.class,
+        () -> calculator.percentRecovery(0.2, Double.NaN));
+  }
 }
