@@ -139,6 +139,10 @@ public final class Lab3Definition {
         hasOnBench(needed), Lab3Definition::isBenchAction);
   }
 
+  // Only spawning and moving are expected here, so OrderRule flags any pour or mix. Replace a
+  // step's stub before (or together with) making TransferContents/UseItem call Lab.record,
+  // or every action in that step is flagged.
+
   private static boolean isBenchAction(Action action) {
     return action.getKind() == ActionKind.SPAWN || action.getKind() == ActionKind.MOVE;
   }
