@@ -12,6 +12,8 @@ import entity.ItemTemplates;
 import entity.Lab;
 import entity.StepStatus;
 import entity.Vec2;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import org.junit.jupiter.api.Test;
 import usecase.LabStateData;
 
@@ -69,5 +71,26 @@ class UndoInteractorTest {
     new UndoInteractor(dataAccess, presenter).execute(new UndoInputData());
 
     assertTrue(presenter.state.getStatus() != StepStatus.MISTAKE);
+  }
+
+  @Test
+  void aFailedSaveStillShowsTheRestoredLabAndWarnsTheStudent() {
+    InMemoryLabDataAccessObject failingSave = new InMemoryLabDataAccessObject() {
+      @Override
+      public boolean popSnapshot() {
+        super.popSnapshot();
+        throw new UncheckedIOException(new IOException("disk full"));
+      }
+    };
+    Lab lab = failingSave.getLab();
+    int before = lab.getBench().getItems().size();
+    failingSave.pushSnapshot();
+    lab.getBench().addItem(new ItemFactory().create(
+        ItemTemplates.find("conical_tube").orElseThrow(), "conical_tube-1"), new Vec2(5, 5));
+
+    new UndoInteractor(failingSave, presenter).execute(new UndoInputData());
+
+    assertEquals(before, presenter.state.getItems().size());
+    assertEquals("Undone, but your progress couldn't be saved.", presenter.error);
   }
 }

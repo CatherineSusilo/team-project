@@ -1,5 +1,6 @@
 package usecase.undo;
 
+import java.io.UncheckedIOException;
 import usecase.LabDataAccessInterface;
 import usecase.LabStateMapper;
 
@@ -25,11 +26,24 @@ public class UndoInteractor implements UndoInputBoundary {
 
   @Override
   public void execute(UndoInputData in) {
-    if (!dataAccess.popSnapshot()) {
+    boolean undone;
+    try {
+      undone = dataAccess.popSnapshot();
+    } catch (UncheckedIOException e) {
+      // The undo already happened in memory; only writing the save file failed.
+      showRestoredLab();
+      presenter.prepareFailView("Undone, but your progress couldn't be saved.");
+      return;
+    }
+    if (!undone) {
       presenter.prepareFailView("Nothing to undo.");
       return;
     }
-    // popSnapshot swapped in the restored lab, so read it again.
+    showRestoredLab();
+  }
+
+  // popSnapshot swapped in the restored lab, so read it again.
+  private void showRestoredLab() {
     presenter.prepareSuccessView(new UndoOutputData(LabStateMapper.from(dataAccess.getLab())));
   }
 }
