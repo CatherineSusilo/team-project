@@ -27,6 +27,7 @@ public class LabView extends JPanel implements PropertyChangeListener {
   private final EquipmentPanel tray;
   private final NavBar nav;
   private Runnable onExit = () -> { };
+  private Runnable onUndo = () -> { };
 
   /**
    * Builds the lab screen.
@@ -46,6 +47,7 @@ public class LabView extends JPanel implements PropertyChangeListener {
     this.tray = new EquipmentPanel(manager);
     this.nav = new NavBar(() -> navigateStep.execute(false), () -> navigateStep.execute(true),
         () -> onExit.run());
+    nav.getUndoButton().addActionListener(event -> onUndo.run());
 
     JPanel manual = new JPanel(new BorderLayout());
     manual.setBackground(new Color(0xFBFBFB));
@@ -76,6 +78,15 @@ public class LabView extends JPanel implements PropertyChangeListener {
    */
   public void setOnExit(Runnable action) {
     this.onExit = action;
+  }
+
+  /**
+   * Says what Undo does.
+   *
+   * @param action runs when the student clicks Undo
+   */
+  public void setOnUndo(Runnable action) {
+    this.onUndo = action;
   }
 
   @Override

@@ -8,6 +8,7 @@ import adapter.controller.SaveNotebookController;
 import adapter.controller.SaveQuizController;
 import adapter.controller.SearchCompoundController;
 import adapter.controller.SpawnItemController;
+import adapter.controller.UndoController;
 import adapter.controller.SubmitQuizController;
 import adapter.presenter.CheckQuizPresenter;
 import adapter.presenter.LoadDashboardPresenter;
@@ -17,6 +18,7 @@ import adapter.presenter.SaveNotebookPresenter;
 import adapter.presenter.SaveQuizPresenter;
 import adapter.presenter.SearchCompoundPresenter;
 import adapter.presenter.SpawnItemPresenter;
+import adapter.presenter.UndoPresenter;
 import adapter.presenter.SubmitQuizPresenter;
 import adapter.viewmodel.CompoundViewModel;
 import adapter.viewmodel.DashboardViewModel;
@@ -46,6 +48,7 @@ import usecase.savequiz.SaveQuizInteractor;
 import usecase.searchcompound.SearchCompoundInteractor;
 import usecase.spawnitem.SpawnItemInteractor;
 import usecase.submitquiz.SubmitQuizInteractor;
+import usecase.undo.UndoInteractor;
 import view.CompoundSearchView;
 import view.DashboardView;
 import view.LabView;
@@ -95,6 +98,8 @@ public class LabApp {
             new ItemFactory()));
     MoveItemController moveItemController = new MoveItemController(
         new MoveItemInteractor(dataAccess, new MoveItemPresenter(labViewModel)));
+    UndoController undoController = new UndoController(
+        new UndoInteractor(dataAccess, new UndoPresenter(labViewModel)));
 
     SwingUtilities.invokeLater(() -> {
       Theme.installDefaultFonts();
@@ -110,13 +115,15 @@ public class LabApp {
           submitQuizController, saveQuizController);
       CompoundSearchView compoundSearchView =
           new CompoundSearchView(compoundViewModel, searchCompoundController);
+      LabView labView = new LabView(labViewModel, navigateStepController, spawnItemController,
+          moveItemController);
+      labView.setOnUndo(undoController::execute);
       DashboardView dashboard = new DashboardView(dashboardViewModel, loadDashboardController,
           saveNotebookController, quizView, compoundSearchView, page -> {
             frame.setContentPane(page);
             frame.getRootPane().revalidate();
             frame.getRootPane().repaint();
-          }, new LabView(labViewModel, navigateStepController, spawnItemController,
-              moveItemController));
+          }, labView);
       frame.setContentPane(dashboard);
       frame.addWindowListener(new WindowAdapter() {
         @Override
