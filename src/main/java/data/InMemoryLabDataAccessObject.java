@@ -152,9 +152,9 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
   }
 
   /**
-   * Builds a lab back from its JSON text, as the current lab's class. The steps hold tests that
-   * can't be saved as JSON, so a restored Lab 3 gets them again from its definition. Undo, Prev
-   * and the save file all restore through here.
+   * Builds a lab back from its JSON text, as the current lab's class. The steps and mistake rules
+   * hold tests that can't be saved as JSON, so a restored Lab 3 gets them again from its
+   * definition. Undo, Prev and the save file all restore through here.
    *
    * @param json text from a snapshot or the save file
    * @return the restored lab
@@ -167,6 +167,7 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
     }
     if (restored.getClass() == Lab.class) {
       restored.attachSteps(Lab3Definition.steps());
+      restored.attachRules(Lab3Definition.rules());
     }
     return restored;
   }
