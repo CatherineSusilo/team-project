@@ -61,6 +61,16 @@ public abstract class LabStep {
   }
 
   /**
+   * The substance whose amount {@link #amountRange()} limits.
+   *
+   * @return water (the aqueous layer), ether (the organic layer) or a reagent; null to limit the
+   *     whole volume in the container
+   */
+  public Substance amountSubstance() {
+    return null;
+  }
+
+  /**
    * How long the step is waiting, so the timer bar can show.
    *
    * @param lab the lab to look at
