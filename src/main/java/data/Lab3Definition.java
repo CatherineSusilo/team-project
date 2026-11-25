@@ -2,14 +2,21 @@ package data;
 
 import entity.Action;
 import entity.ActionKind;
+import entity.AmountRule;
 import entity.Bench;
 import entity.CheckStep;
+import entity.CrossContaminationRule;
+import entity.EtherInAqueousRule;
 import entity.ItemFactory;
 import entity.ItemTemplates;
 import entity.Lab;
 import entity.LabStep;
+import entity.MistakeRule;
+import entity.OrderRule;
 import entity.UnknownSample;
+import entity.UnsettledDrawRule;
 import entity.Vec2;
+import entity.WrongTargetRule;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +47,19 @@ public final class Lab3Definition {
     String vialId = bench.nextId("unknown_vial");
     bench.addItem(new ItemFactory().create(ItemTemplates.find("unknown_vial").orElseThrow(),
         vialId), new Vec2(90, 380));
-    return new Lab(steps(), bench, unknown);
+    return new Lab(steps(), rules(), bench, unknown);
+  }
+
+  /**
+   * Lists the mistake rules, in the order they are asked: the specific ones first, so their
+   * hint wins over the general {@link OrderRule}. This is also what a lab restored from a save
+   * gets its rules back from.
+   *
+   * @return the mistake rules
+   */
+  public static List<MistakeRule> rules() {
+    return List.of(new WrongTargetRule(), new EtherInAqueousRule(), new UnsettledDrawRule(),
+        new CrossContaminationRule(), new AmountRule(), new OrderRule());
   }
 
   /**

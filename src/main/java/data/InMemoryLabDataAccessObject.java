@@ -136,13 +136,14 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
   }
 
   /**
-   * Builds a lab back from a snapshot. The steps hold tests that can't be saved as JSON, so a
-   * restored Lab 3 gets them again from its definition.
+   * Builds a lab back from a snapshot. The steps and mistake rules hold tests that can't be
+   * saved as JSON, so a restored Lab 3 gets them again from its definition.
    */
   private Lab restore(Snapshot snapshot) {
     Lab restored = labJson.fromJson(snapshot.json, snapshot.labClass);
     if (snapshot.labClass == Lab.class) {
       restored.attachSteps(Lab3Definition.steps());
+      restored.attachRules(Lab3Definition.rules());
     }
     return restored;
   }
