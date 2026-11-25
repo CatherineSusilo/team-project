@@ -2,6 +2,9 @@ package data;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParseException;
+import data.InMemoryLabDataAccessObject.Snapshot;
+import entity.Lab;
 import entity.LabModule;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -18,11 +21,10 @@ import java.util.Set;
 /**
  * Keeps the student's lab, modules and checkpoint questions in memory, and writes the student's
  * progress to a JSON file so it is still there when the app opens again. Only progress is saved
- * (each module's answers, notebook and when it was last edited); the module content stays in
- * code.
+ * (each module's answers, notebook and when it was last edited, plus the lab and its undo
+ * history); the module content stays in code.
  */
 public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
-  // TODO: also save the lab and its undo snapshots, with data.LabJson, once Lab has fields.
   private final Path file;
   // No HTML escaping, so notebooks read as written ("<b>", not "\u003cb\u003e").
   private final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -41,7 +43,8 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
   /**
    * Starts with the given modules and the progress saved in the file. If the file can't be
    * read as a save file (bad JSON or bad values), it is moved aside to {@code <file>.broken}
-   * and the student starts fresh, so the next save doesn't overwrite it.
+   * and the student starts fresh, so the next save doesn't overwrite it. If only the lab or its
+   * undo history is bad, the file is copied there instead and only the lab starts fresh.
    *
    * @param file the save file; it is created on the first save
    * @param modules the modules assigned to the student
@@ -58,6 +61,39 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
     write();
   }
 
+  @Override
+  public void saveLab(Lab lab) {
+    super.saveLab(lab);
+    write();
+  }
+
+  // pushSnapshot isn't overridden: the change it comes before is saved by the next saveLab. The
+  // first undo point still writes once, through markStepStart(0).
+
+  @Override
+  public boolean popSnapshot() {
+    boolean undone = super.popSnapshot();
+    if (undone) {
+      write();
+    }
+    return undone;
+  }
+
+  @Override
+  public void markStepStart(int index) {
+    super.markStepStart(index);
+    write();
+  }
+
+  @Override
+  public boolean rewindToStepStart(int index) {
+    boolean rewound = super.rewindToStepStart(index);
+    if (rewound) {
+      write();
+    }
+    return rewound;
+  }
+
   private void load() {
     if (!Files.exists(file)) {
       return;
@@ -71,8 +107,9 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
     // Check every value before changing any module, so a bad file changes nothing.
     List<Runnable> updates = new ArrayList<>();
     Map<String, ModuleProgress> others = new LinkedHashMap<>();
+    SaveFile saved;
     try {
-      SaveFile saved = gson.fromJson(json, SaveFile.class);
+      saved = gson.fromJson(json, SaveFile.class);
       if (saved == null || saved.getModules() == null) {
         return;
       }
@@ -90,6 +127,36 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
     }
     updates.forEach(Runnable::run);
     otherModules.putAll(others);
+    if (saved.getLab() == null) {
+      return;
+    }
+    // Read the lab and every snapshot first, so a bad one leaves the starting lab as it is.
+    try {
+      Lab savedLab = readLab(saved.getLab());
+      List<Snapshot> history = new ArrayList<>();
+      if (saved.getSnapshots() != null) {
+        for (SavedSnapshot snapshot : saved.getSnapshots()) {
+          if (snapshot == null) {
+            throw new JsonParseException("Snapshot is null");
+          }
+          Integer step = snapshot.getStepStart();
+          if (step == null || step < UNDO_POINT) {
+            throw new JsonParseException("Snapshot has no step: " + step);
+          }
+          readLab(snapshot.getJson());
+          history.add(new Snapshot(snapshot.getJson(), step));
+        }
+      }
+      restoreHistory(savedLab, history);
+    } catch (JsonParseException e) {
+      // Only the lab is lost; the quiz and notebook stay. Keep a copy of the file to look at.
+      // Anything other than bad saved text is a bug, so it isn't caught here.
+      Path copy = copyAside();
+      System.err.println("Couldn't read the saved lab (" + e.getMessage()
+          + "), so it starts fresh. The save was copied to " + copy);
+      // Save the fresh lab now, so the next start doesn't copy the same damaged lab again.
+      write();
+    }
   }
 
   /** The changes that put a module's saved progress back, each value already checked. */
@@ -119,11 +186,32 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
 
   private void moveAside() {
     try {
-      Files.move(file, file.resolveSibling(file.getFileName() + ".broken"),
-          StandardCopyOption.REPLACE_EXISTING);
+      Files.move(file, brokenFile());
     } catch (IOException e) {
       throw new UncheckedIOException("Couldn't move aside unreadable " + file, e);
     }
+  }
+
+  private Path copyAside() {
+    Path copy = brokenFile();
+    try {
+      Files.copy(file, copy);
+    } catch (IOException e) {
+      throw new UncheckedIOException("Couldn't copy aside unreadable lab in " + file, e);
+    }
+    return copy;
+  }
+
+  /**
+   * The first free name of {@code <file>.broken}, {@code <file>.broken-2}, -3 and so on, so an
+   * older broken save is never replaced.
+   */
+  private Path brokenFile() {
+    Path broken = file.resolveSibling(file.getFileName() + ".broken");
+    for (int n = 2; Files.exists(broken); n++) {
+      broken = file.resolveSibling(file.getFileName() + ".broken-" + n);
+    }
+    return broken;
   }
 
   private void write() {
@@ -140,7 +228,12 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
       Files.createDirectories(parent);
       // Write a temporary file first so a crash mid-write can't leave a half-written save.
       temporary = Files.createTempFile(parent, "save", ".tmp");
-      Files.writeString(temporary, gson.toJson(new SaveFile(progress)));
+      List<SavedSnapshot> history = new ArrayList<>();
+      for (Snapshot snapshot : getSnapshots()) {
+        history.add(new SavedSnapshot(snapshot.getJson(), snapshot.getStepStart()));
+      }
+      Files.writeString(temporary,
+          gson.toJson(new SaveFile(progress, labJson.toJson(getLab()), history)));
       Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING,
           StandardCopyOption.ATOMIC_MOVE);
     } catch (IOException e) {
@@ -155,16 +248,53 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
     }
   }
 
-  /** The save file's contents: each module's progress, by module title. */
+  /**
+   * The save file's contents: each module's progress, by module title, then the lab as
+   * {@link LabJson} text and its undo history. Files from before the lab was saved have no lab.
+   */
   private static final class SaveFile {
     private final Map<String, ModuleProgress> modules;
+    private final String lab;
+    private final List<SavedSnapshot> snapshots;
 
-    SaveFile(Map<String, ModuleProgress> modules) {
+    SaveFile(Map<String, ModuleProgress> modules, String lab, List<SavedSnapshot> snapshots) {
       this.modules = modules;
+      this.lab = lab;
+      this.snapshots = snapshots;
     }
 
     Map<String, ModuleProgress> getModules() {
       return modules;
+    }
+
+    String getLab() {
+      return lab;
+    }
+
+    List<SavedSnapshot> getSnapshots() {
+      return snapshots;
+    }
+  }
+
+  /**
+   * One undo snapshot as the file holds it. The step is an {@code Integer} so a missing one
+   * reads as null, not as step 0.
+   */
+  private static final class SavedSnapshot {
+    private final String json;
+    private final Integer stepStart;
+
+    SavedSnapshot(String json, Integer stepStart) {
+      this.json = json;
+      this.stepStart = stepStart;
+    }
+
+    String getJson() {
+      return json;
+    }
+
+    Integer getStepStart() {
+      return stepStart;
     }
   }
 

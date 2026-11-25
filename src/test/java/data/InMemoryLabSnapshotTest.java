@@ -137,4 +137,35 @@ class InMemoryLabSnapshotTest {
     assertTrue(dao.popSnapshot());
     assertEquals(9, count());
   }
+
+  @Test
+  void markingAStepDropsUndoPointsItCanNoLongerReach() {
+    dao.pushSnapshot();
+    change(1);
+    dao.pushSnapshot();
+    change(2);
+    dao.markStepStart(1);
+
+    assertEquals(2, dao.getSnapshots().size());
+    assertFalse(dao.popSnapshot());
+    assertTrue(dao.rewindToStepStart(0));
+    assertEquals(0, count());
+  }
+
+  @Test
+  void historyCopiedToAnotherDaoStillUndoes() {
+    dao.pushSnapshot();
+    change(1);
+    dao.pushSnapshot();
+    change(2);
+
+    InMemoryLabDataAccessObject other = new InMemoryLabDataAccessObject();
+    other.restoreHistory(dao.getLab(), dao.getSnapshots());
+
+    assertTrue(other.popSnapshot());
+    assertEquals(1, ((CountingLab) other.getLab()).getCount());
+    assertTrue(other.popSnapshot());
+    assertEquals(0, ((CountingLab) other.getLab()).getCount());
+    assertFalse(other.popSnapshot());
+  }
 }

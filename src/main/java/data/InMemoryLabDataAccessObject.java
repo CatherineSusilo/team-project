@@ -1,19 +1,11 @@
 package data;
 
+import com.google.gson.JsonParseException;
 import entity.Checkpoint;
-import entity.ItemType;
 import entity.Lab;
-import entity.LabItem;
 import entity.LabModule;
-import entity.PasteurPipette;
-import entity.Scale;
-import entity.StockBottle;
-import entity.TemplateItem;
-import entity.Vessel;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import usecase.CheckpointDataAccessInterface;
@@ -26,9 +18,10 @@ import usecase.SampleAssignerInterface;
  */
 public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
     ModuleDataAccessInterface, CheckpointDataAccessInterface {
-  private static final int UNDO_POINT = -1;
+  static final int UNDO_POINT = -1;
 
-  private final LabJson labJson = new LabJson(itemClasses());
+  // Shared with JsonLabDataAccessObject, so the save file and undo read items the same way.
+  final LabJson labJson = new LabJson();
   // Saved lab states, oldest first. A step-start marker carries its step index; an undo point
   // carries UNDO_POINT.
   private final List<Snapshot> snapshots = new ArrayList<>();
@@ -70,7 +63,6 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
 
   @Override
   public void saveLab(Lab lab) {
-    // TODO: optionally also write the lab and its snapshots to a JSON file.
     this.lab = lab;
   }
 
@@ -79,7 +71,7 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
     if (snapshots.isEmpty()) {
       markStepStart(0); // Prev needs this to get back to the first step.
     }
-    snapshots.add(new Snapshot(labJson.toJson(lab), lab.getClass(), UNDO_POINT));
+    snapshots.add(new Snapshot(labJson.toJson(lab), UNDO_POINT));
   }
 
   @Override
@@ -99,7 +91,10 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
 
   @Override
   public void markStepStart(int index) {
-    snapshots.add(new Snapshot(labJson.toJson(lab), lab.getClass(), index));
+    // Undo stops at this marker and Prev lands on a marker, 
+    // so earlier undo points are never restored again.
+    snapshots.removeIf(snapshot -> snapshot.stepStart == UNDO_POINT);
+    snapshots.add(new Snapshot(labJson.toJson(lab), index));
   }
 
   @Override
@@ -112,6 +107,23 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
       }
     }
     return false;
+  }
+
+  /** The undo history, oldest first, so the save file can keep it. */
+  List<Snapshot> getSnapshots() {
+    return List.copyOf(snapshots);
+  }
+
+  /**
+   * Puts back a saved lab and its undo history, replacing the current ones.
+   *
+   * @param savedLab the lab as it was saved
+   * @param saved the undo history from {@link #getSnapshots()}
+   */
+  void restoreHistory(Lab savedLab, List<Snapshot> saved) {
+    lab = savedLab;
+    snapshots.clear();
+    snapshots.addAll(saved);
   }
 
   @Override
@@ -135,47 +147,50 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
     modules.replaceAll(saved -> saved.getTitle().equals(module.getTitle()) ? module : saved);
   }
 
-  /**
-   * Builds a lab back from a snapshot. The steps and mistake rules hold tests that can't be
-   * saved as JSON, so a restored Lab 3 gets them again from its definition.
-   */
   private Lab restore(Snapshot snapshot) {
-    Lab restored = labJson.fromJson(snapshot.json, snapshot.labClass);
-    if (snapshot.labClass == Lab.class) {
+    return readLab(snapshot.json);
+  }
+
+  /**
+   * Builds a lab back from its JSON text, as the current lab's class. The steps and mistake rules
+   * hold tests that can't be saved as JSON, so a restored Lab 3 gets them again from its
+   * definition. Undo, Prev and the save file all restore through here.
+   *
+   * @param json text from a snapshot or the save file
+   * @return the restored lab
+   * @throws JsonParseException if the text is bad or holds no lab
+   */
+  Lab readLab(String json) {
+    Lab restored = labJson.fromJson(json, lab.getClass());
+    if (restored == null) {
+      throw new JsonParseException("No lab saved");
+    }
+    if (restored.getClass() == Lab.class) {
       restored.attachSteps(Lab3Definition.steps());
       restored.attachRules(Lab3Definition.rules());
     }
     return restored;
   }
 
-  /** Which class to build for each kind of item when a lab is read back from JSON. */
-  private static Map<ItemType, Class<? extends LabItem>> itemClasses() {
-    Map<ItemType, Class<? extends LabItem>> classes = new EnumMap<>(ItemType.class);
-    for (ItemType type : ItemType.values()) {
-      classes.put(type, TemplateItem.class);
-    }
-    for (ItemType type : List.of(ItemType.CONICAL_TUBE, ItemType.TEST_TUBE,
-        ItemType.GRADUATED_CYLINDER, ItemType.BEAKER, ItemType.WATCH_GLASS,
-        ItemType.FILTRATION_FLASK)) {
-      classes.put(type, Vessel.class);
-    }
-    classes.put(ItemType.PIPETTE, PasteurPipette.class);
-    classes.put(ItemType.DROPPER, StockBottle.class);
-    classes.put(ItemType.SOLVENT_BOTTLE, StockBottle.class);
-    classes.put(ItemType.SCALE, Scale.class);
-    return classes;
-  }
-
-  /** The lab as JSON text, plus the step it started if this is a step-start marker. */
-  private static final class Snapshot {
+  /**
+   * The lab as JSON text, plus the step it started if this is a step-start marker. It is read
+   * back as the current lab's class, so it holds no {@code Class} that would stop it being saved.
+   */
+  static final class Snapshot {
     private final String json;
-    private final Class<? extends Lab> labClass;
     private final int stepStart;
 
-    Snapshot(String json, Class<? extends Lab> labClass, int stepStart) {
+    Snapshot(String json, int stepStart) {
       this.json = json;
-      this.labClass = labClass;
       this.stepStart = stepStart;
+    }
+
+    String getJson() {
+      return json;
+    }
+
+    int getStepStart() {
+      return stepStart;
     }
   }
 }

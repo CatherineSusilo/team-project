@@ -1,18 +1,26 @@
 package data;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonParseException;
 import entity.Bench;
+import entity.ItemFactory;
+import entity.ItemTemplate;
+import entity.ItemTemplates;
 import entity.ItemType;
 import entity.LabItem;
 import entity.Layer;
+import entity.PasteurPipette;
 import entity.Phase;
+import entity.Scale;
+import entity.StockBottle;
 import entity.Substances;
 import entity.Vec2;
+import entity.Vessel;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -89,6 +97,97 @@ class LabJsonTest {
     bench.addItem(new NotedItem("tube-1", ItemType.TEST_TUBE, new Vec2(0, 0), "x"),
         new Vec2(1, 1));
     String json = labJson.toJson(bench);
-    assertThrows(JsonParseException.class, () -> new LabJson().fromJson(json, Bench.class));
+    assertThrows(JsonParseException.class,
+        () -> new LabJson(Map.of()).fromJson(json, Bench.class));
+  }
+
+  @Test
+  void itemWithAnUnknownTypeIsRejected() {
+    Bench bench = new Bench();
+    bench.addItem(new NotedItem("tube-1", ItemType.TEST_TUBE, new Vec2(0, 0), "x"),
+        new Vec2(1, 1));
+    String json = labJson.toJson(bench).replace("\"TEST_TUBE\"", "\"NOPE\"");
+    assertThrows(JsonParseException.class, () -> labJson.fromJson(json, Bench.class));
+  }
+
+  @Test
+  void namesThatAreNotTextAreRejected() {
+    assertThrows(JsonParseException.class, () -> labJson.fromJson(
+        "{\"phase\":\"AQUEOUS\",\"volume\":1,\"dissolved\":{},\"solids\":[[{},1.0]]}",
+        Layer.class));
+    assertThrows(JsonParseException.class,
+        () -> labJson.fromJson("{\"items\":[{\"type\":{}}],\"idCounts\":{}}", Bench.class));
+  }
+
+  @Test
+  void itemThatIsNotAnObjectIsRejected() {
+    assertThrows(JsonParseException.class,
+        () -> labJson.fromJson("{\"items\":[5],\"idCounts\":{}}", Bench.class));
+  }
+
+  @Test
+  void defaultConverterRestoresRealItems() {
+    Vessel original = new Vessel("tube-1", ItemType.CONICAL_TUBE, new Vec2(0, 0), 15, 5);
+    original.setLabel("A");
+    original.getMixture().add(Substances.WATER, 2);
+    original.getMixture().add(Substances.ETHER, 3);
+    original.getMixture().add(Substances.ASPIRIN, 0.5);
+    original.getMixture().mix(30);
+    PasteurPipette usedPipette = new PasteurPipette("pipette-1", new Vec2(0, 0));
+    usedPipette.markUsed();
+    Bench bench = new Bench();
+    bench.addItem(original, new Vec2(1, 2));
+    bench.addItem(usedPipette, new Vec2(3, 4));
+    bench.addItem(new StockBottle("naoh-1", ItemType.DROPPER, new Vec2(0, 0), Substances.NAOH),
+        new Vec2(5, 6));
+
+    LabJson converter = new LabJson();
+    Bench copy = converter.fromJson(converter.toJson(bench), Bench.class);
+
+    Vessel tube = (Vessel) copy.getItems().get(0);
+    PasteurPipette pipette = (PasteurPipette) copy.getItems().get(1);
+    StockBottle bottle = (StockBottle) copy.getItems().get(2);
+    assertEquals("A", tube.getLabel());
+    assertEquals(5.0, tube.getMixture().totalVolume());
+    assertEquals(original.massG(), tube.massG());
+    assertFalse(pipette.isClean());
+    assertSame(Substances.NAOH, bottle.getSubstance());
+  }
+
+  @Test
+  void everyTrayItemComesBackAsTheClassItemFactoryMade() {
+    Bench bench = new Bench();
+    for (ItemTemplate template : ItemTemplates.all()) {
+      bench.addItem(new ItemFactory().create(template, bench.nextId(template.getTemplateId())),
+          new Vec2(0, 0));
+    }
+
+    LabJson converter = new LabJson();
+    Bench copy = converter.fromJson(converter.toJson(bench), Bench.class);
+
+    assertEquals(bench.getItems().size(), copy.getItems().size());
+    for (int i = 0; i < bench.getItems().size(); i++) {
+      LabItem original = bench.getItems().get(i);
+      assertEquals(original.getClass(), copy.getItems().get(i).getClass(), original.getId());
+    }
+  }
+
+  @Test
+  void defaultConverterRestoresScale() {
+    Vessel tube = new Vessel("tube-1", ItemType.CONICAL_TUBE, new Vec2(0, 0), 15, 5);
+    tube.getMixture().add(Substances.WATER, 2);
+    Scale scale = new Scale("scale-1", new Vec2(0, 0));
+    Bench bench = new Bench();
+    bench.addItem(tube, new Vec2(1, 2));
+    bench.addItem(scale, new Vec2(3, 4));
+    scale.place("tube-1");
+    scale.tare(bench);
+
+    LabJson converter = new LabJson();
+    Bench copy = converter.fromJson(converter.toJson(bench), Bench.class);
+
+    Scale restored = (Scale) copy.getItems().get(1);
+    assertEquals("tube-1", restored.getPlacedId());
+    assertEquals(0.0, restored.reading(copy));
   }
 }

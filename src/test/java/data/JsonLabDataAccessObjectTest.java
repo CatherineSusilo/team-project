@@ -5,9 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import entity.Bench;
+import entity.ItemType;
 import entity.LabModule;
 import entity.QuizQuestion;
 import entity.QuizQuestion.Type;
+import entity.Vec2;
+import entity.Vessel;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -36,6 +40,17 @@ class JsonLabDataAccessObjectTest {
 
   private JsonLabDataAccessObject open(Path file) {
     return new JsonLabDataAccessObject(file, List.of(module()));
+  }
+
+  /** How many items are on the bench; a new Lab 3 starts with the unknown's vial. */
+  private static int items(JsonLabDataAccessObject dataAccess) {
+    return dataAccess.getLab().getBench().getItems().size();
+  }
+
+  private static void addBeaker(JsonLabDataAccessObject dataAccess) {
+    Bench bench = dataAccess.getLab().getBench();
+    bench.addItem(new Vessel(bench.nextId("beaker"), ItemType.BEAKER, new Vec2(0, 0), 100, 30),
+        new Vec2(10, 10));
   }
 
   @Test
@@ -92,13 +107,15 @@ class JsonLabDataAccessObjectTest {
         "{\"modules\":{\"Pre-lab\":{\"notebook\":\"x\",\"lastEdited\":\"yesterday\"}}}",
         "{\"modules\":{\"Pre-lab\":{\"notebook\":\"x\",\"savedAnswers\":[null,[1]]}}}",
         "{\"modules\":{\"Pre-lab\":{\"savedAnswers\":[[0],[1,null]]}}}")) {
-      Path file = folder.resolve("save.json");
+      // A folder per case, since a second broken file would go to save.json.broken-2.
+      Path caseFolder = Files.createTempDirectory(folder, "case");
+      Path file = caseFolder.resolve("save.json");
       Files.writeString(file, json);
       LabModule module = open(file).getModule("Pre-lab").orElseThrow();
       assertEquals("", module.getNotebook(), json);
       assertEquals(List.of(), module.getSavedAnswers(), json);
       assertFalse(Files.exists(file), json);
-      assertEquals(json, Files.readString(folder.resolve("save.json.broken")));
+      assertEquals(json, Files.readString(caseFolder.resolve("save.json.broken")));
     }
   }
 
@@ -136,5 +153,153 @@ class JsonLabDataAccessObjectTest {
     try (Stream<Path> files = Files.list(folder)) {
       assertEquals(List.of(file), files.collect(Collectors.toList()));
     }
+  }
+
+  @Test
+  void labAndUndoHistoryComeBackAfterReopening() {
+    Path file = folder.resolve("save.json");
+    JsonLabDataAccessObject first = open(file);
+    first.pushSnapshot();
+    addBeaker(first);
+    first.saveLab(first.getLab());
+    first.pushSnapshot();
+    addBeaker(first);
+    first.saveLab(first.getLab());
+
+    JsonLabDataAccessObject reopened = open(file);
+    assertEquals(3, items(reopened));
+    assertTrue(reopened.getLab().currentStep().getTitle().startsWith("A1"));
+    assertTrue(reopened.popSnapshot());
+    assertEquals(2, items(reopened));
+    assertTrue(reopened.popSnapshot());
+    assertEquals(1, items(reopened));
+    assertTrue(reopened.getLab().currentStep().getTitle().startsWith("A1"));
+    assertFalse(reopened.popSnapshot());
+  }
+
+  @Test
+  void stepStartStillStopsUndoAfterReopening() {
+    Path file = folder.resolve("save.json");
+    JsonLabDataAccessObject first = open(file);
+    first.pushSnapshot();
+    addBeaker(first);
+    first.markStepStart(1);
+
+    JsonLabDataAccessObject reopened = open(file);
+    assertFalse(reopened.popSnapshot());
+    assertEquals(2, items(reopened));
+    assertTrue(reopened.rewindToStepStart(0));
+    assertEquals(1, items(reopened));
+  }
+
+  @Test
+  void undoIsSavedWithoutAnotherSaveLab() {
+    Path file = folder.resolve("save.json");
+    JsonLabDataAccessObject first = open(file);
+    first.pushSnapshot();
+    addBeaker(first);
+    first.saveLab(first.getLab());
+    assertTrue(first.popSnapshot());
+
+    assertEquals(1, items(open(file)));
+  }
+
+  @Test
+  void savingAModuleKeepsTheLab() {
+    Path file = folder.resolve("save.json");
+    JsonLabDataAccessObject first = open(file);
+    first.pushSnapshot();
+    addBeaker(first);
+    first.saveLab(first.getLab());
+    first.saveModule(first.getModule("Pre-lab").orElseThrow());
+
+    JsonLabDataAccessObject reopened = open(file);
+    assertEquals(2, items(reopened));
+    assertTrue(reopened.popSnapshot());
+    assertEquals(1, items(reopened));
+  }
+
+  @Test
+  void saveWithoutALabStillLoads() throws IOException {
+    Path file = folder.resolve("save.json");
+    Files.writeString(file, "{\"modules\":{\"Pre-lab\":{\"notebook\":\"n\"}}}");
+
+    JsonLabDataAccessObject dataAccess = open(file);
+    assertEquals("n", dataAccess.getModule("Pre-lab").orElseThrow().getNotebook());
+    assertEquals(1, items(dataAccess));
+    assertFalse(dataAccess.popSnapshot());
+    assertFalse(Files.exists(folder.resolve("save.json.broken")));
+  }
+
+  @Test
+  void badLabKeepsQuizAndNotebook() throws IOException {
+    Path file = folder.resolve("save.json");
+    String json = "{\"modules\":{\"Pre-lab\":{\"notebook\":\"n\"}},\"lab\":\"{not json\"}";
+    Files.writeString(file, json);
+
+    JsonLabDataAccessObject dataAccess = open(file);
+    assertEquals("n", dataAccess.getModule("Pre-lab").orElseThrow().getNotebook());
+    assertEquals(1, items(dataAccess));
+    assertEquals(json, Files.readString(folder.resolve("save.json.broken")));
+  }
+
+  @Test
+  void brokenCopiesNeverReplaceEachOther() throws IOException {
+    Path file = folder.resolve("save.json");
+    Files.writeString(file, "not json {");
+    open(file);
+    String badLab = "{\"modules\":{\"Pre-lab\":{\"notebook\":\"n\"}},\"lab\":\"{not json\"}";
+    Files.writeString(file, badLab);
+    open(file);
+    open(file);
+
+    assertEquals("not json {", Files.readString(folder.resolve("save.json.broken")));
+    assertEquals(badLab, Files.readString(folder.resolve("save.json.broken-2")));
+    assertFalse(Files.exists(folder.resolve("save.json.broken-3")));
+    assertEquals("n", open(file).getModule("Pre-lab").orElseThrow().getNotebook());
+  }
+
+  @Test
+  void badSnapshotDropsTheLabAndHistory() throws IOException {
+    assertLabAndHistoryDropped("[{\"json\":\"{}\",\"stepStart\":0},"
+        + "{\"json\":\"{bad\",\"stepStart\":-1}]");
+  }
+
+  @Test
+  void snapshotWithNoJsonIsRejected() throws IOException {
+    assertLabAndHistoryDropped("[{\"stepStart\":-1}]");
+  }
+
+  @Test
+  void nullSnapshotIsRejected() throws IOException {
+    assertLabAndHistoryDropped("[null]");
+  }
+
+  @Test
+  void snapshotWithNoStepIsRejected() throws IOException {
+    // Without the check, a missing step would read as 0 and turn an undo point into a marker.
+    assertLabAndHistoryDropped("[{\"json\":\"{}\"}]");
+  }
+
+  @Test
+  void snapshotWithAnInvalidStepIsRejected() throws IOException {
+    assertLabAndHistoryDropped("[{\"json\":\"{}\",\"stepStart\":-2}]");
+  }
+
+  /**
+   * A valid lab (an empty bench) with the given undo history loads as a fresh lab (the vial
+   * only), and the notebook stays.
+   */
+  private void assertLabAndHistoryDropped(String snapshots) throws IOException {
+    Path file = folder.resolve("save.json");
+    Files.writeString(file, "{\"modules\":{\"Pre-lab\":{\"notebook\":\"n\"}},"
+        + "\"lab\":\"{}\",\"snapshots\":" + snapshots + "}");
+
+    JsonLabDataAccessObject dataAccess = open(file);
+    assertEquals("n", dataAccess.getModule("Pre-lab").orElseThrow().getNotebook());
+    assertEquals(1, items(dataAccess));
+    assertFalse(dataAccess.popSnapshot());
+    assertFalse(dataAccess.rewindToStepStart(0));
+    assertTrue(Files.exists(folder.resolve("save.json.broken")));
   }
 }
