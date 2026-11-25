@@ -15,15 +15,23 @@ import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import entity.ItemFactory;
 import entity.ItemType;
 import entity.LabItem;
+import entity.PasteurPipette;
+import entity.Scale;
+import entity.StockBottle;
 import entity.Substance;
 import entity.Substances;
+import entity.TemplateItem;
+import entity.Vessel;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -42,12 +50,29 @@ public final class LabJson {
   private final Gson gson;
 
   /**
-   * Creates a converter that knows no item subclasses yet. Reading an item then fails with a
-   * clear message.
+   * Creates a converter that reads each item back as the class {@link ItemFactory} makes for
+   * it. Types without their own class yet are {@link TemplateItem}s.
    */
-  // TODO: register Vessel, StockBottle, etc. here once they are on main.
+  // Keep in step with ItemFactory; LabJsonTest checks every tray item comes back the same.
   public LabJson() {
-    this(Map.of());
+    this(itemFactoryClasses());
+  }
+
+  private static Map<ItemType, Class<? extends LabItem>> itemFactoryClasses() {
+    Map<ItemType, Class<? extends LabItem>> classes = new EnumMap<>(ItemType.class);
+    for (ItemType type : ItemType.values()) {
+      classes.put(type, TemplateItem.class);
+    }
+    for (ItemType type : List.of(ItemType.CONICAL_TUBE, ItemType.TEST_TUBE,
+        ItemType.GRADUATED_CYLINDER, ItemType.BEAKER, ItemType.WATCH_GLASS,
+        ItemType.FILTRATION_FLASK)) {
+      classes.put(type, Vessel.class);
+    }
+    classes.put(ItemType.PIPETTE, PasteurPipette.class);
+    classes.put(ItemType.DROPPER, StockBottle.class);
+    classes.put(ItemType.SOLVENT_BOTTLE, StockBottle.class);
+    classes.put(ItemType.SCALE, Scale.class);
+    return classes;
   }
 
   /**
@@ -112,6 +137,9 @@ public final class LabJson {
     @Override
     public Substance deserialize(JsonElement json, Type type,
         JsonDeserializationContext context) {
+      if (!json.isJsonPrimitive()) {
+        throw new JsonParseException("Substance is not a name: " + json);
+      }
       Substance substance = byName.get(json.getAsString());
       if (substance == null) {
         throw new JsonParseException("Unknown substance: " + json.getAsString());
@@ -156,10 +184,15 @@ public final class LabJson {
             return null;
           }
           JsonObject object = tree.getAsJsonObject();
-          if (!object.has(TYPE_FIELD)) {
+          if (!object.has(TYPE_FIELD) || !object.get(TYPE_FIELD).isJsonPrimitive()) {
             throw new JsonParseException("Item has no type.");
           }
-          ItemType type = ItemType.valueOf(object.get(TYPE_FIELD).getAsString());
+          ItemType type;
+          try {
+            type = ItemType.valueOf(object.get(TYPE_FIELD).getAsString());
+          } catch (IllegalArgumentException e) {
+            throw new JsonParseException("Unknown item type: " + object.get(TYPE_FIELD), e);
+          }
           Class<? extends LabItem> subclass = itemClasses.get(type);
           if (subclass == null) {
             throw new JsonParseException("No item class registered for " + type);
