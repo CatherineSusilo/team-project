@@ -21,6 +21,7 @@ public class Lab {
   private final UnknownSample unknown;
   private final Set<Integer> completedSteps = new HashSet<>();
   private String standingMistake;
+  private final LabRecord record = new LabRecord();
 
   /**
    * Creates a lab at its first step.
@@ -171,6 +172,24 @@ public class Lab {
   }
 
   /**
+   * Lets time pass on the bench, so everything that depends on it (a mixture settling) moves
+   * on. Called when the timer bar finishes or is skipped.
+   *
+   * @param minutes how many lab minutes have passed, not negative
+   * @throws IllegalArgumentException if minutes is negative
+   */
+  public void advanceTime(double minutes) {
+    if (minutes < 0) {
+      throw new IllegalArgumentException("Time can't go backwards: " + minutes);
+    }
+    for (LabItem item : bench.getItems()) {
+      if (item instanceof Vessel) {
+        ((Vessel) item).getMixture().advance(minutes);
+      }
+    }
+  }
+
+  /**
    * Whether there is a step after the current one.
    *
    * @return true unless the student is on the last step
@@ -197,6 +216,15 @@ public class Lab {
 
   public Bench getBench() {
     return bench;
+  }
+
+  /**
+   * The results the simulation has measured so far.
+   *
+   * @return the lab's record, which is saved with the lab
+   */
+  public LabRecord getRecord() {
+    return record;
   }
 
   /**
