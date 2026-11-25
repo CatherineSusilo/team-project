@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 
@@ -19,6 +20,7 @@ class NavBar extends JPanel {
 
   private final JButton prev = Theme.linkButton("← Previous step", Color.DARK_GRAY);
   private final JButton exit = Theme.linkButton("Exit Module", LINK_BLUE);
+  private final JButton undo = Theme.linkButton("Undo", Color.DARK_GRAY);
   private final JButton next = Theme.filledButton("Continue", Theme.GREEN, Theme.ON_GREEN);
 
   /**
@@ -39,13 +41,19 @@ class NavBar extends JPanel {
     JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
     top.setOpaque(false);
     top.add(prev);
-    JPanel bottom = new JPanel(new BorderLayout());
+    // Exit Module and Undo share a row; Continue gets the row under them so they never overlap.
+    JPanel bottom = new JPanel(new BorderLayout(0, 8));
     bottom.setOpaque(false);
     JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
     left.setOpaque(false);
     left.add(exit);
-    bottom.add(left, BorderLayout.WEST);
-    bottom.add(next, BorderLayout.EAST);
+    left.add(Box.createHorizontalStrut(16));
+    left.add(undo);
+    JPanel nextRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+    nextRow.setOpaque(false);
+    nextRow.add(next);
+    bottom.add(left, BorderLayout.NORTH);
+    bottom.add(nextRow, BorderLayout.CENTER);
     add(top, BorderLayout.NORTH);
     add(bottom, BorderLayout.CENTER);
     showLocks(true, true, 0, 1);
@@ -71,6 +79,10 @@ class NavBar extends JPanel {
 
   JButton getPrevButton() {
     return prev;
+  }
+
+  JButton getUndoButton() {
+    return undo;
   }
 
   JButton getExitButton() {
