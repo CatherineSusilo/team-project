@@ -46,6 +46,7 @@ class InMemoryLabDataAccessObjectLabTest {
   @Test
   void resetGivesAFreshLabWithTheSameUnknown() {
     int startingItems = dao.getLab().getBench().getItems().size();
+    assertTrue(dao.getLab().advance(), "A1 needs nothing, so the lab moves on to A2");
     addConicalTube();
     dao.getLab().getRecord().setStartMassG(0.2);
 

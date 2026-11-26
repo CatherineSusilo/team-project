@@ -169,6 +169,24 @@ class JsonLabDataAccessObjectTest {
   }
 
   @Test
+  void resetOfALabLoadedFromTheFileKeepsItsUnknown() {
+    Path file = folder.resolve("save.json");
+    JsonLabDataAccessObject first = open(file);
+    addBeaker(first);
+    first.saveLab(first.getLab());
+    UnknownSample unknown = first.getLab().getUnknown();
+
+    JsonLabDataAccessObject reopened = open(file);
+    reopened.resetProgress(reopened.getModule("Pre-lab").orElseThrow());
+
+    UnknownSample kept = reopened.getLab().getUnknown();
+    assertEquals(unknown.getBatch(), kept.getBatch());
+    for (ApiType api : ApiType.values()) {
+      assertEquals(unknown.checkGuess(api), kept.checkGuess(api), "the same drug");
+    }
+  }
+
+  @Test
   void failedResetLeavesTheLabAndItsUndoHistory() throws IOException {
     Path file = folder.resolve("save.json");
     JsonLabDataAccessObject dataAccess = open(file);

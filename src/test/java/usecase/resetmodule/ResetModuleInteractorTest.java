@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import data.InMemoryLabDataAccessObject;
+import entity.ApiType;
 import entity.Lab;
 import entity.LabModule;
 import entity.QuizQuestion;
@@ -56,6 +57,10 @@ class ResetModuleInteractorTest {
     assertTrue(module.getLastEdited().isEmpty());
     assertTrue(dataAccess.getLab() != before, "a new lab");
     assertEquals(before.getUnknown().getBatch(), dataAccess.getLab().getUnknown().getBatch());
+    for (ApiType api : ApiType.values()) {
+      assertEquals(before.getUnknown().checkGuess(api),
+          dataAccess.getLab().getUnknown().checkGuess(api), "the same drug");
+    }
   }
 
   @Test
