@@ -12,6 +12,8 @@ import java.awt.event.KeyEvent;
 import javax.swing.AbstractButton;
 import javax.swing.KeyStroke;
 import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Document;
 import javax.swing.text.StyleConstants;
 import org.junit.jupiter.api.Test;
 
@@ -97,11 +99,11 @@ class NotebookPanelTest {
     notebook.toggle(StyleConstants.StrikeThrough);
     notebook.text.setCaretPosition(notebook.text.getDocument().getLength());
     notebook.insertEquation("\\mathrm{H_{2}O}");
-    String typed = notebook.text.getText();
+    String typed = plainText(notebook);
 
     NotebookPanel reopened = new NotebookPanel();
     reopened.setHtml(notebook.getHtml());
-    assertEquals(typed, reopened.text.getText());
+    assertEquals(typed, plainText(reopened));
     assertTrue(isOn(styleAt(reopened, 1), "B"));
     assertTrue(isOn(styleAt(reopened, 1), "I"));
     assertFalse(isOn(styleAt(reopened, 5), "B"));
@@ -112,7 +114,7 @@ class NotebookPanelTest {
   }
 
   @Test
-  void lineBreaksSurviveAtTheEndOfAStyleAndOfTheNotes() {
+  void lineBreaksSurviveAtTheEndOfAStyleAndOfTheNotes() throws Exception {
     NotebookPanel notebook = new NotebookPanel();
     // A bold line ending in its line break, a blank line, and a line break at the very end.
     notebook.text.setText("Title\n\nbody\n");
@@ -121,7 +123,7 @@ class NotebookPanelTest {
 
     NotebookPanel reopened = new NotebookPanel();
     reopened.setHtml(notebook.getHtml());
-    assertEquals("Title\n\nbody\n", reopened.text.getText());
+    assertEquals("Title\n\nbody\n", plainText(reopened));
     assertTrue(isOn(styleAt(reopened, 5), "B"), "the bold line break stays bold");
     assertFalse(isOn(styleAt(reopened, 6), "B"));
     assertEquals(notebook.getHtml(), reopened.getHtml(), "saving again changes nothing");
@@ -139,6 +141,13 @@ class NotebookPanelTest {
     Object name = notebook.text.getInputMap().get(key);
     notebook.text.getActionMap().get(name)
         .actionPerformed(new ActionEvent(notebook.text, ActionEvent.ACTION_PERFORMED, ""));
+  }
+
+  // The notes as stored. text.getText() turns line breaks into the system's line separator
+  // (\r\n on Windows) for a pane filled by setHtml, so the same notes would compare unequal.
+  private static String plainText(NotebookPanel notebook) throws BadLocationException {
+    Document doc = notebook.text.getDocument();
+    return doc.getText(0, doc.getLength());
   }
 
   private static AttributeSet styleAt(NotebookPanel notebook, int offset) {
