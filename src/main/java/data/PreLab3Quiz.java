@@ -56,8 +56,11 @@ public final class PreLab3Quiz {
   public static LabModule module() {
     // TODO: replace the placeholder due date.
     // Never worked on (null); JsonLabDataAccessObject fills in the student's saved progress.
+    // A1-A9, B1-B7, and B8 (optional, Skip IR) as in Lab3Definition. The IR row is shown but
+    // doesn't count toward the module's progress.
     return new LabModule("Pre-lab 3: Extraction Lab", LocalDate.of(2026, 11, 30), OVERVIEW,
-        LEARNING_OBJECTIVES, List.of("Part A", "Part B"), null, questions());
+        LEARNING_OBJECTIVES, List.of("Part A", "Part B", "IR Spectrum (optional)"), null,
+        questions(), List.of(9, 7, 1), Set.of(2));
   }
 
   /**

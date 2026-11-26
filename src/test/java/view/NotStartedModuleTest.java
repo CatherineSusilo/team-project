@@ -31,8 +31,9 @@ class NotStartedModuleTest {
   @Test
   void cardShowsNoProgress() {
     DashboardViewModel viewModel = new DashboardViewModel();
+    InMemoryLabDataAccessObject dataAccess = new InMemoryLabDataAccessObject(List.of(NOT_STARTED));
     LoadDashboardController controller = new LoadDashboardController(new LoadDashboardInteractor(
-        new InMemoryLabDataAccessObject(List.of(NOT_STARTED)),
+        dataAccess, dataAccess,
         new LoadDashboardPresenter(viewModel, Clock.systemDefaultZone()),
         ChoiceOrderer.IN_ORDER));
     List<String> texts = texts(new DashboardView(viewModel, controller, null, null, null,

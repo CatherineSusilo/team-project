@@ -71,8 +71,9 @@ public class LabApp {
 
     DashboardViewModel dashboardViewModel = new DashboardViewModel();
     LoadDashboardController loadDashboardController = new LoadDashboardController(
-        new LoadDashboardInteractor(dataAccess, new LoadDashboardPresenter(dashboardViewModel,
-            Clock.systemDefaultZone()), new RandomChoiceOrderer(new Random())));
+        new LoadDashboardInteractor(dataAccess, dataAccess,
+            new LoadDashboardPresenter(dashboardViewModel, Clock.systemDefaultZone()),
+            new RandomChoiceOrderer(new Random())));
     SaveNotebookController saveNotebookController = new SaveNotebookController(
         new SaveNotebookInteractor(dataAccess, new SaveNotebookPresenter(dashboardViewModel)));
 
