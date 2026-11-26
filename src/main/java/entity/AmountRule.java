@@ -5,9 +5,8 @@ import java.util.Locale;
 /**
  * Catches too much of what a step measures: the amount goes over the most the current step
  * allows. Too little is not a mistake, the step is just not finished yet. Liquids are measured
- * in the target container; scooping the unknown from its vial is measured on the scale, in
- * grams. The scale reading counts everything on it, so the A4 step has to make the student tare
- * first (the tube's glass would otherwise read as "too much").
+ * in the target container; scooping the unknown from its vial is measured by the grams of the
+ * unknown now in the target tube, so it doesn't depend on the scale or on taring.
  */
 public final class AmountRule implements MistakeRule {
 
@@ -47,19 +46,19 @@ public final class AmountRule implements MistakeRule {
     return item != null && item.getType() == ItemType.VIAL;
   }
 
-  // Scooping the unknown: the reading on the scale may not go over the step's most.
+  // Scooping the unknown: the unknown in the target tube (the drug and its vanillin, in grams)
+  // may not go over the step's most.
   private static String checkMass(Lab lab, Action action) {
     Range allowed = partFor(lab.currentStep(), action).amountRange();
-    if (allowed == null) {
+    LabItem target = lab.getBench().getItem(action.getTargetId());
+    if (allowed == null || !(target instanceof Vessel)) {
       return null;
     }
-    for (LabItem item : lab.getBench().getItems()) {
-      if (item instanceof Scale) {
-        double grams = ((Scale) item).reading(lab.getBench());
-        if (grams > allowed.getHi() + TOLERANCE) {
-          return String.format(Locale.ROOT, "Too much: %.3f g", grams);
-        }
-      }
+    Mixture tube = ((Vessel) target).getMixture();
+    double grams = tube.amountOf(Substances.ASPIRIN) + tube.amountOf(Substances.MEFENAMIC_ACID)
+        + tube.amountOf(Substances.VANILLIN);
+    if (grams > allowed.getHi() + TOLERANCE) {
+      return String.format(Locale.ROOT, "Too much: %.3f g", grams);
     }
     return null;
   }

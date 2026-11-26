@@ -2,7 +2,6 @@ package entity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -293,12 +292,18 @@ class AmountRuleTest {
   }
 
   @Test
-  void anUntaredScaleReadsTheGlassToo() {
-    // Known gap: Scale has no "is tared" flag, so the A4 step has to require Tare before the
-    // scoop. Until then an untared scale counts the tube's glass and reports "Too much".
+  void anUntaredScaleIsNotAMistakeForACorrectScoop() {
     weighing(new WeighStep(), false);
 
-    assertTrue(scoop(0.2).startsWith("Too much: "));
+    assertNull(scoop(0.2));
+  }
+
+  @Test
+  void aScoopIntoATubeOffTheScaleIsStillFlagged() {
+    weighing(new WeighStep(), true);
+    scale.remove();
+
+    assertEquals("Too much: 0.300 g", scoop(0.3));
   }
 
   @Test
