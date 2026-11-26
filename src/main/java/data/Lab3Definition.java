@@ -6,6 +6,7 @@ import entity.AmountRule;
 import entity.Bench;
 import entity.CheckStep;
 import entity.CrossContaminationRule;
+import entity.EarlyHclRule;
 import entity.EtherInAqueousRule;
 import entity.EtherInWaterCylinderRule;
 import entity.ItemFactory;
@@ -61,7 +62,9 @@ public final class Lab3Definition {
    * @return the mistake rules
    */
   public static List<MistakeRule> rules() {
-    return List.of(new WrongTargetRule(), new LabelRule(), new EtherInWaterCylinderRule(),
+    // B1, the first step where HCl is allowed, is step 9 (A1-A9 are 0-8).
+    return List.of(new EarlyHclRule(9), new WrongTargetRule(),
+        new LabelRule(), new EtherInWaterCylinderRule(),
         new EtherInAqueousRule(), new TareRule(), new UnsettledDrawRule(),
         new CrossContaminationRule(),
         new AmountRule(), new OrderRule());

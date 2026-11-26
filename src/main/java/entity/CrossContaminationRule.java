@@ -7,7 +7,10 @@ package entity;
  * new pipette to mix" (A5); it is judged after the pipette pumped, so the mixing pipette has to
  * be marked before the action is recorded.
  *
- * <p>TODO (Lily): B4 (the ether rinse) also needs a new, dry pipette; that is not checked here.
+ * <p>TODO (Lily): this only sees what a pipette holds right now. A pipette that drew water,
+ * was emptied, then drew ether holds only ether, so it is not caught; that needs
+ * {@code PasteurPipette} to remember which solvents it has drawn (set by TransferContents).
+ * B4 (the ether rinse) also needs a new, dry pipette; that is not checked here either.
  */
 public final class CrossContaminationRule implements MistakeRule {
 
