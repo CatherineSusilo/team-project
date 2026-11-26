@@ -1,25 +1,37 @@
 package entity;
 
 /**
- * Catches a pipette that has held both water and ether, because the lab manual says to use a
- * separate pipette for each.
+ * Catches pipette mix-ups. A pipette that has held both water and ether breaks "one pipette per
+ * solvent"; it is checked after liquid moves into or out of a pipette, or after a pipette is
+ * filled from a bottle. Mixing a tube with a pipette that has held liquid before breaks "use a
+ * new pipette to mix" (A5); it is judged after the pipette pumped, so the mixing pipette has to
+ * be marked before the action is recorded.
+ *
+ * <p>TODO (Lily): B4 (the ether rinse) also needs a new, dry pipette; that is not checked here.
  */
 public final class CrossContaminationRule implements MistakeRule {
 
-  // TODO (Lily): once TransferContents calls Lab.record, also flag a used pipette mixing a tube
-  //  (A5 needs a new pipette, A7 the same one) using PasteurPipette.canMix, and B4's new dry
-  //  pipette.
-
   @Override
   public String check(Lab lab, Action action) {
-    if (action.getKind() != ActionKind.MOVE_LIQUID) {
+    if (action.getKind() == ActionKind.MIX) {
+      return checkMix(lab, action);
+    }
+    if (action.getKind() != ActionKind.MOVE_LIQUID && action.getKind() != ActionKind.ADD) {
       return null;
     }
     LabItem source = lab.getBench().getItem(action.getSourceId());
     LabItem target = lab.getBench().getItem(action.getTargetId());
     if (holdsBothSolvents(source) || holdsBothSolvents(target)) {
-      return "That pipette has had both water and ether in it. Undo and use a separate "
-          + "pipette for each.";
+      return "Use one pipette per solvent.";
+    }
+    return null;
+  }
+
+  private static String checkMix(Lab lab, Action action) {
+    LabItem source = lab.getBench().getItem(action.getSourceId());
+    if (source instanceof PasteurPipette && action.getTargetId() != null
+        && !((PasteurPipette) source).canMix(action.getTargetId())) {
+      return "Use a new pipette to mix.";
     }
     return null;
   }

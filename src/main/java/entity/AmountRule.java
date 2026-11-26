@@ -3,8 +3,11 @@ package entity;
 import java.util.Locale;
 
 /**
- * Catches too much of what a step measures in a container: the amount goes over the most the
- * current step allows. Too little is not a mistake, the step is just not finished yet.
+ * Catches too much of what a step measures: the amount goes over the most the current step
+ * allows. Too little is not a mistake, the step is just not finished yet. Liquids are measured
+ * in the target container; scooping the unknown from its vial is measured on the scale, in
+ * grams. The scale reading counts everything on it, so the A4 step has to make the student tare
+ * first (the tube's glass would otherwise read as "too much").
  */
 public final class AmountRule implements MistakeRule {
 
@@ -13,6 +16,9 @@ public final class AmountRule implements MistakeRule {
 
   @Override
   public String check(Lab lab, Action action) {
+    if (action.getKind() == ActionKind.ADD && isVial(lab, action.getSourceId())) {
+      return checkMass(lab, action);
+    }
     if (action.getKind() != ActionKind.ADD && action.getKind() != ActionKind.MOVE_LIQUID) {
       return null;
     }
@@ -26,8 +32,36 @@ public final class AmountRule implements MistakeRule {
     if (amount <= allowed.getHi() + TOLERANCE) {
       return null;
     }
+    if (isReagent(step.amountSubstance())) {
+      // Reagents come in drops, so say it in drops: "11 drops, and the most is 10 drops".
+      return String.format(Locale.ROOT, "That's too much: %d drops, and the most is %d drops. "
+          + "Undo and add fewer.", Math.round(amount / StockBottle.DROP_ML),
+          Math.round(allowed.getHi() / StockBottle.DROP_ML));
+    }
     return String.format(Locale.ROOT, "That's too much: %.1f mL, and the most is %.1f mL. "
         + "Undo and add less.", amount, allowed.getHi());
+  }
+
+  private static boolean isVial(Lab lab, String itemId) {
+    LabItem item = lab.getBench().getItem(itemId);
+    return item != null && item.getType() == ItemType.VIAL;
+  }
+
+  // Scooping the unknown: the reading on the scale may not go over the step's most.
+  private static String checkMass(Lab lab, Action action) {
+    Range allowed = partFor(lab.currentStep(), action).amountRange();
+    if (allowed == null) {
+      return null;
+    }
+    for (LabItem item : lab.getBench().getItems()) {
+      if (item instanceof Scale) {
+        double grams = ((Scale) item).reading(lab.getBench());
+        if (grams > allowed.getHi() + TOLERANCE) {
+          return String.format(Locale.ROOT, "Too much: %.3f g", grams);
+        }
+      }
+    }
+    return null;
   }
 
   // A multi-part step has no range of its own; the part this action belongs to does.
@@ -54,6 +88,10 @@ public final class AmountRule implements MistakeRule {
       return layerVolume(mixture, Phase.ORGANIC);
     }
     return mixture.amountOf(substance);
+  }
+
+  private static boolean isReagent(Substance substance) {
+    return substance == Substances.NAOH || substance == Substances.HCL;
   }
 
   private static double layerVolume(Mixture mixture, Phase phase) {
