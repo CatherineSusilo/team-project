@@ -1,35 +1,34 @@
 package adapter.presenter;
 
-import adapter.viewmodel.UseItemViewModel;
+import adapter.viewmodel.LabViewModel;
 import usecase.useitem.UseItemOutputBoundary;
 import usecase.useitem.UseItemOutputData;
 
 /**
- * Turns the result of using an item into what the bench shows: the item's label, cover
- * and scale number, or an error.
+ * Turns the result of using an item into what the bench shows: the whole lab after it, or
+ * an error.
  */
 public class UseItemPresenter implements UseItemOutputBoundary {
-  private final UseItemViewModel viewModel;
+  private final LabViewModel viewModel;
 
   /**
    * Creates the presenter.
    *
-   * @param viewModel the bench's use item view model
+   * @param viewModel the lab screen's view model
    */
-  public UseItemPresenter(UseItemViewModel viewModel) {
+  public UseItemPresenter(LabViewModel viewModel) {
     this.viewModel = viewModel;
   }
 
   @Override
   public void prepareSuccessView(UseItemOutputData out) {
-    viewModel.setResult(out.getItemId(), out.getLabel(), out.isCovered(), out.getDisplay(),
-        out.getMessage());
+    viewModel.setState(out.getState());
     viewModel.firePropertyChanged();
   }
 
   @Override
   public void prepareFailView(String error) {
-    viewModel.setError(error);
+    viewModel.setMessage(error);                    // e.g. "That won't fit."; nothing else changes
     viewModel.firePropertyChanged();
   }
 }

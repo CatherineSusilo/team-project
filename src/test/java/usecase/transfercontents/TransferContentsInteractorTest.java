@@ -2,33 +2,43 @@ package usecase.transfercontents;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import data.Lab3Definition;
 import entity.AcidBaseRule;
 import entity.ApiType;
+import entity.Bench;
 import entity.ChemistryEngine;
+import entity.ItemTemplates;
 import entity.ItemType;
+import entity.Lab;
+import entity.LabItem;
 import entity.Layer;
 import entity.Mixture;
 import entity.PasteurPipette;
+import entity.StockBottle;
 import entity.Substance;
 import entity.Substances;
+import entity.TemplateItem;
 import entity.UnknownSample;
 import entity.Vec2;
-import java.util.HashMap;
+import entity.Vessel;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
-import usecase.TransferContentsDataAccessInterface;
+import usecase.ItemData;
+import usecase.LabDataAccessInterface;
 
 /**
- * Tests the transfer use case with a fake bench, so no real items or screen are needed.
+ * Tests the transfer use case on a real lab with a few items on its bench, without a screen.
  */
 class TransferContentsInteractorTest {
   private static final double TOLERANCE = 1e-9;
 
-  private final FakeBench bench = new FakeBench();
+  private final FakeLab bench = new FakeLab();
   private TransferContentsOutputData output;
   private String error;
   private final TransferContentsInteractor interactor = new TransferContentsInteractor(
@@ -45,81 +55,134 @@ class TransferContentsInteractorTest {
       },
       new ChemistryEngine(List.of(new AcidBaseRule())));
 
-  /** A pretend bench: a few items with an id, a type, a capacity and contents. */
-  private static class FakeBench implements TransferContentsDataAccessInterface {
-    private final Map<String, Mixture> mixtures = new HashMap<>();
-    private final Map<String, Substance> substances = new HashMap<>();
-    private final Map<String, ItemType> types = new HashMap<>();
-    private final Map<String, Double> capacities = new HashMap<>();
-    private final Map<String, PasteurPipette> pipettes = new HashMap<>();
-    private final UnknownSample unknown = new UnknownSample('A', ApiType.ASPIRIN);
+  /** A lab whose bench holds a few items, each with an id, a type, a capacity and contents. */
+  private static class FakeLab implements LabDataAccessInterface {
+    private final Lab lab = new Lab(Lab3Definition.steps(), new Bench(),
+        new UnknownSample('A', ApiType.ASPIRIN));
+    private int snapshots;
+    private int saves;
+    private boolean diskFull;                              // saving to the file fails
 
-    FakeBench() {
-      Mixture conical = new Mixture();                     // after the first mix in Task A
-      conical.add(Substances.ASPIRIN, 0.160);
-      conical.add(Substances.VANILLIN, 0.040);
-      conical.add(Substances.ETHER, 4);
-      conical.add(Substances.WATER, 2);
-      conical.mix(Mixture.FULL_MIX);
-      addVessel("conical", ItemType.CONICAL_TUBE, 15, conical);
-      addVessel("emptyConical", ItemType.CONICAL_TUBE, 15, new Mixture());
-      addVessel("testTube", ItemType.TEST_TUBE, 15, new Mixture());
-      addVessel("pipette", ItemType.PIPETTE, 2, new Mixture());
-      addVessel("etherCylinder", ItemType.GRADUATED_CYLINDER, 10, new Mixture());
+    FakeLab() {
+      Vessel conical = addVessel("conical", ItemType.CONICAL_TUBE, 15);
+      conical.getMixture().add(Substances.ASPIRIN, 0.160);  // after the first mix in Task A
+      conical.getMixture().add(Substances.VANILLIN, 0.040);
+      conical.getMixture().add(Substances.ETHER, 4);
+      conical.getMixture().add(Substances.WATER, 2);
+      conical.getMixture().mix(Mixture.FULL_MIX);
+      addVessel("emptyConical", ItemType.CONICAL_TUBE, 15);
+      addVessel("testTube", ItemType.TEST_TUBE, 15);
+      lab.getBench().addItem(new PasteurPipette("pipette", new Vec2(0, 0)), new Vec2(0, 0));
+      addVessel("etherCylinder", ItemType.GRADUATED_CYLINDER, 10);
+      addVessel("fullEtherCylinder", ItemType.GRADUATED_CYLINDER, 10).getMixture()
+          .add(Substances.ETHER, 6);                        // A3: ~6 mL of ether
 
-      Mixture fullEther = new Mixture();                   // A3: ~6 mL of ether
-      fullEther.add(Substances.ETHER, 6);
-      addVessel("fullEtherCylinder", ItemType.GRADUATED_CYLINDER, 10, fullEther);
-
-      substances.put("naohDropper", Substances.NAOH);
-      substances.put("hclDropper", Substances.HCL);
-      substances.put("etherBottle", Substances.ETHER);
+      addBottle("naohDropper", ItemType.DROPPER, Substances.NAOH);
+      addBottle("hclDropper", ItemType.DROPPER, Substances.HCL);
+      addBottle("etherBottle", ItemType.SOLVENT_BOTTLE, Substances.ETHER);
+      lab.getBench().addItem(new TemplateItem("unknownJar",   // the unknown sample's vial
+          ItemTemplates.find("unknown_vial").orElseThrow(), new Vec2(0, 0)), new Vec2(0, 0));
     }
 
-    private void addVessel(String id, ItemType type, double capacity, Mixture mixture) {
-      Mixture contents = mixture;
-      if (type == ItemType.PIPETTE) {
-        PasteurPipette pipette = new PasteurPipette(id, new Vec2(0, 0));
-        pipettes.put(id, pipette);
-        contents = pipette.getMixture();                   // a real pipette, so it can be used
+    private Vessel addVessel(String id, ItemType type, double capacity) {
+      Vessel vessel = new Vessel(id, type, new Vec2(0, 0), capacity, 0);
+      lab.getBench().addItem(vessel, new Vec2(0, 0));
+      return vessel;
+    }
+
+    void addBottle(String id, ItemType type, Substance substance) {
+      lab.getBench().addItem(new StockBottle(id, type, new Vec2(0, 0), substance),
+          new Vec2(0, 0));
+    }
+
+    Mixture getMixture(String id) {
+      return ((Vessel) lab.getBench().getItem(id)).getMixture();
+    }
+
+    PasteurPipette getPipette(String id) {
+      return (PasteurPipette) lab.getBench().getItem(id);
+    }
+
+    Substance getSubstance(String id) {
+      return ((StockBottle) lab.getBench().getItem(id)).getSubstance();
+    }
+
+    @Override
+    public Lab getLab() {
+      return lab;
+    }
+
+    @Override
+    public void saveLab(Lab saved) {
+      if (diskFull) {
+        throw new UncheckedIOException(new IOException("disk full"));
       }
-      mixtures.put(id, contents);
-      types.put(id, type);
-      capacities.put(id, capacity);
+      saves++;
     }
 
     @Override
-    public Mixture getMixture(String itemId) {
-      return mixtures.get(itemId);
+    public void pushSnapshot() {
+      snapshots++;
     }
 
     @Override
-    public Substance getSubstance(String itemId) {
-      return substances.get(itemId);
+    public boolean popSnapshot() {
+      return false;
     }
 
     @Override
-    public ItemType getType(String itemId) {
-      return types.get(itemId);
+    public void markStepStart(int index) {
     }
 
     @Override
-    public UnknownSample getUnknown(String itemId) {
-      if (itemId.equals("unknownJar")) {
-        return unknown;
+    public boolean rewindToStepStart(int index) {
+      return false;
+    }
+  }
+
+  /** How the screen shows one item after the last successful transfer. */
+  private ItemData shown(String id) {
+    for (ItemData item : output.getState().getItems()) {
+      if (item.getId().equals(id)) {
+        return item;
       }
-      return null;
     }
+    return null;
+  }
 
-    @Override
-    public double getCapacity(String itemId) {
-      return capacities.getOrDefault(itemId, 0.0);
-    }
+  // ----- the hookup: undo point, record, save -----
 
-    @Override
-    public PasteurPipette getPipette(String itemId) {
-      return pipettes.get(itemId);
-    }
+  @Test
+  void aFailedSaveStillShowsTheChangeWithAWarning() {
+    bench.diskFull = true;
+    interactor.execute(new TransferContentsInputData("naohDropper", "conical", 10,
+        TransferUnit.DROPS));
+    assertEquals("Done, but your progress couldn't be saved.", error);
+    assertNotNull(output);                                  // the change is still shown
+  }
+
+  @Test
+  void aTransferSavesAnUndoPointAndTheLab() {
+    interactor.execute(new TransferContentsInputData("naohDropper", "conical", 10,
+        TransferUnit.DROPS));
+    assertEquals(1, bench.snapshots);                       // Undo can go back to before it
+    assertEquals(1, bench.saves);
+  }
+
+  @Test
+  void aRejectedTransferChangesNothing() {
+    interactor.execute(new TransferContentsInputData("hclDropper", "conical", 20,
+        TransferUnit.DROPS));                               // HCl isn't for the conical tube
+    assertEquals(0, bench.snapshots);
+    assertEquals(0, bench.saves);
+  }
+
+  @Test
+  void theScreenGetsEveryItem() {
+    interactor.execute(new TransferContentsInputData("etherBottle", "etherCylinder", 6,
+        TransferUnit.ML));
+    assertEquals(bench.getLab().getBench().getItems().size(),
+        output.getState().getItems().size());
   }
 
   // ----- stock bottles -----
@@ -129,7 +192,7 @@ class TransferContentsInteractorTest {
     interactor.execute(new TransferContentsInputData("naohDropper", "conical", 10,
         TransferUnit.DROPS));
     assertNull(error);
-    assertEquals(AcidBaseRule.BASIC_PH, output.getPh());
+    assertEquals(AcidBaseRule.BASIC_PH, shown("conical").getPh());
   }
 
   @Test
@@ -148,7 +211,7 @@ class TransferContentsInteractorTest {
         TransferUnit.MIXES));
     Mixture conical = bench.getMixture("conical");
     assertTrue(conical.getLayers().get(0).getDissolved().containsKey(Substances.ASPIRIN));
-    assertEquals(List.of("AQUEOUS", "ORGANIC"), output.getLayerPhases());
+    assertEquals(List.of("AQUEOUS", "ORGANIC"), shown("conical").getLayerPhases());
   }
 
   @Test
@@ -156,17 +219,17 @@ class TransferContentsInteractorTest {
     interactor.execute(new TransferContentsInputData("etherBottle", "etherCylinder", 6,
         TransferUnit.ML));
     assertNull(error);
-    assertEquals(List.of("ORGANIC"), output.getLayerPhases());
+    assertEquals(List.of("ORGANIC"), shown("etherCylinder").getLayerPhases());
     assertEquals(6.0, bench.getMixture("etherCylinder").totalVolume(), TOLERANCE);
   }
 
   @Test
   void fillingTheWaterCylinderFromItsStockWorks() {
-    bench.substances.put("waterBottle", Substances.WATER);
+    bench.addBottle("waterBottle", ItemType.SOLVENT_BOTTLE, Substances.WATER);
     interactor.execute(new TransferContentsInputData("waterBottle", "etherCylinder", 6,
         TransferUnit.ML));                                  // any cylinder works the same
     assertNull(error);
-    assertEquals(List.of("AQUEOUS"), output.getLayerPhases());
+    assertEquals(List.of("AQUEOUS"), shown("etherCylinder").getLayerPhases());
     assertEquals(Substances.WATER, bench.getSubstance("waterBottle"));  // stock unchanged
   }
 
@@ -210,7 +273,7 @@ class TransferContentsInteractorTest {
     Layer powder = bench.getMixture("emptyConical").getLayers().get(0);
     assertEquals(0.160, powder.getSolids().get(Substances.ASPIRIN), TOLERANCE);
     assertEquals(0.040, powder.getSolids().get(Substances.VANILLIN), TOLERANCE);
-    assertTrue(output.hasSolid());
+    assertTrue(shown("emptyConical").hasSolid());
   }
 
   @Test
@@ -256,13 +319,13 @@ class TransferContentsInteractorTest {
     Layer water = bench.getMixture("testTube").getLayers().get(0);
     assertEquals("AQUEOUS", water.getPhase().name());
     assertTrue(water.getDissolved().containsKey(Substances.ASPIRIN));
-    assertEquals(AcidBaseRule.BASIC_PH, output.getPh());
+    assertEquals(AcidBaseRule.BASIC_PH, shown("testTube").getPh());
     assertTrue(bench.getMixture("pipette").getLayers().isEmpty());
   }
 
   @Test
   void fortyDropsFillThePipetteExactly() {
-    bench.substances.put("waterBottle", Substances.WATER);
+    bench.addBottle("waterBottle", ItemType.SOLVENT_BOTTLE, Substances.WATER);
     for (int i = 0; i < 40; i++) {                          // one drop at a time
       interactor.execute(new TransferContentsInputData("waterBottle", "pipette", 1,
           TransferUnit.DROPS));
@@ -300,7 +363,7 @@ class TransferContentsInteractorTest {
 
   /** A3-A5: the 0.200 g unknown, then 4 mL ether and 2 mL water, in the empty conical tube. */
   private void unknownEtherAndWater() {
-    bench.substances.put("waterBottle", Substances.WATER);
+    bench.addBottle("waterBottle", ItemType.SOLVENT_BOTTLE, Substances.WATER);
     interactor.execute(new TransferContentsInputData("unknownJar", "emptyConical", 0.200,
         TransferUnit.GRAMS));
     interactor.execute(new TransferContentsInputData("etherBottle", "emptyConical", 4,
@@ -313,7 +376,7 @@ class TransferContentsInteractorTest {
   void etherAndWaterMakeTwoLayers() {
     unknownEtherAndWater();
     assertNull(error);
-    assertEquals(List.of("AQUEOUS", "ORGANIC"), output.getLayerPhases());
+    assertEquals(List.of("AQUEOUS", "ORGANIC"), shown("emptyConical").getLayerPhases());
     assertEquals(6.0, bench.getMixture("emptyConical").totalVolume(), TOLERANCE);
   }
 
@@ -322,9 +385,9 @@ class TransferContentsInteractorTest {
     unknownEtherAndWater();
     interactor.execute(new TransferContentsInputData("pipette", "emptyConical", 15,
         TransferUnit.MIXES));
-    assertFalse(output.isSettled());                        // the mixing PNG
-    assertEquals("Mixed. 15 pumps so far.", output.getMessage());
-    assertTrue(output.hasSolid());                          // not mixed enough to dissolve
+    assertFalse(shown("emptyConical").isSettled());         // the mixing PNG
+    assertEquals(15, bench.getMixture("emptyConical").getMixCount());   // MixStep: "15 / 30"
+    assertTrue(shown("emptyConical").hasSolid());           // not mixed enough to dissolve
   }
 
   @Test
@@ -419,8 +482,8 @@ class TransferContentsInteractorTest {
         TransferUnit.MIXES));                               // A7
 
     assertNull(error);
-    assertFalse(output.hasSolid());                         // all dissolved
-    assertEquals(AcidBaseRule.BASIC_PH, output.getPh());
+    assertFalse(shown("emptyConical").hasSolid());          // all dissolved
+    assertEquals(AcidBaseRule.BASIC_PH, shown("emptyConical").getPh());
     List<Layer> layers = bench.getMixture("emptyConical").getLayers();
     assertTrue(layers.get(0).getDissolved().containsKey(Substances.ASPIRIN));   // water
     assertTrue(layers.get(1).getDissolved().containsKey(Substances.VANILLIN));  // ether
@@ -435,7 +498,7 @@ class TransferContentsInteractorTest {
         TransferUnit.DROPS));
     interactor.execute(new TransferContentsInputData("pipette", "emptyConical", 15,
         TransferUnit.MIXES));                               // 15 + 15, but NaOH reset it
-    assertEquals("Mixed. 15 pumps so far.", output.getMessage());
-    assertTrue(output.hasSolid());
+    assertEquals(15, bench.getMixture("emptyConical").getMixCount());   // MixStep: "15 / 30"
+    assertTrue(shown("emptyConical").hasSolid());
   }
 }

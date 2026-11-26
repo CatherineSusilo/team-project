@@ -1,18 +1,24 @@
 package adapter.presenter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import adapter.viewmodel.UseItemViewModel;
+import adapter.viewmodel.LabViewModel;
+import data.Lab3Definition;
+import entity.ApiType;
+import entity.ItemType;
+import entity.Lab;
+import entity.UnknownSample;
+import entity.Vec2;
+import entity.Vessel;
 import org.junit.jupiter.api.Test;
+import usecase.LabStateMapper;
 import usecase.useitem.UseItemOutputData;
 
 /**
- * Tests that the presenter fills the view model and tells the bench to redraw.
+ * Tests that the presenter puts the whole lab on the shared lab view model and redraws once.
  */
 class UseItemPresenterTest {
-  private final UseItemViewModel viewModel = new UseItemViewModel();
+  private final LabViewModel viewModel = new LabViewModel();
   private final UseItemPresenter presenter = new UseItemPresenter(viewModel);
   private int redraws;
 
@@ -21,46 +27,22 @@ class UseItemPresenterTest {
   }
 
   @Test
-  void successShowsTheLabel() {
-    presenter.prepareSuccessView(new UseItemOutputData("conical", "A", false, "",
-        "Labelled it A."));
-    assertTrue(viewModel.isSuccess());
-    assertEquals("conical", viewModel.getItemId());
-    assertEquals("A", viewModel.getLabel());
-    assertEquals("Labelled it A.", viewModel.getMessage());
-    assertEquals(1, redraws);
-  }
+  void successShowsTheWholeLab() {
+    Lab lab = Lab3Definition.create(new UnknownSample('A', ApiType.ASPIRIN));
+    Vessel tube = new Vessel("conical", ItemType.CONICAL_TUBE, new Vec2(0, 0), 15, 6);
+    tube.setLabel("A");
+    lab.getBench().addItem(tube, new Vec2(0, 0));
 
-  @Test
-  void successShowsTheCover() {
-    presenter.prepareSuccessView(new UseItemOutputData("etherCylinder", "ether", true, "",
-        "Covered."));
-    assertTrue(viewModel.isCovered());
-    assertEquals(1, redraws);
-  }
+    presenter.prepareSuccessView(new UseItemOutputData(LabStateMapper.from(lab)));
 
-  @Test
-  void successShowsTheScaleNumber() {
-    presenter.prepareSuccessView(new UseItemOutputData("scale", "", false, "0.000", "Tared."));
-    assertEquals("0.000", viewModel.getDisplay());
+    assertEquals(lab.getBench().getItems().size(), viewModel.getItems().size());
     assertEquals(1, redraws);
   }
 
   @Test
   void failureShowsTheMessage() {
-    presenter.prepareFailView("Write something on the label.");
-    assertFalse(viewModel.isSuccess());
-    assertEquals("Write something on the label.", viewModel.getMessage());
+    presenter.prepareFailView("Pick a container.");
+    assertEquals("Pick a container.", viewModel.getMessage());
     assertEquals(1, redraws);
-  }
-
-  @Test
-  void failureAfterSuccessKeepsTheLabel() {
-    presenter.prepareSuccessView(new UseItemOutputData("conical", "A", false, "",
-        "Labelled it A."));
-    presenter.prepareFailView("Write something on the label.");
-    assertFalse(viewModel.isSuccess());
-    assertEquals("A", viewModel.getLabel());                    // the tube still says "A"
-    assertEquals(2, redraws);
   }
 }

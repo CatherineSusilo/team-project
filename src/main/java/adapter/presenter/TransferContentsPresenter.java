@@ -1,34 +1,33 @@
 package adapter.presenter;
 
-import adapter.viewmodel.TransferContentsViewModel;
+import adapter.viewmodel.LabViewModel;
 import usecase.transfercontents.TransferContentsOutputBoundary;
 import usecase.transfercontents.TransferContentsOutputData;
 
 /**
- * Turns a transfer result into what the bench shows: the changed container, or an error.
+ * Turns a transfer result into what the bench shows: the whole lab after it, or an error.
  */
 public class TransferContentsPresenter implements TransferContentsOutputBoundary {
-  private final TransferContentsViewModel viewModel;
+  private final LabViewModel viewModel;
 
   /**
    * Creates the presenter.
    *
-   * @param viewModel the bench's transfer view model
+   * @param viewModel the lab screen's view model
    */
-  public TransferContentsPresenter(TransferContentsViewModel viewModel) {
+  public TransferContentsPresenter(LabViewModel viewModel) {
     this.viewModel = viewModel;
   }
 
   @Override
   public void prepareSuccessView(TransferContentsOutputData out) {
-    viewModel.setResult(out.getTargetId(), out.getLayerPhases(),
-        out.hasSolid(), out.isSettled(), out.getPh(), out.getMessage());
+    viewModel.setState(out.getState());
     viewModel.firePropertyChanged();
   }
 
   @Override
   public void prepareFailView(String error) {
-    viewModel.setError(error);
+    viewModel.setMessage(error);                    // e.g. "That won't fit."; nothing else changes
     viewModel.firePropertyChanged();
   }
 }

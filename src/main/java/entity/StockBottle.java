@@ -7,6 +7,7 @@ package entity;
 public class StockBottle extends LabItem {
   // One drop from a dropper, in mL (10 drops = 0.5 mL).
   public static final double DROP_ML = 0.05;
+  
 
   private final Substance substance;   // what it pours, e.g. Substances.NAOH
 
