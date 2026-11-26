@@ -9,6 +9,7 @@ import entity.ApiType;
 import entity.ItemFactory;
 import entity.ItemTemplates;
 import entity.Lab;
+import entity.Range;
 import entity.UnknownSample;
 import entity.Vec2;
 import java.util.List;
@@ -24,6 +25,7 @@ class LabSnapshotRestoreTest {
   void restoredLabHasItsEarlierBenchAndRecordAndStillRuns() {
     Lab lab = dao.getLab();
     lab.getRecord().setStartMassG(0.2);
+    lab.getRecord().setMeltingRange(new Range(135, 136));
     dao.pushSnapshot();
     lab.getRecord().setStartMassG(9);
     String id = lab.getBench().nextId("conical_tube");
@@ -34,6 +36,8 @@ class LabSnapshotRestoreTest {
 
     Lab restored = dao.getLab();
     assertEquals(0.2, restored.getRecord().getStartMassG());
+    assertEquals(135, restored.getRecord().getMeltingRange().getLo());
+    assertEquals(136, restored.getRecord().getMeltingRange().getHi());
     assertEquals(0, restored.getBench().countOf("conical_tube"));
     assertNotNull(restored.currentStep());
     assertEquals(restored.status(), restored.record(Action.spawn("conical_tube-1")));

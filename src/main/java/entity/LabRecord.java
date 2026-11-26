@@ -11,6 +11,7 @@ public class LabRecord {
   private double startMassG;
   private double watchGlassMassG;
   private double finalMassG;
+  private Range meltingRange;
   private boolean unknownRecorded;
   private boolean guessCorrect;
   private String mixingPipetteId;
@@ -52,6 +53,19 @@ public class LabRecord {
 
   public void setFinalMassG(double finalMassG) {
     this.finalMassG = finalMassG;
+  }
+
+  /**
+   * The melting range the melting point app measured, set in B7.
+   *
+   * @return the range, or null until it is measured
+   */
+  public Range getMeltingRange() {
+    return meltingRange;
+  }
+
+  public void setMeltingRange(Range meltingRange) {
+    this.meltingRange = meltingRange;
   }
 
   /**

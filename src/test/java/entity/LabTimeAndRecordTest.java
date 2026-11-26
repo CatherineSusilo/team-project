@@ -38,11 +38,22 @@ class LabTimeAndRecordTest {
   }
 
   @Test
+  void theRecordKeepsTheMeltingRange() {
+    LabRecord record = lab().getRecord();
+    Range range = new Range(135, 136);
+
+    record.setMeltingRange(range);
+
+    assertEquals(range, record.getMeltingRange());
+  }
+
+  @Test
   void startsWithAnEmptyRecord() {
     LabRecord record = lab().getRecord();
 
     assertEquals(0, record.getStartMassG());
     assertFalse(record.isUnknownRecorded());
     assertNull(record.getMixingPipetteId());
+    assertNull(record.getMeltingRange());
   }
 }
