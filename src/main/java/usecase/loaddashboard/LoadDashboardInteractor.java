@@ -46,7 +46,7 @@ public class LoadDashboardInteractor implements LoadDashboardInputBoundary {
       presenter.prepareFailView("No modules have been assigned yet.");
       return;
     }
-    // one lab shared by every module; give each module its own lab 
+    // one lab shared by every module; give each module its own lab
     // when a second lab module exists.
     Set<Integer> completedSteps = labDataAccess.getLab().getCompletedSteps();
     List<ModuleInfo> infos = new ArrayList<>();
