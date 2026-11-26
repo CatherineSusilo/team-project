@@ -160,6 +160,31 @@ public class LabModule {
   }
 
   /**
+   * Forgets the student's quiz answers, notebook and when they last worked on it, as if they
+   * never started.
+   */
+  public void clearProgress() {
+    savedAnswers = List.of();
+    notebook = "";
+    lastEdited = null;
+  }
+
+  /**
+   * Puts back progress taken before {@link #clearProgress()}, e.g. when the reset couldn't be
+   * saved. Unlike {@link #setSavedAnswers}, an empty list (never saved) is allowed.
+   *
+   * @param answers the saved answers as they were
+   * @param notebook the notebook as it was
+   * @param lastEdited when the student last worked on it, or null if never
+   */
+  public void restoreProgress(List<Set<Integer>> answers, String notebook,
+      LocalDateTime lastEdited) {
+    this.savedAnswers = answers;
+    this.notebook = notebook;
+    this.lastEdited = lastEdited;
+  }
+
+  /**
    * How much of the quiz is done.
    *
    * @return the percent of questions whose saved answer is correct, rounded down; 0 if the

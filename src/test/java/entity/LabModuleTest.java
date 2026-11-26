@@ -2,9 +2,11 @@ package entity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import entity.QuizQuestion.Type;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -46,6 +48,18 @@ class LabModuleTest {
   void savedAnswersNeedOnePerQuestion() {
     assertThrows(IllegalArgumentException.class,
         () -> module.setSavedAnswers(List.of(Set.of(0))));
+  }
+
+  @Test
+  void clearProgressForgetsAnswersNotebookAndLastEdited() {
+    module.setSavedAnswers(List.of(Set.of(0), Set.of(1), Set.of(1)));
+    module.setNotebook("<b>notes</b>");
+    module.setLastEdited(LocalDateTime.of(2026, 11, 26, 9, 0));
+    module.clearProgress();
+    assertEquals(List.of(), module.getSavedAnswers());
+    assertEquals("", module.getNotebook());
+    assertTrue(module.getLastEdited().isEmpty(), "back to not started");
+    assertEquals(0, module.getQuizProgress());
   }
 
   @Test

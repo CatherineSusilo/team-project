@@ -1,6 +1,7 @@
 package view;
 
 import adapter.controller.LoadDashboardController;
+import adapter.controller.ResetModuleController;
 import adapter.controller.SaveNotebookController;
 import adapter.viewmodel.DashboardViewModel;
 import adapter.viewmodel.ModuleState;
@@ -36,6 +37,7 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
   private final DashboardViewModel viewModel;
   private final LoadDashboardController loadDashboard;
   private final SaveNotebookController saveNotebook;
+  private final ResetModuleController resetModule;
   private final LabView labView;
   private final QuizView quizView;
   private final CompoundSearchView compoundSearch;
@@ -52,14 +54,16 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
    * @param viewModel where the modules to show appear
    * @param loadDashboard reloads the modules, e.g. after the student saves progress
    * @param saveNotebook saves a module's lab notebook
+   * @param resetModule clears a module's progress when the student confirms Reset
    * @param quizView the page Start opens
    * @param compoundSearch what the header's Compound Lookup link opens
    * @param showPage shows a page in the app window
    */
   public DashboardView(DashboardViewModel viewModel, LoadDashboardController loadDashboard,
-      SaveNotebookController saveNotebook, QuizView quizView, CompoundSearchView compoundSearch,
-      Consumer<Container> showPage) {
-    this(viewModel, loadDashboard, saveNotebook, quizView, compoundSearch, showPage, null);
+      SaveNotebookController saveNotebook, ResetModuleController resetModule, QuizView quizView,
+      CompoundSearchView compoundSearch, Consumer<Container> showPage) {
+    this(viewModel, loadDashboard, saveNotebook, resetModule, quizView, compoundSearch, showPage,
+        null);
   }
 
   /**
@@ -68,19 +72,21 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
    * @param viewModel where the modules to show appear
    * @param loadDashboard reloads the modules, e.g. after the student saves progress
    * @param saveNotebook saves a module's lab notebook
+   * @param resetModule clears a module's progress when the student confirms Reset
    * @param quizView the page Start opens
    * @param compoundSearch what the header's Compound Lookup link opens
    * @param showPage shows a page in the app window
    * @param labView the lab screen, or null to show a blank scene
    */
   public DashboardView(DashboardViewModel viewModel, LoadDashboardController loadDashboard,
-      SaveNotebookController saveNotebook, QuizView quizView, CompoundSearchView compoundSearch,
-      Consumer<Container> showPage, LabView labView) {
+      SaveNotebookController saveNotebook, ResetModuleController resetModule, QuizView quizView,
+      CompoundSearchView compoundSearch, Consumer<Container> showPage, LabView labView) {
     super(new BorderLayout());
     this.labView = labView;
     this.viewModel = viewModel;
     this.loadDashboard = loadDashboard;
     this.saveNotebook = saveNotebook;
+    this.resetModule = resetModule;
     this.quizView = quizView;
     this.compoundSearch = compoundSearch;
     this.showPage = showPage;
@@ -162,7 +168,14 @@ public class DashboardView extends JPanel implements PropertyChangeListener {
           openQuiz(module);
         },
         () -> {
-          // TODO: clear the student's saved progress and notebook for this module.
+          dialog.dispose();
+          resetModule.execute(module.getTitle());
+          if (viewModel.getMessage().isEmpty()) {
+            showDashboard();
+          } else {
+            JOptionPane.showMessageDialog(this, viewModel.getMessage(), "Progress not reset",
+                JOptionPane.WARNING_MESSAGE);
+          }
         }));
     dialog.pack();
     dialog.setLocationRelativeTo(this);

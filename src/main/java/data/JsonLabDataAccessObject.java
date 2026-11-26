@@ -55,6 +55,8 @@ public class JsonLabDataAccessObject extends InMemoryLabDataAccessObject {
     load();
   }
 
+  // Writes the whole file, lab and undo history included. resetProgress (inherited) relies on
+  // this to save a reset in one write, so keep it writing everything.
   @Override
   public void saveModule(LabModule module) {
     super.saveModule(module);
