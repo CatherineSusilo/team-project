@@ -7,12 +7,15 @@ import entity.Bench;
 import entity.CheckStep;
 import entity.CrossContaminationRule;
 import entity.EtherInAqueousRule;
+import entity.EtherInWaterCylinderRule;
 import entity.ItemFactory;
 import entity.ItemTemplates;
 import entity.Lab;
 import entity.LabStep;
+import entity.LabelRule;
 import entity.MistakeRule;
 import entity.OrderRule;
+import entity.TareRule;
 import entity.UnknownSample;
 import entity.UnsettledDrawRule;
 import entity.Vec2;
@@ -58,8 +61,10 @@ public final class Lab3Definition {
    * @return the mistake rules
    */
   public static List<MistakeRule> rules() {
-    return List.of(new WrongTargetRule(), new EtherInAqueousRule(), new UnsettledDrawRule(),
-        new CrossContaminationRule(), new AmountRule(), new OrderRule());
+    return List.of(new WrongTargetRule(), new LabelRule(), new EtherInWaterCylinderRule(),
+        new EtherInAqueousRule(), new TareRule(), new UnsettledDrawRule(),
+        new CrossContaminationRule(),
+        new AmountRule(), new OrderRule());
   }
 
   /**
