@@ -60,7 +60,8 @@ public class ModulePanel extends JPanel {
     JButton reset = Theme.filledButton("Reset", Theme.RED, Color.WHITE);
     reset.addActionListener(event -> {
       int choice = JOptionPane.showConfirmDialog(this,
-          "Reset all your progress on " + module.getTitle() + "? This can't be undone.",
+          "Reset all your progress on " + module.getTitle() 
+          + "? This includes both your progress and notebook. This can't be undone.",
           "Reset module", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
       if (choice == JOptionPane.YES_OPTION) {
         onReset.run();
