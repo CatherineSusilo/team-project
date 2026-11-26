@@ -151,6 +151,8 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
 
   @Override
   public void resetProgress(LabModule module) {
+    // There is one lab (Pre-lab 3's), so resetting any module starts it over. Check which
+    // module owns the lab once a second lab module exists.
     Lab oldLab = lab;
     List<Snapshot> oldSnapshots = List.copyOf(snapshots);
     lab = Lab3Definition.create(lab.getUnknown());
