@@ -17,13 +17,18 @@ public class LabModule {
   private final String overview;
   private final List<String> learningObjectives;
   private final List<String> partTitles;
+  private final List<Integer> partStepCounts;
+  private final Set<Integer> optionalParts;
   private LocalDateTime lastEdited;
   private final List<QuizQuestion> preProcedureQuestions;
   private List<Set<Integer>> savedAnswers = List.of();
   private String notebook = "";
+  // Not saved with the module: the dashboard refills it from the lab on every load.
+  private Set<Integer> completedSteps = Set.of();
 
   /**
-   * Creates a module with no saved quiz answers and an empty notebook.
+   * Creates a module with no saved quiz answers and an empty notebook, whose parts have no lab
+   * steps yet (so they stay at 0%).
    *
    * @param title display name, e.g. "Pre-lab 3"
    * @param dueDate submission deadline
@@ -36,11 +41,47 @@ public class LabModule {
   public LabModule(String title, LocalDate dueDate, String overview,
       List<String> learningObjectives, List<String> partTitles, LocalDateTime lastEdited,
       List<QuizQuestion> preProcedureQuestions) {
+    this(title, dueDate, overview, learningObjectives, partTitles, lastEdited,
+        preProcedureQuestions, Collections.nCopies(partTitles.size(), 0), Set.of());
+  }
+
+  /**
+   * Creates a module with no saved quiz answers and an empty notebook, whose parts cover the
+   * lab's steps in order.
+   *
+   * @param title display name, e.g. "Pre-lab 3"
+   * @param dueDate submission deadline
+   * @param overview short description of what the pre-lab covers
+   * @param learningObjectives what the student should be able to do afterwards, in order
+   * @param partTitles the lab parts after the quiz, in order, e.g. "Part A"
+   * @param lastEdited when the student last worked on it, or null if never
+   * @param preProcedureQuestions quiz the student answers before the walkthrough
+   * @param partStepCounts how many lab steps each part has, in the same order as partTitles
+   * @param optionalParts indexes of the parts that are shown but don't count toward
+   *     {@link #getProgress()}
+   * @throws IllegalArgumentException unless there is one count per part and every optional
+   *     index is a part
+   */
+  public LabModule(String title, LocalDate dueDate, String overview,
+      List<String> learningObjectives, List<String> partTitles, LocalDateTime lastEdited,
+      List<QuizQuestion> preProcedureQuestions, List<Integer> partStepCounts,
+      Set<Integer> optionalParts) {
+    if (partStepCounts.size() != partTitles.size()) {
+      throw new IllegalArgumentException("Expected " + partTitles.size()
+          + " part step counts but got " + partStepCounts.size());
+    }
+    for (int part : optionalParts) {
+      if (part < 0 || part >= partTitles.size()) {
+        throw new IllegalArgumentException("Optional part " + part + " is not a part");
+      }
+    }
     this.title = title;
     this.dueDate = dueDate;
     this.overview = overview;
     this.learningObjectives = List.copyOf(learningObjectives);
     this.partTitles = List.copyOf(partTitles);
+    this.partStepCounts = List.copyOf(partStepCounts);
+    this.optionalParts = Set.copyOf(optionalParts);
     this.lastEdited = lastEdited;
     this.preProcedureQuestions = List.copyOf(preProcedureQuestions);
   }
@@ -138,25 +179,54 @@ public class LabModule {
   }
 
   /**
-   * How much of each lab part is done, in the order of {@link #getPartTitles()}.
+   * Which lab steps the student has finished, from {@code Lab.getCompletedSteps()}.
    *
-   * @return one percent per part
+   * @param steps the finished step indexes, counting from 0
    */
-  public List<Integer> getPartProgress() {
-    // TODO: work out each part's progress from the Lab's completed steps once they exist.
-    return Collections.nCopies(partTitles.size(), 0);
+  public void setCompletedSteps(Set<Integer> steps) {
+    completedSteps = Set.copyOf(steps);
   }
 
   /**
-   * How much of the whole module is done: the average of the quiz and every part.
+   * How much of each lab part is done, in the order of {@link #getPartTitles()}. Each part
+   * covers the next run of lab steps, so with counts 9 and 7 Part A is steps 0-8 and Part B is
+   * steps 9-15. Optional parts are included here, but not in {@link #getProgress()}.
+   *
+   * @return one percent per part: its finished steps over its step count, rounded down; 0 for
+   *     a part with no steps
+   */
+  public List<Integer> getPartProgress() {
+    List<Integer> progress = new ArrayList<>();
+    int first = 0;
+    for (int count : partStepCounts) {
+      int done = 0;
+      for (int step = first; step < first + count; step++) {
+        if (completedSteps.contains(step)) {
+          done++;
+        }
+      }
+      progress.add(count == 0 ? 0 : done * 100 / count);
+      first += count;
+    }
+    return progress;
+  }
+
+  /**
+   * How much of the whole module is done: the average of the quiz and every part that isn't
+   * optional.
    *
    * @return a percent from 0 to 100, rounded down; 100 means complete
    */
   public int getProgress() {
     int total = getQuizProgress();
-    for (int part : getPartProgress()) {
-      total += part;
+    int counted = 1;
+    List<Integer> parts = getPartProgress();
+    for (int i = 0; i < parts.size(); i++) {
+      if (!optionalParts.contains(i)) {
+        total += parts.get(i);
+        counted++;
+      }
     }
-    return total / (1 + partTitles.size());
+    return total / counted;
   }
 }

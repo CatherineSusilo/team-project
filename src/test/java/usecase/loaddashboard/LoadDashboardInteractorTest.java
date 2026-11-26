@@ -6,10 +6,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import data.InMemoryLabDataAccessObject;
 import data.RandomChoiceOrderer;
+import entity.ApiType;
+import entity.Bench;
+import entity.CheckStep;
+import entity.Lab;
 import entity.LabModule;
+import entity.LabStep;
 import entity.QuizQuestion;
 import entity.QuizQuestion.Type;
+import entity.UnknownSample;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -109,6 +116,49 @@ class LoadDashboardInteractorTest {
     assertFalse(questions.get(2).isSavedCorrect(), "blank");
   }
 
+  @Test
+  void partProgressComesFromTheLab() {
+    InMemoryLabDataAccessObject dataAccess =
+        new InMemoryLabDataAccessObject(List.of(labModule()));
+    dataAccess.saveLab(labWithDone(10));
+    ModuleInfo info = load(dataAccess, ChoiceOrderer.IN_ORDER);
+    assertEquals(List.of(100, 14, 0), info.getPartProgress(), "A1-A9 and B1 done");
+    assertEquals(38, info.getProgress(), "(quiz 0 + A 100 + B 14) / 3; the IR row isn't counted");
+  }
+
+  @Test
+  void partProgressFollowsTheLabOnEveryLoad() {
+    InMemoryLabDataAccessObject dataAccess =
+        new InMemoryLabDataAccessObject(List.of(labModule()));
+    Lab lab = labWithDone(10);
+    dataAccess.saveLab(lab);
+    load(dataAccess, ChoiceOrderer.IN_ORDER);
+    lab.goBack();
+    dataAccess.saveLab(lab);
+    assertEquals(List.of(100, 0, 0), load(dataAccess, ChoiceOrderer.IN_ORDER).getPartProgress(),
+        "going back to B1 undoes it");
+  }
+
+  /** A module laid out like Pre-lab 3: Part A = steps 0-8, Part B = 9-15, IR = 16. */
+  private static LabModule labModule() {
+    return new LabModule("Pre-lab", LocalDate.of(2026, 11, 30), "", List.of(),
+        List.of("Part A", "Part B", "IR Spectrum (optional)"), null, List.of(),
+        List.of(9, 7, 1), Set.of(2));
+  }
+
+  /** A 17-step lab whose steps are always done, moved on {@code done} times. */
+  private static Lab labWithDone(int done) {
+    List<LabStep> steps = new ArrayList<>();
+    for (int i = 0; i < 17; i++) {
+      steps.add(new CheckStep(i, "step " + i, "", "", List.of(), false, l -> true, a -> true));
+    }
+    Lab lab = new Lab(steps, new Bench(), new UnknownSample('A', ApiType.ASPIRIN));
+    for (int i = 0; i < done; i++) {
+      lab.advance();
+    }
+    return lab;
+  }
+
   /** Runs LoadDashboard with {@code module} as the only module. */
   private static ModuleInfo load(LabModule module) {
     return load(module, ChoiceOrderer.IN_ORDER);
@@ -116,8 +166,13 @@ class LoadDashboardInteractorTest {
 
   /** Runs LoadDashboard with {@code module} as the only module and a chosen shuffle. */
   private static ModuleInfo load(LabModule module, ChoiceOrderer orderer) {
+    return load(new InMemoryLabDataAccessObject(List.of(module)), orderer);
+  }
+
+  /** Runs LoadDashboard on {@code dataAccess} and returns its first module. */
+  private static ModuleInfo load(InMemoryLabDataAccessObject dataAccess, ChoiceOrderer orderer) {
     LoadDashboardOutputData[] out = new LoadDashboardOutputData[1];
-    new LoadDashboardInteractor(new InMemoryLabDataAccessObject(List.of(module)),
+    new LoadDashboardInteractor(dataAccess, dataAccess,
         new LoadDashboardOutputBoundary() {
           @Override
           public void prepareSuccessView(LoadDashboardOutputData data) {

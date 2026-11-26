@@ -6,16 +6,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import usecase.ChoiceOrderer;
+import usecase.LabDataAccessInterface;
 import usecase.ModuleDataAccessInterface;
 import usecase.loaddashboard.LoadDashboardOutputData.ModuleInfo;
 import usecase.loaddashboard.LoadDashboardOutputData.QuestionInfo;
 
 /**
- * Loads every module assigned to the student. Each question's choices come back in the order
- * the {@link ChoiceOrderer} picks every time the dashboard loads.
+ * Loads every module assigned to the student, with each part's progress read from the lab.
+ * Each question's choices come back in the order the {@link ChoiceOrderer} picks every time the
+ * dashboard loads.
  */
 public class LoadDashboardInteractor implements LoadDashboardInputBoundary {
   private final ModuleDataAccessInterface dataAccess;
+  private final LabDataAccessInterface labDataAccess;
   private final LoadDashboardOutputBoundary presenter;
   private final ChoiceOrderer orderer;
 
@@ -23,12 +26,15 @@ public class LoadDashboardInteractor implements LoadDashboardInputBoundary {
    * Creates the interactor.
    *
    * @param dataAccess where the modules are stored
+   * @param labDataAccess the student's lab, for each part's progress
    * @param presenter receives the modules
    * @param orderer decides the order each question's choices are shown in
    */
   public LoadDashboardInteractor(ModuleDataAccessInterface dataAccess,
-      LoadDashboardOutputBoundary presenter, ChoiceOrderer orderer) {
+      LabDataAccessInterface labDataAccess, LoadDashboardOutputBoundary presenter,
+      ChoiceOrderer orderer) {
     this.dataAccess = dataAccess;
+    this.labDataAccess = labDataAccess;
     this.presenter = presenter;
     this.orderer = orderer;
   }
@@ -40,8 +46,12 @@ public class LoadDashboardInteractor implements LoadDashboardInputBoundary {
       presenter.prepareFailView("No modules have been assigned yet.");
       return;
     }
+    // one lab shared by every module; give each module its own lab 
+    // when a second lab module exists.
+    Set<Integer> completedSteps = labDataAccess.getLab().getCompletedSteps();
     List<ModuleInfo> infos = new ArrayList<>();
     for (LabModule module : modules) {
+      module.setCompletedSteps(completedSteps);
       List<QuestionInfo> questions = new ArrayList<>();
       List<Set<Integer>> saved = module.getSavedAnswers();
       for (int i = 0; i < module.getPreProcedureQuestions().size(); i++) {
