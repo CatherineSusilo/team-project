@@ -11,13 +11,14 @@ import java.util.Random;
 import usecase.CheckpointDataAccessInterface;
 import usecase.LabDataAccessInterface;
 import usecase.ModuleDataAccessInterface;
+import usecase.ResetModuleDataAccessInterface;
 import usecase.SampleAssignerInterface;
 
 /**
  * Keeps the student's lab, modules and checkpoint questions in memory.
  */
 public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
-    ModuleDataAccessInterface, CheckpointDataAccessInterface {
+    ModuleDataAccessInterface, CheckpointDataAccessInterface, ResetModuleDataAccessInterface {
   static final int UNDO_POINT = -1;
 
   // Shared with JsonLabDataAccessObject, so the save file and undo read items the same way.
@@ -145,6 +146,15 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
   @Override
   public void saveModule(LabModule module) {
     modules.replaceAll(saved -> saved.getTitle().equals(module.getTitle()) ? module : saved);
+  }
+
+  @Override
+  public void resetProgress(LabModule module) {
+    lab = Lab3Definition.create(lab.getUnknown());
+    snapshots.clear();
+    // JsonLabDataAccessObject.saveModule writes the whole file, so the reset is saved in one
+    // write.
+    saveModule(module);
   }
 
   private Lab restore(Snapshot snapshot) {

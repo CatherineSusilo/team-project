@@ -4,6 +4,7 @@ import adapter.controller.CheckQuizController;
 import adapter.controller.LoadDashboardController;
 import adapter.controller.MoveItemController;
 import adapter.controller.NavigateStepController;
+import adapter.controller.ResetModuleController;
 import adapter.controller.SaveNotebookController;
 import adapter.controller.SaveQuizController;
 import adapter.controller.SearchCompoundController;
@@ -14,6 +15,7 @@ import adapter.presenter.CheckQuizPresenter;
 import adapter.presenter.LoadDashboardPresenter;
 import adapter.presenter.MoveItemPresenter;
 import adapter.presenter.NavigateStepPresenter;
+import adapter.presenter.ResetModulePresenter;
 import adapter.presenter.SaveNotebookPresenter;
 import adapter.presenter.SaveQuizPresenter;
 import adapter.presenter.SearchCompoundPresenter;
@@ -43,6 +45,7 @@ import usecase.checkquiz.CheckQuizInteractor;
 import usecase.loaddashboard.LoadDashboardInteractor;
 import usecase.moveitem.MoveItemInteractor;
 import usecase.navigatestep.NavigateStepInteractor;
+import usecase.resetmodule.ResetModuleInteractor;
 import usecase.savenotebook.SaveNotebookInteractor;
 import usecase.savequiz.SaveQuizInteractor;
 import usecase.searchcompound.SearchCompoundInteractor;
@@ -101,6 +104,9 @@ public class LabApp {
         new MoveItemInteractor(dataAccess, new MoveItemPresenter(labViewModel)));
     UndoController undoController = new UndoController(
         new UndoInteractor(dataAccess, new UndoPresenter(labViewModel)));
+    ResetModuleController resetModuleController = new ResetModuleController(
+        new ResetModuleInteractor(dataAccess,
+            new ResetModulePresenter(labViewModel, dashboardViewModel)));
 
     SwingUtilities.invokeLater(() -> {
       Theme.installDefaultFonts();
@@ -120,7 +126,7 @@ public class LabApp {
           moveItemController);
       labView.setOnUndo(undoController::execute);
       DashboardView dashboard = new DashboardView(dashboardViewModel, loadDashboardController,
-          saveNotebookController, quizView, compoundSearchView, page -> {
+          saveNotebookController, resetModuleController, quizView, compoundSearchView, page -> {
             frame.setContentPane(page);
             frame.getRootPane().revalidate();
             frame.getRootPane().repaint();

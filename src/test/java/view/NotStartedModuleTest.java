@@ -36,7 +36,7 @@ class NotStartedModuleTest {
         dataAccess, dataAccess,
         new LoadDashboardPresenter(viewModel, Clock.systemDefaultZone()),
         ChoiceOrderer.IN_ORDER));
-    List<String> texts = texts(new DashboardView(viewModel, controller, null, null, null,
+    List<String> texts = texts(new DashboardView(viewModel, controller, null, null, null, null,
         page -> { }));
     assertTrue(texts.contains("Modules"));
     assertTrue(texts.contains("Progress:"));

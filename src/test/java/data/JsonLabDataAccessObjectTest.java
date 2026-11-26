@@ -5,11 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import entity.ApiType;
 import entity.Bench;
 import entity.ItemType;
 import entity.LabModule;
 import entity.QuizQuestion;
 import entity.QuizQuestion.Type;
+import entity.UnknownSample;
 import entity.Vec2;
 import entity.Vessel;
 import java.io.IOException;
@@ -125,6 +127,53 @@ class JsonLabDataAccessObjectTest {
     Files.writeString(file, "{\"modules\":{\"Old lab\":{\"notebook\":\"old notes\"}}}");
     JsonLabDataAccessObject dataAccess = open(file);
     dataAccess.saveModule(dataAccess.getModule("Pre-lab").orElseThrow());
+
+    LabModule oldLab = new LabModule("Old lab", LocalDate.of(2026, 10, 1), "", List.of(),
+        List.of(), null, List.of());
+    new JsonLabDataAccessObject(file, List.of(module(), oldLab));
+    assertEquals("old notes", oldLab.getNotebook());
+  }
+
+  @Test
+  void resetIsSavedToTheFile() {
+    Path file = folder.resolve("save.json");
+    JsonLabDataAccessObject dataAccess = open(file);
+    LabModule module = dataAccess.getModule("Pre-lab").orElseThrow();
+    module.setSavedAnswers(List.of(Set.of(0), Set.of(1)));
+    module.setNotebook("<b>notes</b>");
+    module.setLastEdited(LocalDateTime.of(2026, 11, 26, 9, 0));
+    dataAccess.saveModule(module);
+    int startingItems = items(dataAccess);
+    addBeaker(dataAccess);
+    dataAccess.pushSnapshot();
+    dataAccess.saveLab(dataAccess.getLab());
+    UnknownSample unknown = dataAccess.getLab().getUnknown();
+
+    module.clearProgress();
+    dataAccess.resetProgress(module);
+
+    JsonLabDataAccessObject reopened = open(file);
+    LabModule saved = reopened.getModule("Pre-lab").orElseThrow();
+    assertEquals(List.of(), saved.getSavedAnswers());
+    assertEquals("", saved.getNotebook());
+    assertTrue(saved.getLastEdited().isEmpty());
+    assertEquals(startingItems, items(reopened), "the lab is back to its starting bench");
+    assertFalse(reopened.popSnapshot(), "no undo history");
+    assertEquals(unknown.getBatch(), reopened.getLab().getUnknown().getBatch());
+    for (ApiType api : ApiType.values()) {
+      assertEquals(unknown.checkGuess(api), reopened.getLab().getUnknown().checkGuess(api),
+          "the same drug");
+    }
+  }
+
+  @Test
+  void resetKeepsProgressForModulesThisAppDoesNotHave() throws IOException {
+    Path file = folder.resolve("save.json");
+    Files.writeString(file, "{\"modules\":{\"Old lab\":{\"notebook\":\"old notes\"}}}");
+    JsonLabDataAccessObject dataAccess = open(file);
+    LabModule module = dataAccess.getModule("Pre-lab").orElseThrow();
+    module.clearProgress();
+    dataAccess.resetProgress(module);
 
     LabModule oldLab = new LabModule("Old lab", LocalDate.of(2026, 10, 1), "", List.of(),
         List.of(), null, List.of());

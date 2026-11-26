@@ -160,6 +160,16 @@ public class LabModule {
   }
 
   /**
+   * Forgets the student's quiz answers, notebook and when they last worked on it, as if they
+   * never started.
+   */
+  public void clearProgress() {
+    savedAnswers = List.of();
+    notebook = "";
+    lastEdited = null;
+  }
+
+  /**
    * How much of the quiz is done.
    *
    * @return the percent of questions whose saved answer is correct, rounded down; 0 if the
