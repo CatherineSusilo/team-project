@@ -175,7 +175,33 @@ class AmountRuleTest {
     Vessel tube = labWith(new PartStep(0.6, Substances.NAOH), 6);
     tube.getMixture().add(Substances.NAOH, 1);
 
-    assertEquals("That's too much: 1.0 mL, and the most is 0.6 mL. Undo and add less.",
+    assertEquals("That's too much: 20 drops, and the most is 12 drops. Undo and add fewer.",
+        new AmountRule().check(lab, addTo(ActionKind.ADD)));
+  }
+
+  @Test
+  void elevenDropsOfNaohIsFlaggedAndNamesTheTen() {
+    Vessel tube = labWith(new PartStep(0.5, Substances.NAOH), 6);
+    tube.getMixture().add(Substances.NAOH, 11 * StockBottle.DROP_ML);
+
+    assertEquals("That's too much: 11 drops, and the most is 10 drops. Undo and add fewer.",
+        new AmountRule().check(lab, addTo(ActionKind.ADD)));
+  }
+
+  @Test
+  void tenDropsOfNaohIsFine() {
+    Vessel tube = labWith(new PartStep(0.5, Substances.NAOH), 6);
+    tube.getMixture().add(Substances.NAOH, 10 * StockBottle.DROP_ML);
+
+    assertNull(new AmountRule().check(lab, addTo(ActionKind.ADD)));
+  }
+
+  @Test
+  void aSolidIsNotReportedInDrops() {
+    Vessel tube = labWith(new PartStep(0.1, Substances.ASPIRIN), 6);
+    tube.getMixture().add(Substances.ASPIRIN, 0.3);
+
+    assertEquals("That's too much: 0.3 mL, and the most is 0.1 mL. Undo and add less.",
         new AmountRule().check(lab, addTo(ActionKind.ADD)));
   }
 
@@ -188,5 +214,112 @@ class AmountRuleTest {
     tube.getMixture().add(Substances.ETHER, 3);
     assertEquals("That's too much: 8.0 mL, and the most is 7.0 mL. Undo and add less.",
         new AmountRule().check(lab, addTo(ActionKind.ADD)));
+  }
+
+  /** A weighing step that allows up to 0.205 g on the scale. */
+  private static final class WeighStep extends LabStep {
+    WeighStep() {
+      super(0, "A4", "Weigh 0.200 g", "Hint", List.of(), false);
+    }
+
+    @Override
+    public boolean isComplete(Lab lab) {
+      return false;
+    }
+
+    @Override
+    public boolean expects(Action action) {
+      return true;
+    }
+
+    @Override
+    public Range amountRange() {
+      return new Range(0.195, 0.205);
+    }
+  }
+
+  private Scale scale;
+  private Vessel weighTube;
+
+  private void weighing(LabStep step, boolean tared) {
+    lab = new Lab(List.of(step), new Bench(), new UnknownSample('A', ApiType.ASPIRIN));
+    scale = new Scale("scale-1", new Vec2(0, 0));
+    weighTube = new Vessel("conical-1", ItemType.CONICAL_TUBE, new Vec2(0, 0), 15, 6);
+    lab.getBench().addItem(scale, new Vec2(1, 1));
+    lab.getBench().addItem(weighTube, new Vec2(1, 1));
+    lab.getBench().addItem(new ItemFactory().create(
+        ItemTemplates.find("unknown_vial").orElseThrow(), "unknown_vial-1"), new Vec2(1, 1));
+    scale.place("conical-1");
+    if (tared) {
+      scale.tare(lab.getBench());
+    }
+  }
+
+  private String scoop(double grams) {
+    new UnknownSample('A', ApiType.ASPIRIN).addTo(weighTube.getMixture(), grams);
+    return new AmountRule().check(lab,
+        new Action(ActionKind.ADD, "unknown_vial-1", "conical-1", grams, null, ""));
+  }
+
+  @Test
+  void aMassInRangeIsFine() {
+    weighing(new WeighStep(), true);
+
+    assertNull(scoop(0.2));
+  }
+
+  @Test
+  void exactlyTheMostMassIsFine() {
+    weighing(new WeighStep(), true);
+
+    assertNull(scoop(0.205));
+  }
+
+  @Test
+  void overTheMostMassIsFlaggedWithTheReading() {
+    weighing(new WeighStep(), true);
+
+    assertEquals("Too much: 0.215 g", scoop(0.215));
+  }
+
+  @Test
+  void aMassInAMultiPartStepIsCheckedAgainstItsPart() {
+    LabStep wrapper = new MultiPartStep(0, "A4", "Weigh", "Hint", List.of(), false,
+        List.of(new WeighStep()));
+    weighing(wrapper, true);
+
+    assertEquals("Too much: 0.215 g", scoop(0.215));
+  }
+
+  @Test
+  void anUntaredScaleIsNotAMistakeForACorrectScoop() {
+    weighing(new WeighStep(), false);
+
+    assertNull(scoop(0.2));
+  }
+
+  @Test
+  void aScoopIntoATubeOffTheScaleIsStillFlagged() {
+    weighing(new WeighStep(), true);
+    scale.remove();
+
+    assertEquals("Too much: 0.300 g", scoop(0.3));
+  }
+
+  @Test
+  void addingFromABottleIsNotWeighed() {
+    weighing(new WeighStep(), true);
+    new UnknownSample('A', ApiType.ASPIRIN).addTo(weighTube.getMixture(), 0.3);
+    Action pour = new Action(ActionKind.ADD, "water_bottle-1", "conical-1", 1, null, "");
+
+    assertNull(new AmountRule().check(lab, pour));
+  }
+
+  @Test
+  void aMissingSourceIsNotWeighed() {
+    weighing(new WeighStep(), true);
+    Action pour = new Action(ActionKind.ADD, "missing-1", "conical-1", 1, null, "");
+
+    assertNull(new AmountRule().check(lab, pour));
   }
 }
