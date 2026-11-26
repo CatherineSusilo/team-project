@@ -4,14 +4,19 @@ import entity.Action;
 import entity.ActionKind;
 import entity.AmountRule;
 import entity.Bench;
+import entity.BuchnerFunnel;
 import entity.CheckStep;
 import entity.CrossContaminationRule;
 import entity.EarlyHclRule;
 import entity.EtherInAqueousRule;
 import entity.EtherInWaterCylinderRule;
+import entity.FilterStep;
+import entity.FiltrationFlask;
 import entity.ItemFactory;
 import entity.ItemTemplates;
+import entity.ItemType;
 import entity.Lab;
+import entity.LabItem;
 import entity.LabStep;
 import entity.LabelRule;
 import entity.MistakeRule;
@@ -110,13 +115,18 @@ public final class Lab3Definition {
     steps.add(step(steps, "B1 Acidify",
         "Add 20 drops of HCl to the test tube and stir 5 times.",
         List.of("hcl_bottle", "stir_rod"), List.of("hcl_bottle", "stir_rod")));
-    steps.add(step(steps, "B2 Ice bath and filtration setup",
+    // B2 (ice bath part still a stub): the filtration has to be set up while the tube cools
+    steps.add(new CheckStep(steps.size(), "B2 Ice bath and filtration setup",
         "Cool the test tube in the ice bath for 10 minutes and set up the filtration.",
-        List.of("ice_bath", "clamp_stand", "flask", "funnel"),
-        List.of("ice_bath", "clamp_stand", "flask", "funnel")));
-    steps.add(step(steps, "B3 Collect the solid",
+        "Clamp the flask, put the funnel on it and add filter paper.",
+        List.of("ice_bath", "clamp_stand", "flask", "funnel"), false,
+        hasOnBench(List.of("ice_bath")).and(Lab3Definition::filtrationReady),
+        Lab3Definition::isSetupAction));
+    // B3: the solid onto the funnel, then the test tube rinsed out onto it twice
+    steps.add(new FilterStep(steps.size(), "B3 Collect the solid",
         "Filter the solid onto the funnel and rinse it twice with 1 mL of cold water.",
-        List.of(), List.of()));
+        "Tip the test tube onto the funnel, then rinse it out twice with 1 mL of cold water.",
+        List.of("pipette"), 2));
     steps.add(step(steps, "B4 Ether rinse",
         "Rinse the solid with 2-3 drops of cold ether from a new pipette.",
         List.of("pipette"), List.of("pipette", "pipette", "pipette")));
@@ -153,6 +163,24 @@ public final class Lab3Definition {
 
   private static boolean isBenchAction(Action action) {
     return action.getKind() == ActionKind.SPAWN || action.getKind() == ActionKind.MOVE;
+  }
+
+  // B2: setting up the filtration is taking items out, moving them, and adding the paper.
+  private static boolean isSetupAction(Action action) {
+    return isBenchAction(action) || action.getKind() == ActionKind.USE;
+  }
+
+  // B2: the flask is clamped with the funnel on it, and the funnel has filter paper.
+  private static boolean filtrationReady(Lab lab) {
+    for (LabItem item : lab.getBench().getItems()) {
+      if (item.getType() == ItemType.FILTRATION_FLASK
+          && ((FiltrationFlask) item).isAssembled()) {
+        LabItem funnel = lab.getBench().getItem(((FiltrationFlask) item).getFunnelId());
+        return funnel != null && funnel.getType() == ItemType.BUCHNER_FUNNEL
+            && ((BuchnerFunnel) funnel).hasPaper();
+      }
+    }
+    return false;
   }
 
   /** True once the bench holds at least as many of each template as listed. */

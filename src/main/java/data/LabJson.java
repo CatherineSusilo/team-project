@@ -15,6 +15,9 @@ import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import entity.BuchnerFunnel;
+import entity.ClampStand;
+import entity.FiltrationFlask;
 import entity.ItemFactory;
 import entity.ItemType;
 import entity.LabItem;
@@ -24,6 +27,7 @@ import entity.StockBottle;
 import entity.Substance;
 import entity.Substances;
 import entity.TemplateItem;
+import entity.VacuumTap;
 import entity.Vessel;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -64,14 +68,17 @@ public final class LabJson {
       classes.put(type, TemplateItem.class);
     }
     for (ItemType type : List.of(ItemType.CONICAL_TUBE, ItemType.TEST_TUBE,
-        ItemType.GRADUATED_CYLINDER, ItemType.BEAKER, ItemType.WATCH_GLASS,
-        ItemType.FILTRATION_FLASK)) {
+        ItemType.GRADUATED_CYLINDER, ItemType.BEAKER, ItemType.WATCH_GLASS)) {
       classes.put(type, Vessel.class);
     }
     classes.put(ItemType.PIPETTE, PasteurPipette.class);
     classes.put(ItemType.DROPPER, StockBottle.class);
     classes.put(ItemType.SOLVENT_BOTTLE, StockBottle.class);
     classes.put(ItemType.SCALE, Scale.class);
+    classes.put(ItemType.FILTRATION_FLASK, FiltrationFlask.class);
+    classes.put(ItemType.BUCHNER_FUNNEL, BuchnerFunnel.class);
+    classes.put(ItemType.CLAMP_STAND, ClampStand.class);
+    classes.put(ItemType.VACUUM_TAP, VacuumTap.class);
     return classes;
   }
 

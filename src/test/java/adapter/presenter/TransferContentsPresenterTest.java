@@ -1,19 +1,25 @@
 package adapter.presenter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import adapter.viewmodel.TransferContentsViewModel;
-import java.util.List;
+import adapter.viewmodel.LabViewModel;
+import data.Lab3Definition;
+import entity.ApiType;
+import entity.ItemType;
+import entity.Lab;
+import entity.Substances;
+import entity.UnknownSample;
+import entity.Vec2;
+import entity.Vessel;
 import org.junit.jupiter.api.Test;
+import usecase.LabStateMapper;
 import usecase.transfercontents.TransferContentsOutputData;
 
 /**
- * Tests that the presenter fills the view model and tells the bench to redraw.
+ * Tests that the presenter puts the whole lab on the shared lab view model and redraws once.
  */
 class TransferContentsPresenterTest {
-  private final TransferContentsViewModel viewModel = new TransferContentsViewModel();
+  private final LabViewModel viewModel = new LabViewModel();
   private final TransferContentsPresenter presenter = new TransferContentsPresenter(viewModel);
   private int redraws;
 
@@ -22,27 +28,21 @@ class TransferContentsPresenterTest {
   }
 
   @Test
-  void successUpdatesTheContainer() {
-    presenter.prepareSuccessView(new TransferContentsOutputData("conical",
-        List.of("AQUEOUS", "ORGANIC"), false, true, 13, "Added 10 drops."));
-    assertTrue(viewModel.isSuccess());
-    assertEquals("conical", viewModel.getTargetId());
-    assertEquals(13, viewModel.getPh());
-    assertEquals(1, redraws);
-  }
+  void successShowsTheWholeLab() {
+    Lab lab = Lab3Definition.create(new UnknownSample('A', ApiType.ASPIRIN));
+    Vessel tube = new Vessel("conical", ItemType.CONICAL_TUBE, new Vec2(0, 0), 15, 6);
+    tube.getMixture().add(Substances.ETHER, 4);
+    lab.getBench().addItem(tube, new Vec2(0, 0));
 
-  @Test
-  void justMixedShowsCloudy() {
-    presenter.prepareSuccessView(new TransferContentsOutputData("conical",
-        List.of("AQUEOUS", "ORGANIC"), true, false, 7, "Mixed. 15 pumps so far."));
-    assertFalse(viewModel.isSettled());                       // the mixing PNG
-    assertEquals("Mixed. 15 pumps so far.", viewModel.getMessage());
+    presenter.prepareSuccessView(new TransferContentsOutputData(LabStateMapper.from(lab)));
+
+    assertEquals(lab.getBench().getItems().size(), viewModel.getItems().size());
+    assertEquals(1, redraws);
   }
 
   @Test
   void failureShowsTheMessage() {
     presenter.prepareFailView("HCl goes into the aqueous test tube.");
-    assertFalse(viewModel.isSuccess());
     assertEquals("HCl goes into the aqueous test tube.", viewModel.getMessage());
     assertEquals(1, redraws);
   }

@@ -1,26 +1,36 @@
 package usecase.useitem;
 
+import entity.Action;
+import entity.ActionKind;
+import entity.BuchnerFunnel;
+import entity.ItemType;
+import entity.Lab;
+import entity.LabItem;
 import entity.Operation;
 import entity.Scale;
+import entity.VacuumTap;
 import entity.Vessel;
-import usecase.UseItemDataAccessInterface;
+import java.io.UncheckedIOException;
+import usecase.LabDataAccessInterface;
+import usecase.LabStateMapper;
 
 /**
- * Does something to one item: writes its label (LABEL), covers it (COVER) or zeroes the scale
- * (TARE). It doesn't judge whether the label is right; the step checks that (A2: CheckStep
+ * Does something to one item: writes its label (LABEL), covers it (COVER), zeroes the scale
+ * (TARE), puts filter paper in the funnel (ADD_PAPER) or turns the vacuum on/off (VACUUM_ON /
+ * VACUUM_OFF). It doesn't judge whether the label is right; the step checks that (A2: CheckStep
  * with labelMatches).
  */
 public class UseItemInteractor implements UseItemInputBoundary {
-  private final UseItemDataAccessInterface dataAccess;
+  private final LabDataAccessInterface dataAccess;
   private final UseItemOutputBoundary presenter;
 
   /**
    * Creates the interactor.
    *
-   * @param dataAccess finds the items on the bench
+   * @param dataAccess where the lab (and its bench) is kept
    * @param presenter receives the result
    */
-  public UseItemInteractor(UseItemDataAccessInterface dataAccess,
+  public UseItemInteractor(LabDataAccessInterface dataAccess,
       UseItemOutputBoundary presenter) {
     this.dataAccess = dataAccess;
     this.presenter = presenter;
@@ -30,22 +40,28 @@ public class UseItemInteractor implements UseItemInputBoundary {
   public void execute(UseItemInputData in) {
     // each operation finds the item it needs (a container for LABEL / COVER, the scale for
     // TARE), so one operation's lookup never blocks another
+    Lab lab = dataAccess.getLab();
     if (in.getOperation() == Operation.LABEL) {
-      label(in);
+      label(lab, in);
     } else if (in.getOperation() == Operation.COVER) {
-      cover(in);
+      cover(lab, in);
     } else if (in.getOperation() == Operation.TARE) {
-      tare(in);
+      tare(lab, in);
+    } else if (in.getOperation() == Operation.ADD_PAPER) {
+      addPaper(lab, in);
+    } else if (in.getOperation() == Operation.VACUUM_ON
+        || in.getOperation() == Operation.VACUUM_OFF) {
+      vacuum(lab, in);
     } else {
-      // STIR, ADD_PAPER, ... get handled with their tickets
+      // STIR, START, ... get handled with their tickets
       presenter.prepareFailView("That doesn't work yet.");
     }
   }
 
   // LABEL (A2, A3): write the text on a container's label.
-  private void label(UseItemInputData in) {
+  private void label(Lab lab, UseItemInputData in) {
     // find the item; labels only go on containers
-    Vessel vessel = dataAccess.getVessel(in.getItemId());
+    Vessel vessel = vesselOf(lab, in.getItemId());
     if (vessel == null) {
       presenter.prepareFailView("Pick a container.");
       return;
@@ -55,36 +71,82 @@ public class UseItemInteractor implements UseItemInputBoundary {
       presenter.prepareFailView("Write something on the label.");
       return;
     }
+    dataAccess.pushSnapshot();                      // before changing anything, so Undo can go back
     vessel.setLabel(in.getText().trim());           // " A " is stored as "A"
-    presenter.prepareSuccessView(describe(in.getItemId(), vessel,
-        "Labelled it " + vessel.getLabel() + "."));
+    finish(lab, in);
   }
 
   // COVER (A3): put the inverted beaker on top of a container, e.g. the ether cylinder.
-  private void cover(UseItemInputData in) {
-    Vessel vessel = dataAccess.getVessel(in.getItemId());
+  private void cover(Lab lab, UseItemInputData in) {
+    Vessel vessel = vesselOf(lab, in.getItemId());
     if (vessel == null) {
       presenter.prepareFailView("Pick a container.");   // only containers get covered
       return;
     }
+    dataAccess.pushSnapshot();
     vessel.cover();
-    presenter.prepareSuccessView(describe(in.getItemId(), vessel, "Covered."));
+    finish(lab, in);
   }
 
   // TARE (A4): zero the scale with what's on it, so the scoops of unknown are all it shows.
-  private void tare(UseItemInputData in) {
-    Scale scale = dataAccess.getScale(in.getItemId());
-    if (scale == null) {
+  private void tare(Lab lab, UseItemInputData in) {
+    LabItem item = lab.getBench().getItem(in.getItemId());
+    if (item == null || item.getType() != ItemType.SCALE) {
       presenter.prepareFailView("Use the scale's Tare button.");   // only the scale tares
       return;
     }
-    scale.tare(dataAccess.getBench());
-    presenter.prepareSuccessView(new UseItemOutputData(in.getItemId(), "", false,
-        scale.display(dataAccess.getBench()), "Tared."));
+    dataAccess.pushSnapshot();
+    ((Scale) item).tare(lab.getBench());           // the scale's display shows 0.000 now
+    finish(lab, in);
   }
 
-  // Copies what the screen needs out of the vessel (label tape, cover).
-  private UseItemOutputData describe(String itemId, Vessel vessel, String message) {
-    return new UseItemOutputData(itemId, vessel.getLabel(), vessel.isCovered(), "", message);
+  // ADD_PAPER (B2/B3): put filter paper in the Büchner funnel before pouring onto it.
+  private void addPaper(Lab lab, UseItemInputData in) {
+    LabItem item = lab.getBench().getItem(in.getItemId());
+    if (item == null || item.getType() != ItemType.BUCHNER_FUNNEL) {
+      presenter.prepareFailView("Put the paper in the Büchner funnel.");   // only the funnel
+      return;
+    }
+    dataAccess.pushSnapshot();
+    ((BuchnerFunnel) item).addPaper();
+    finish(lab, in);
+  }
+
+  // VACUUM_ON / VACUUM_OFF (B3, B5): turn the vacuum tap on or off.
+  private void vacuum(Lab lab, UseItemInputData in) {
+    LabItem item = lab.getBench().getItem(in.getItemId());
+    if (item == null || item.getType() != ItemType.VACUUM_TAP) {
+      presenter.prepareFailView("Use the vacuum tap.");   // only the tap turns the vacuum on
+      return;
+    }
+    dataAccess.pushSnapshot();
+    ((VacuumTap) item).setOn(in.getOperation() == Operation.VACUUM_ON);
+    finish(lab, in);
+  }
+
+  // After a change: the steps and mistake rules see the action, the lab is saved, and the
+  // screen gets the whole lab (the label tape, the cover, the scale's number, the step).
+  private void finish(Lab lab, UseItemInputData in) {
+    String text = "";
+    if (in.getText() != null) {
+      text = in.getText();
+    }
+    lab.record(new Action(ActionKind.USE, in.getItemId(), null, 0, in.getOperation(), text));
+    presenter.prepareSuccessView(new UseItemOutputData(LabStateMapper.from(lab)));
+    try {
+      dataAccess.saveLab(lab);
+    } catch (UncheckedIOException e) {
+      // the change already happened; only writing the save file failed, so don't redo it
+      presenter.prepareFailView("Done, but your progress couldn't be saved.");
+    }
+  }
+
+  // The container with this id on the bench, or null if it isn't one.
+  private static Vessel vesselOf(Lab lab, String id) {
+    LabItem item = lab.getBench().getItem(id);
+    if (item instanceof Vessel) {
+      return (Vessel) item;
+    }
+    return null;
   }
 }

@@ -1,60 +1,23 @@
 package usecase.transfercontents;
 
-import java.util.List;
+import usecase.LabStateData;
 
 /**
- * What the container looks like after the transfer, so the screen can redraw it. Layers are
- * listed bottom first (the water layer sits under the ether layer).
+ * The lab after the transfer, so the screen can redraw the containers (and the step).
  */
 public final class TransferContentsOutputData {
-  private final String targetId;
-  private final List<String> layerPhases;
-  private final boolean hasSolid;
-  private final boolean settled;
-  private final double ph;
-  private final String message;
+  private final LabStateData state;
 
   /**
    * Creates the output.
    *
-   * @param targetId the container that changed
-   * @param layerPhases each layer's phase, bottom first, e.g. ["AQUEOUS", "ORGANIC"]
-   * @param hasSolid whether there is undissolved solid in the container
-   * @param settled false right after mixing (cloudy), true once the layers separate
-   * @param ph the container's pH
-   * @param message what happened, to show the student
+   * @param state the whole lab after the change: every item, the step, Next locked or not
    */
-  public TransferContentsOutputData(String targetId, List<String> layerPhases,
-      boolean hasSolid, boolean settled, double ph, String message) {
-    this.targetId = targetId;
-    this.layerPhases = List.copyOf(layerPhases);
-    this.hasSolid = hasSolid;
-    this.settled = settled;
-    this.ph = ph;
-    this.message = message;
+  public TransferContentsOutputData(LabStateData state) {
+    this.state = state;
   }
 
-  public String getTargetId() {
-    return targetId;
-  }
-
-  public List<String> getLayerPhases() {
-    return layerPhases;
-  }
-
-  public boolean hasSolid() {
-    return hasSolid;
-  }
-
-  public boolean isSettled() {
-    return settled;
-  }
-
-  public double getPh() {
-    return ph;
-  }
-
-  public String getMessage() {
-    return message;
+  public LabStateData getState() {
+    return state;
   }
 }

@@ -26,7 +26,7 @@ public final class ItemTemplates {
       new ItemTemplate("ice_bath", ItemType.ICE_BATH, null, 0, 0),
       new ItemTemplate("clamp_stand", ItemType.CLAMP_STAND, null, 0, 0),
       new ItemTemplate("flask", ItemType.FILTRATION_FLASK, null, 250, 150),
-      new ItemTemplate("funnel", ItemType.BUCHNER_FUNNEL, null, 0, 0),
+      new ItemTemplate("funnel", ItemType.BUCHNER_FUNNEL, null, 10, 60),
       new ItemTemplate("vacuum_tap", ItemType.VACUUM_TAP, null, 0, 0),
       new ItemTemplate("melting_point_app", ItemType.MELTING_POINT_APP, null, 0, 0),
       new ItemTemplate("ir_spectrometer", ItemType.IR_SPECTROMETER, null, 0, 0));
