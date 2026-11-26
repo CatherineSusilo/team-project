@@ -4,6 +4,7 @@ import com.google.gson.JsonParseException;
 import entity.Checkpoint;
 import entity.Lab;
 import entity.LabModule;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -150,11 +151,20 @@ public class InMemoryLabDataAccessObject implements LabDataAccessInterface,
 
   @Override
   public void resetProgress(LabModule module) {
+    Lab oldLab = lab;
+    List<Snapshot> oldSnapshots = List.copyOf(snapshots);
     lab = Lab3Definition.create(lab.getUnknown());
     snapshots.clear();
-    // JsonLabDataAccessObject.saveModule writes the whole file, so the reset is saved in one
-    // write.
-    saveModule(module);
+    try {
+      // JsonLabDataAccessObject.saveModule writes the whole file, so the reset is saved in one
+      // write.
+      saveModule(module);
+    } catch (UncheckedIOException e) {
+      // Not saved, so nothing is reset: the lab still matches what the screens show.
+      lab = oldLab;
+      snapshots.addAll(oldSnapshots);
+      throw e;
+    }
   }
 
   private Lab restore(Snapshot snapshot) {

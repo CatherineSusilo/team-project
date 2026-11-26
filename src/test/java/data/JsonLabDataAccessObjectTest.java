@@ -2,12 +2,14 @@ package data;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import entity.ApiType;
 import entity.Bench;
 import entity.ItemType;
+import entity.Lab;
 import entity.LabModule;
 import entity.QuizQuestion;
 import entity.QuizQuestion.Type;
@@ -164,6 +166,28 @@ class JsonLabDataAccessObjectTest {
       assertEquals(unknown.checkGuess(api), reopened.getLab().getUnknown().checkGuess(api),
           "the same drug");
     }
+  }
+
+  @Test
+  void failedResetLeavesTheLabAndItsUndoHistory() throws IOException {
+    Path file = folder.resolve("save.json");
+    JsonLabDataAccessObject dataAccess = open(file);
+    dataAccess.pushSnapshot();
+    addBeaker(dataAccess);
+    Lab before = dataAccess.getLab();
+    int itemsBefore = items(dataAccess);
+    // A folder that isn't empty can't be replaced by the save file.
+    Files.delete(file);
+    Files.createDirectories(file.resolve("blocker"));
+
+    assertThrows(UncheckedIOException.class,
+        () -> dataAccess.resetProgress(dataAccess.getModule("Pre-lab").orElseThrow()));
+
+    assertSame(before, dataAccess.getLab(), "the lab the screen shows is still the lab");
+    assertEquals(itemsBefore, items(dataAccess));
+    Files.delete(file.resolve("blocker"));
+    Files.delete(file);
+    assertTrue(dataAccess.popSnapshot(), "the undo history is still there");
   }
 
   @Test

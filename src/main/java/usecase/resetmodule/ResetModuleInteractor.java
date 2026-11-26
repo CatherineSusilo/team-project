@@ -2,7 +2,10 @@ package usecase.resetmodule;
 
 import entity.LabModule;
 import java.io.UncheckedIOException;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import usecase.LabStateMapper;
 import usecase.ResetModuleDataAccessInterface;
 
@@ -33,10 +36,15 @@ public class ResetModuleInteractor implements ResetModuleInputBoundary {
       return;
     }
     LabModule module = found.get();
+    List<Set<Integer>> answers = module.getSavedAnswers();
+    String notebook = module.getNotebook();
+    LocalDateTime lastEdited = module.getLastEdited().orElse(null);
     module.clearProgress();
     try {
       dataAccess.resetProgress(module);
     } catch (UncheckedIOException e) {
+      // Not saved, so nothing is reset: the dashboard still matches the module.
+      module.restoreProgress(answers, notebook, lastEdited);
       presenter.prepareFailView("Couldn't reset your progress. Please try again.");
       return;
     }

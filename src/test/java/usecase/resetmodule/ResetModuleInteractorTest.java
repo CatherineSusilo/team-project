@@ -15,6 +15,7 @@ import java.io.UncheckedIOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -71,17 +72,27 @@ class ResetModuleInteractorTest {
   }
 
   @Test
-  void failedSaveReportsTheError() {
+  void failedSaveReportsTheErrorAndChangesNothing() {
+    // Like the JSON DAO on a full disk: the reset runs in memory, then the save throws.
     InMemoryLabDataAccessObject failing = new InMemoryLabDataAccessObject(List.of(module)) {
       @Override
-      public void resetProgress(LabModule saved) {
+      public void saveModule(LabModule saved) {
         throw new UncheckedIOException(new IOException("disk full"));
       }
     };
+    LocalDateTime edited = LocalDateTime.of(2026, 11, 26, 9, 0);
+    module.setSavedAnswers(List.of(Set.of(0)));
+    module.setNotebook("<b>notes</b>");
+    module.setLastEdited(edited);
+    Lab before = failing.getLab();
 
     new ResetModuleInteractor(failing, presenter).execute(new ResetModuleInputData("Pre-lab"));
 
     assertEquals("Couldn't reset your progress. Please try again.", error);
     assertNull(output);
+    assertEquals(List.of(Set.of(0)), module.getSavedAnswers(), "the screens still match");
+    assertEquals("<b>notes</b>", module.getNotebook());
+    assertEquals(Optional.of(edited), module.getLastEdited());
+    assertSame(before, failing.getLab());
   }
 }
