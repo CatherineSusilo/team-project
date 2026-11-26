@@ -37,8 +37,16 @@ class PreLab3QuizTest {
       module.setCompletedSteps(Set.of(i));
       assertEquals(steps.get(i).isOptional(), module.getProgress() == 0, "step " + i);
     }
-    module.setCompletedSteps(
-        IntStream.range(0, steps.size()).boxed().collect(Collectors.toSet()));
+    module.setCompletedSteps(stepsFrom(0, 9));
+    assertEquals(List.of(100, 0, 0), module.getPartProgress(), "Part A is A1-A9");
+    module.setCompletedSteps(stepsFrom(9, 16));
+    assertEquals(List.of(0, 100, 0), module.getPartProgress(), "Part B is B1-B7");
+    module.setCompletedSteps(stepsFrom(0, steps.size()));
     assertEquals(List.of(100, 100, 100), module.getPartProgress(), "the parts cover every step");
+  }
+
+  /** Step indexes from {@code first} up to, not including, {@code end}. */
+  private static Set<Integer> stepsFrom(int first, int end) {
+    return IntStream.range(first, end).boxed().collect(Collectors.toSet());
   }
 }

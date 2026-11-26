@@ -179,7 +179,9 @@ public class LabModule {
   }
 
   /**
-   * Which lab steps the student has finished, from {@code Lab.getCompletedSteps()}.
+   * Which lab steps the student has finished, from {@code Lab.getCompletedSteps()}. This isn't
+   * saved with the module, so call it with the current lab before reading
+   * {@link #getPartProgress()} or {@link #getProgress()}; until then the parts read 0%.
    *
    * @param steps the finished step indexes, counting from 0
    */
