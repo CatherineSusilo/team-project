@@ -22,7 +22,7 @@ public class ClampStand extends LabItem {
   }
 
   /**
-   * Clamps a flask to the stand
+   * Clamps a flask to the stand.
    *
    * @param flask the flask to clamp
    */

@@ -10,7 +10,10 @@ import data.Lab3Definition;
 import entity.AcidBaseRule;
 import entity.ApiType;
 import entity.Bench;
+import entity.BuchnerFunnel;
 import entity.ChemistryEngine;
+import entity.ClampStand;
+import entity.FiltrationFlask;
 import entity.ItemTemplates;
 import entity.ItemType;
 import entity.Lab;
@@ -500,5 +503,116 @@ class TransferContentsInteractorTest {
         TransferUnit.MIXES));                               // 15 + 15, but NaOH reset it
     assertEquals(15, bench.getMixture("emptyConical").getMixCount());   // MixStep: "15 / 30"
     assertTrue(shown("emptyConical").hasSolid());
+  }
+
+  // ----- B3: pouring onto the Büchner funnel -----
+
+  /**
+   * B2/B3: a flask clamped to the stand with a funnel (and maybe paper) on top, and the test
+   * tube after B1: 3 mL of water with 0.150 g of the drug as powder.
+   */
+  private BuchnerFunnel filtrationSetUp(boolean paper) {
+    ClampStand stand = new ClampStand("stand", new Vec2(0, 0));
+    FiltrationFlask flask = new FiltrationFlask("flask", new Vec2(0, 0), 250, 150);
+    BuchnerFunnel funnel = new BuchnerFunnel("funnel", new Vec2(0, 0), 10, 60);
+    Bench lab = bench.getLab().getBench();
+    lab.addItem(stand, new Vec2(0, 0));
+    lab.addItem(flask, new Vec2(0, 0));
+    lab.addItem(funnel, new Vec2(0, 0));
+    stand.clamp(flask);
+    flask.placeFunnel("funnel");
+    if (paper) {
+      funnel.addPaper();
+    }
+    Mixture tube = bench.getMixture("testTube");
+    tube.add(Substances.WATER, 3);
+    tube.add(Substances.ASPIRIN, 0.150);
+    return funnel;
+  }
+
+  /** One rinse: 1 mL of cold water into the test tube, then the tube onto the funnel again. */
+  private void rinse() {
+    bench.getMixture("testTube").add(Substances.WATER, 1);
+    interactor.execute(new TransferContentsInputData("testTube", "funnel", 1, TransferUnit.ML));
+  }
+
+  @Test
+  void pouringOntoTheFunnelSendsTheLiquidToTheFlask() {
+    filtrationSetUp(true);
+    interactor.execute(new TransferContentsInputData("testTube", "funnel", 3, TransferUnit.ML));
+    assertNull(error);
+    assertEquals(3.0, bench.getMixture("flask").totalVolume(), TOLERANCE);   // the filtrate
+    assertEquals(0, bench.getMixture("testTube").totalVolume(), TOLERANCE);
+    assertEquals(0, bench.getMixture("funnel").totalVolume(), TOLERANCE);    // nothing pools
+  }
+
+  @Test
+  void tippingTheTubeOutPutsAllTheSolidOnThePaper() {
+    filtrationSetUp(true);
+    interactor.execute(new TransferContentsInputData("testTube", "funnel", 3, TransferUnit.ML));
+    assertEquals(0.150, bench.getMixture("funnel").amountOf(Substances.ASPIRIN), TOLERANCE);
+    assertEquals(0, bench.getMixture("testTube").amountOf(Substances.ASPIRIN), TOLERANCE);
+    assertTrue(shown("funnel").hasSolid());                 // buchner-funnel--wet-solid PNG
+  }
+
+  @Test
+  void theFirstPourIsNotARinse() {
+    BuchnerFunnel funnel = filtrationSetUp(true);
+    interactor.execute(new TransferContentsInputData("testTube", "funnel", 3, TransferUnit.ML));
+    assertEquals(0, funnel.getRinses());
+  }
+
+  @Test
+  void eachRinseIsCounted() {
+    BuchnerFunnel funnel = filtrationSetUp(true);
+    interactor.execute(new TransferContentsInputData("testTube", "funnel", 3, TransferUnit.ML));
+    rinse();
+    assertEquals(1, funnel.getRinses());
+    rinse();
+    assertEquals(2, funnel.getRinses());
+    assertEquals(5.0, bench.getMixture("flask").totalVolume(), TOLERANCE);   // 3 + 1 + 1 mL
+  }
+
+  @Test
+  void pipetteDropsOntoTheFunnelAreNotARinse() {
+    BuchnerFunnel funnel = filtrationSetUp(true);
+    interactor.execute(new TransferContentsInputData("testTube", "funnel", 3, TransferUnit.ML));
+    bench.getMixture("pipette").add(Substances.ETHER, 1);   // B4: cold ether in a pipette
+    interactor.execute(new TransferContentsInputData("pipette", "funnel", 3,
+        TransferUnit.DROPS));
+    assertNull(error);
+    assertEquals(0, funnel.getRinses());
+  }
+
+  @Test
+  void withoutPaperTheSolidGoesThrough() {
+    filtrationSetUp(false);
+    interactor.execute(new TransferContentsInputData("testTube", "funnel", 3, TransferUnit.ML));
+    assertEquals(0, bench.getMixture("funnel").amountOf(Substances.ASPIRIN), TOLERANCE);
+    assertEquals(0.150, bench.getMixture("flask").amountOf(Substances.ASPIRIN), TOLERANCE);
+  }
+
+  @Test
+  void aFunnelThatIsNotSetUpFails() {
+    filtrationSetUp(true);
+    ((FiltrationFlask) bench.getLab().getBench().getItem("flask")).removeFunnel();
+    interactor.execute(new TransferContentsInputData("testTube", "funnel", 3, TransferUnit.ML));
+    assertEquals("Set up the filtration first.", error);
+    assertEquals(0.150, bench.getMixture("testTube").amountOf(Substances.ASPIRIN), TOLERANCE);
+  }
+
+  @Test
+  void pouringNothingOntoTheFunnelFails() {
+    filtrationSetUp(true);
+    interactor.execute(new TransferContentsInputData("emptyConical", "funnel", 1,
+        TransferUnit.ML));
+    assertEquals("There's nothing in that to pour.", error);
+  }
+
+  @Test
+  void pouringOntoTheFunnelSavesAnUndoPoint() {
+    filtrationSetUp(true);
+    interactor.execute(new TransferContentsInputData("testTube", "funnel", 3, TransferUnit.ML));
+    assertEquals(1, bench.snapshots);
   }
 }

@@ -9,11 +9,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import data.Lab3Definition;
 import entity.ApiType;
 import entity.Bench;
+import entity.BuchnerFunnel;
 import entity.ItemType;
 import entity.Lab;
 import entity.Operation;
 import entity.Scale;
 import entity.UnknownSample;
+import entity.VacuumTap;
 import entity.Vec2;
 import entity.Vessel;
 import java.io.IOException;
@@ -244,5 +246,39 @@ class UseItemInteractorTest {
   void operationsNotBuiltYetFail() {
     interactor.execute(new UseItemInputData("conical", Operation.STIR, ""));
     assertEquals("That doesn't work yet.", error);
+  }
+
+  // ----- B3: filter paper and the vacuum tap -----
+
+  @Test
+  void addPaperPutsPaperInTheFunnel() {
+    BuchnerFunnel funnel = new BuchnerFunnel("funnel", new Vec2(0, 0), 10, 60);
+    bench.getBench().addItem(funnel, new Vec2(0, 0));
+    interactor.execute(new UseItemInputData("funnel", Operation.ADD_PAPER, ""));
+    assertNull(error);
+    assertTrue(funnel.hasPaper());
+  }
+
+  @Test
+  void paperOnlyGoesInTheFunnel() {
+    interactor.execute(new UseItemInputData("conical", Operation.ADD_PAPER, ""));
+    assertEquals("Put the paper in the Büchner funnel.", error);
+  }
+
+  @Test
+  void vacuumTurnsOnAndOff() {
+    VacuumTap tap = new VacuumTap("tap", new Vec2(0, 0));
+    bench.getBench().addItem(tap, new Vec2(0, 0));
+    interactor.execute(new UseItemInputData("tap", Operation.VACUUM_ON, ""));
+    assertTrue(tap.isOn());
+    interactor.execute(new UseItemInputData("tap", Operation.VACUUM_OFF, ""));
+    assertFalse(tap.isOn());
+    assertEquals(2, bench.snapshots);                      // each can be undone
+  }
+
+  @Test
+  void onlyTheTapTurnsTheVacuumOn() {
+    interactor.execute(new UseItemInputData("conical", Operation.VACUUM_ON, ""));
+    assertEquals("Use the vacuum tap.", error);
   }
 }

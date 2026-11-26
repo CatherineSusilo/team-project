@@ -3,7 +3,9 @@ package usecase.transfercontents;
 import entity.Action;
 import entity.ActionKind;
 import entity.Bench;
+import entity.BuchnerFunnel;
 import entity.ChemistryEngine;
+import entity.FiltrationFlask;
 import entity.ItemType;
 import entity.Lab;
 import entity.LabItem;
@@ -100,6 +102,13 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
     } else {
       ml = in.getAmount();
     }
+
+    // B3: tip the test tube onto the funnel; the liquid runs through into the flask under it
+    if (typeOf(bench, in.getTargetId()) == ItemType.BUCHNER_FUNNEL) {
+      filter(lab, bench, in, ml);
+      return;
+    }
+
     // it has to fit, e.g. a pipette holds 2 mL
     // (the tiny 1e-9 allows for rounding: 40 drops of 0.05 mL add up to 2.000000000000001)
     if (target.totalVolume() + ml > capacityOf(bench, in.getTargetId()) + 1e-9) {
@@ -204,6 +213,57 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
     return "That isn't used in this lab.";
   }
 
+  // B3: pouring onto the Büchner funnel. The liquid runs through into the flask under it (the
+  // filtrate) and the solid stays on the paper (no paper: it goes through too). Pouring the
+  // test tube on again once there's solid on the funnel is a rinse.
+  private void filter(Lab lab, Bench bench, TransferContentsInputData in, double ml) {
+    BuchnerFunnel funnel = (BuchnerFunnel) bench.getItem(in.getTargetId());
+    FiltrationFlask flask = flaskUnder(bench, funnel.getId());
+    if (flask == null || !flask.isAssembled()) {
+      presenter.prepareFailView("Set up the filtration first.");
+      return;
+    }
+    Mixture source = mixtureOf(bench, in.getSourceId());
+    if (source == null || source.getLayers().isEmpty()) {
+      presenter.prepareFailView("There's nothing in that to pour.");
+      return;
+    }
+    // the tube poured on again after the solid is on the paper: that's a rinse
+    final boolean rinse = typeOf(bench, in.getSourceId()) == ItemType.TEST_TUBE
+        && drug(funnel.getMixture()) > 0;
+    dataAccess.pushSnapshot();
+    flask.getMixture().pour(source.drawFromBottom(ml));   // the liquid goes through
+    if (source.totalVolume() == 0) {
+      // tipped out: the solid left in it comes along too
+      if (funnel.hasPaper()) {
+        funnel.getMixture().pour(source);             // stays on the paper
+      } else {
+        flask.getMixture().pour(source);              // no paper: straight through
+      }
+    }
+    if (rinse) {
+      funnel.addRinse();
+    }
+    finish(lab, new Action(ActionKind.MOVE_LIQUID, in.getSourceId(), in.getTargetId(), ml,
+        null, ""));
+  }
+
+  // The filtration flask the funnel sits on, or null.
+  private static FiltrationFlask flaskUnder(Bench bench, String funnelId) {
+    for (LabItem item : bench.getItems()) {
+      if (item.getType() == ItemType.FILTRATION_FLASK
+          && funnelId.equals(((FiltrationFlask) item).getFunnelId())) {
+        return (FiltrationFlask) item;
+      }
+    }
+    return null;
+  }
+
+  // How much of the drug is in a mixture (by B3 it's the only solid).
+  private static double drug(Mixture mixture) {
+    return mixture.amountOf(Substances.ASPIRIN) + mixture.amountOf(Substances.MEFENAMIC_ACID);
+  }
+
   // After a change: the steps and mistake rules see the action, the lab is saved, and the
   // screen gets the whole lab (every item's PNG facts, the step, Next locked or not).
   private void finish(Lab lab, Action action) {
@@ -222,7 +282,7 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
   // The mixture inside a container (tube, cylinder, pipette, beaker).
   private static Mixture mixtureOf(Bench bench, String id) {
     LabItem item = bench.getItem(id);
-    if (item instanceof Vessel) {
+    if (item instanceof Vessel) {                     // any container: tube, cylinder, pipette...
       return ((Vessel) item).getMixture();
     }
     return null;
@@ -230,9 +290,9 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
 
   // What a stock bottle (NaOH, HCl, water, ether) holds.
   private static Substance substanceOf(Bench bench, String id) {
-    LabItem item = bench.getItem(id);
-    if (item instanceof StockBottle) {
-      return ((StockBottle) item).getSubstance();
+    ItemType type = typeOf(bench, id);
+    if (type == ItemType.DROPPER || type == ItemType.SOLVENT_BOTTLE) {
+      return ((StockBottle) bench.getItem(id)).getSubstance();
     }
     return null;
   }
@@ -255,9 +315,8 @@ public class TransferContentsInteractor implements TransferContentsInputBoundary
   }
 
   private static PasteurPipette pipetteOf(Bench bench, String id) {
-    LabItem item = bench.getItem(id);
-    if (item instanceof PasteurPipette) {
-      return (PasteurPipette) item;
+    if (typeOf(bench, id) == ItemType.PIPETTE) {
+      return (PasteurPipette) bench.getItem(id);
     }
     return null;
   }

@@ -41,11 +41,11 @@ public class FiltrationFlask extends Vessel {   // ItemType.FILTRATION_FLASK (25
     this.clamped = clamped;
   }
 
-  public void placeFunnel(String funnelId){
+  public void placeFunnel(String funnelId) {
     this.funnelId = funnelId;
   }
   
-  public void removeFunnel(){
+  public void removeFunnel() {
     funnelId = null;
   }
 

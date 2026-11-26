@@ -20,6 +20,8 @@ public class ItemFactory {
       case GRADUATED_CYLINDER:
       case BEAKER:
       case WATCH_GLASS:
+        return new Vessel(id, template.getType(), origin, template.getCapacity(),
+            template.getGlassMassG());
       case FILTRATION_FLASK:
         return new FiltrationFlask(id, origin, template.getCapacity(), template.getGlassMassG());
       case BUCHNER_FUNNEL:

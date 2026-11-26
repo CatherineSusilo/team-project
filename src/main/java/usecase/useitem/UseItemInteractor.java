@@ -2,18 +2,22 @@ package usecase.useitem;
 
 import entity.Action;
 import entity.ActionKind;
+import entity.BuchnerFunnel;
+import entity.ItemType;
 import entity.Lab;
 import entity.LabItem;
 import entity.Operation;
 import entity.Scale;
+import entity.VacuumTap;
 import entity.Vessel;
 import java.io.UncheckedIOException;
 import usecase.LabDataAccessInterface;
 import usecase.LabStateMapper;
 
 /**
- * Does something to one item: writes its label (LABEL), covers it (COVER) or zeroes the scale
- * (TARE). It doesn't judge whether the label is right; the step checks that (A2: CheckStep
+ * Does something to one item: writes its label (LABEL), covers it (COVER), zeroes the scale
+ * (TARE), puts filter paper in the funnel (ADD_PAPER) or turns the vacuum on/off (VACUUM_ON /
+ * VACUUM_OFF). It doesn't judge whether the label is right; the step checks that (A2: CheckStep
  * with labelMatches).
  */
 public class UseItemInteractor implements UseItemInputBoundary {
@@ -43,8 +47,13 @@ public class UseItemInteractor implements UseItemInputBoundary {
       cover(lab, in);
     } else if (in.getOperation() == Operation.TARE) {
       tare(lab, in);
+    } else if (in.getOperation() == Operation.ADD_PAPER) {
+      addPaper(lab, in);
+    } else if (in.getOperation() == Operation.VACUUM_ON
+        || in.getOperation() == Operation.VACUUM_OFF) {
+      vacuum(lab, in);
     } else {
-      // STIR, ADD_PAPER, ... get handled with their tickets
+      // STIR, START, ... get handled with their tickets
       presenter.prepareFailView("That doesn't work yet.");
     }
   }
@@ -82,12 +91,36 @@ public class UseItemInteractor implements UseItemInputBoundary {
   // TARE (A4): zero the scale with what's on it, so the scoops of unknown are all it shows.
   private void tare(Lab lab, UseItemInputData in) {
     LabItem item = lab.getBench().getItem(in.getItemId());
-    if (!(item instanceof Scale)) {
+    if (item == null || item.getType() != ItemType.SCALE) {
       presenter.prepareFailView("Use the scale's Tare button.");   // only the scale tares
       return;
     }
     dataAccess.pushSnapshot();
     ((Scale) item).tare(lab.getBench());           // the scale's display shows 0.000 now
+    finish(lab, in);
+  }
+
+  // ADD_PAPER (B2/B3): put filter paper in the Büchner funnel before pouring onto it.
+  private void addPaper(Lab lab, UseItemInputData in) {
+    LabItem item = lab.getBench().getItem(in.getItemId());
+    if (item == null || item.getType() != ItemType.BUCHNER_FUNNEL) {
+      presenter.prepareFailView("Put the paper in the Büchner funnel.");   // only the funnel
+      return;
+    }
+    dataAccess.pushSnapshot();
+    ((BuchnerFunnel) item).addPaper();
+    finish(lab, in);
+  }
+
+  // VACUUM_ON / VACUUM_OFF (B3, B5): turn the vacuum tap on or off.
+  private void vacuum(Lab lab, UseItemInputData in) {
+    LabItem item = lab.getBench().getItem(in.getItemId());
+    if (item == null || item.getType() != ItemType.VACUUM_TAP) {
+      presenter.prepareFailView("Use the vacuum tap.");   // only the tap turns the vacuum on
+      return;
+    }
+    dataAccess.pushSnapshot();
+    ((VacuumTap) item).setOn(in.getOperation() == Operation.VACUUM_ON);
     finish(lab, in);
   }
 
