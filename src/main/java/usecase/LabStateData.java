@@ -20,6 +20,7 @@ public final class LabStateData {
   private final boolean prevLocked;
   private final List<String> trayTemplates;
   private final List<ItemData> items;
+  private final double waitMinutes;     // > 0 while the step is waiting (timer bar shows)
 
   /**
    * Creates the data.
@@ -35,10 +36,11 @@ public final class LabStateData {
    * @param prevLocked true if there is no step to go back to
    * @param trayTemplates the template ids the tray offers now
    * @param items what is on the bench
+   * @param waitMinutes how long the timer bar counts down, or 0 if there is nothing to wait for
    */
   public LabStateData(int stepIndex, int stepCount, List<String> stepTitles, String title,
       String instruction, StepStatus status, String message, boolean nextLocked,
-      boolean prevLocked, List<String> trayTemplates, List<ItemData> items) {
+      boolean prevLocked, List<String> trayTemplates, List<ItemData> items, double waitMinutes) {    
     this.stepIndex = stepIndex;
     this.stepCount = stepCount;
     this.stepTitles = List.copyOf(stepTitles);
@@ -50,6 +52,7 @@ public final class LabStateData {
     this.prevLocked = prevLocked;
     this.trayTemplates = List.copyOf(trayTemplates);
     this.items = List.copyOf(items);
+    this.waitMinutes = waitMinutes;
   }
 
   public int getStepIndex() {
@@ -94,5 +97,9 @@ public final class LabStateData {
 
   public List<ItemData> getItems() {
     return items;
+  }
+
+  public double getWaitMinutes() {
+    return waitMinutes;
   }
 }

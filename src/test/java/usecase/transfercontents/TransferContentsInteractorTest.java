@@ -17,7 +17,6 @@ import entity.FiltrationFlask;
 import entity.ItemTemplates;
 import entity.ItemType;
 import entity.Lab;
-import entity.LabItem;
 import entity.Layer;
 import entity.Mixture;
 import entity.PasteurPipette;

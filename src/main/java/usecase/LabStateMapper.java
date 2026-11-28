@@ -75,6 +75,6 @@ public final class LabStateMapper {
     boolean nextLocked = status != StepStatus.COMPLETE || !lab.hasNextStep();
     return new LabStateData(lab.getCurrentIndex(), lab.getStepCount(), titles,
         step.getTitle(), step.getInstruction(), status, lab.message(), nextLocked,
-        lab.getCurrentIndex() == 0, step.getTrayTemplates(), items);
+        lab.getCurrentIndex() == 0, step.getTrayTemplates(), items, step.waitMinutes(lab));
   }
 }

@@ -20,8 +20,12 @@ import entity.LabItem;
 import entity.LabStep;
 import entity.LabelRule;
 import entity.MistakeRule;
+import entity.Mixture;
+import entity.MultiPartStep;
 import entity.OrderRule;
+import entity.SeparateLayersStep;
 import entity.TareRule;
+import entity.TimerStep;
 import entity.UnknownSample;
 import entity.UnsettledDrawRule;
 import entity.Vec2;
@@ -105,10 +109,14 @@ public final class Lab3Definition {
     steps.add(step(steps, "A7 Mix",
         "Mix about 30 times with the same pipette until all the solid dissolves.",
         List.of(), List.of()));
-    steps.add(step(steps, "A8 Separate the layers",
+    // A8: the layers settle (1 minute), then at least 80% of the water goes into the test tube
+    steps.add(new MultiPartStep(steps.size(), "A8 Separate the layers",
         "Let the layers settle, then move the aqueous layer to the test tube with a new "
             + "pipette.",
-        List.of("pipette"), List.of("pipette", "pipette")));
+        "Wait for the layers to separate, then move the bottom (water) layer into the test tube.",
+        List.of("pipette"), false,
+        List.of(new TimerStep(ItemType.CONICAL_TUBE, Mixture.SETTLE_MINUTES),
+            new SeparateLayersStep(ItemType.CONICAL_TUBE, ItemType.TEST_TUBE, 0.8))));
     steps.add(step(steps, "A9 Second wash",
         "Add about 2 mL water, mix, let it settle, and combine the aqueous layers.",
         List.of(), List.of()));
