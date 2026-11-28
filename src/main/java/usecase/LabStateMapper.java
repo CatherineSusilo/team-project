@@ -11,6 +11,7 @@ import entity.TemplateItem;
 import entity.Vessel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Turns the lab into the data every lab view update carries.
@@ -66,7 +67,7 @@ public final class LabStateMapper {
     if (range == null) {
       return "";
     }
-    return String.format("%.0f-%.0f °C", range.getLo(), range.getHi());
+    return String.format(Locale.ROOT, "%.0f-%.0f °C", range.getLo(), range.getHi());
   }
 
   /**
