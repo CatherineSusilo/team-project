@@ -30,6 +30,8 @@ public class ItemFactory {
         return new ClampStand(id, origin);
       case VACUUM_TAP:
         return new VacuumTap(id, origin);
+      case ICE_BATH:
+        return new IceBath(id, origin);
       case PIPETTE:
         return new PasteurPipette(id, origin);
       case DROPPER:

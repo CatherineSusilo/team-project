@@ -186,6 +186,9 @@ public class Lab {
       if (item instanceof Vessel) {
         ((Vessel) item).getMixture().advance(minutes);
       }
+      if (item.getType() == ItemType.ICE_BATH) {
+        ((IceBath) item).advance(minutes);            // B2: everything in the bath cools
+      }
     }
   }
 
