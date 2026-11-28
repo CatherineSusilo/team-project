@@ -8,14 +8,20 @@ import entity.Action;
 import entity.ActionKind;
 import entity.ApiType;
 import entity.Bench;
-import entity.ItemType;
+import entity.BuchnerFunnel;
+import entity.ClampStand;
+import entity.FiltrationFlask;
+import entity.ItemFactory;
 import entity.ItemTemplates;
+import entity.ItemType;
 import entity.Lab;
+import entity.LabItem;
 import entity.LabStep;
 import entity.Mixture;
+import entity.Operation;
 import entity.StepStatus;
-import entity.TemplateItem;
 import entity.Substances;
+import entity.TemplateItem;
 import entity.UnknownSample;
 import entity.Vec2;
 import entity.Vessel;
@@ -117,5 +123,75 @@ class Lab3DefinitionTest {
     assertTrue(a8.expects(new Action(ActionKind.MOVE_LIQUID, "conical", "pipette", 2, null,
         "")));
     assertTrue(a8.getTitle().startsWith("A8"));
+  }
+
+  // ----- B2: the filtration set up while the test tube cools -----
+
+  private static final int B2 = 10;
+  private final LabStep b2 = Lab3Definition.steps().get(B2);
+
+  /** Takes an item from the tray, like dragging it onto the bench. */
+  private static LabItem take(Lab lab, String templateId) {
+    Bench bench = lab.getBench();
+    LabItem item = new ItemFactory().create(ItemTemplates.find(templateId).orElseThrow(),
+        bench.nextId(templateId));
+    bench.addItem(item, new Vec2(0, 0));
+    return item;
+  }
+
+  /** B2's items on the bench: the ice bath, clamp stand, flask and funnel, not set up yet. */
+  private static Lab b2ItemsOnTheBench() {
+    Lab lab = Lab3Definition.create(new UnknownSample('A', ApiType.ASPIRIN));
+    take(lab, "ice_bath");
+    take(lab, "clamp_stand");
+    take(lab, "flask");
+    take(lab, "funnel");
+    return lab;
+  }
+
+  /** Clamps the flask and puts the funnel on it (what MoveItem's drops will do). */
+  private static BuchnerFunnel assemble(Lab lab) {
+    ClampStand stand = (ClampStand) lab.getBench().getItem("clamp_stand-1");
+    FiltrationFlask flask = (FiltrationFlask) lab.getBench().getItem("flask-1");
+    stand.clamp(flask);
+    flask.placeFunnel("funnel-1");
+    return (BuchnerFunnel) lab.getBench().getItem("funnel-1");
+  }
+
+  @Test
+  void b2IsNotDoneWithTheItemsJustOnTheBench() {
+    assertFalse(b2.isComplete(b2ItemsOnTheBench()));
+  }
+
+  @Test
+  void b2IsNotDoneWithoutFilterPaper() {
+    Lab lab = b2ItemsOnTheBench();
+    assemble(lab);
+    assertFalse(b2.isComplete(lab));
+  }
+
+  @Test
+  void b2IsDoneOnceTheFiltrationIsSetUpWithPaper() {
+    Lab lab = b2ItemsOnTheBench();
+    assemble(lab).addPaper();
+    assertTrue(b2.isComplete(lab));
+  }
+
+  @Test
+  void b2IsNotDoneWithoutTheIceBath() {
+    Lab lab = Lab3Definition.create(new UnknownSample('A', ApiType.ASPIRIN));
+    take(lab, "clamp_stand");
+    take(lab, "flask");
+    take(lab, "funnel");
+    assemble(lab).addPaper();
+    assertFalse(b2.isComplete(lab));
+  }
+
+  @Test
+  void addingThePaperBelongsToB2() {
+    assertTrue(b2.expects(new Action(ActionKind.USE, "funnel-1", null, 0, Operation.ADD_PAPER,
+        "")));
+    assertFalse(b2.expects(new Action(ActionKind.MIX, "pipette-1", "test_tube-1", 5, null,
+        "")));
   }
 }

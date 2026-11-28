@@ -27,7 +27,7 @@ public class LabViewModel {
   private boolean prevLocked = true;
   private List<String> trayTemplates = List.of();
   private List<ItemState> items = List.of();
-  private double waitMinutes; 
+  private double waitMinutes;
 
   /**
    * Replaces everything the screen shows.
