@@ -131,8 +131,8 @@ public class UseItemInteractor implements UseItemInputBoundary {
   // the HCl the drug comes out as a solid right away.
   private void stir(Lab lab, UseItemInputData in) {
     Vessel vessel = vesselOf(lab, in.getItemId());
-    if (vessel == null) {
-      presenter.prepareFailView("Stir a container.");   // only containers get stirred
+    if (vessel == null || vessel.getType() != ItemType.TEST_TUBE) {
+      presenter.prepareFailView("Stir the test tube.");   // only the test tube gets stirred (B1)
       return;
     }
     if (vessel.getMixture().totalVolume() == 0) {
@@ -144,7 +144,7 @@ public class UseItemInteractor implements UseItemInputBoundary {
     vessel.getMixture().mix(Mixture.FULL_MIX);     // at pH 1 the drug turns solid
     finish(lab, in);
   }
-  
+
   // After a change: the steps and mistake rules see the action, the lab is saved, and the
   // screen gets the whole lab (the label tape, the cover, the scale's number, the step).
   private void finish(Lab lab, UseItemInputData in) {

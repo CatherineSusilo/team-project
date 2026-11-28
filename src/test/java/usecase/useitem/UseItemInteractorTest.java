@@ -327,6 +327,14 @@ class UseItemInteractorTest {
   @Test
   void stirringNothingFails() {
     interactor.execute(new UseItemInputData("bench", Operation.STIR, ""));
-    assertEquals("Stir a container.", error);
+    assertEquals("Stir the test tube.", error);
+  }
+
+  @Test
+  void stirringTheConicalTubeFails() {
+    bench.getVessel("conical").getMixture().add(Substances.WATER, 2);
+    interactor.execute(new UseItemInputData("conical", Operation.STIR, ""));
+    assertEquals("Stir the test tube.", error);              // Task A mixes with the pipette
+    assertEquals(0, bench.getVessel("conical").getStirCount());
   }
 }
