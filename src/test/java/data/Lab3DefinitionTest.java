@@ -11,6 +11,7 @@ import entity.Bench;
 import entity.BuchnerFunnel;
 import entity.ClampStand;
 import entity.FiltrationFlask;
+import entity.IceBath;
 import entity.ItemFactory;
 import entity.ItemTemplates;
 import entity.ItemType;
@@ -125,10 +126,9 @@ class Lab3DefinitionTest {
     assertTrue(a8.getTitle().startsWith("A8"));
   }
 
-  // ----- B2: the filtration set up while the test tube cools -----
+  // ----- B2: the ice bath and the filtration setup -----
 
   private static final int B2 = 10;
-  private final LabStep b2 = Lab3Definition.steps().get(B2);
 
   /** Takes an item from the tray, like dragging it onto the bench. */
   private static LabItem take(Lab lab, String templateId) {
@@ -139,57 +139,124 @@ class Lab3DefinitionTest {
     return item;
   }
 
-  /** B2's items on the bench: the ice bath, clamp stand, flask and funnel, not set up yet. */
-  private static Lab b2ItemsOnTheBench() {
-    Lab lab = Lab3Definition.create(new UnknownSample('A', ApiType.ASPIRIN));
-    take(lab, "ice_bath");
-    take(lab, "clamp_stand");
-    take(lab, "flask");
-    take(lab, "funnel");
+  /**
+   * A lab on B2 with its items on the bench, nothing done yet: the test tube and two cylinders
+   * from Task A, the ice bath, clamp stand, flask and funnel.
+   */
+  private static Lab atB2() {
+    Lab lab = new Lab(List.of(Lab3Definition.steps().get(B2)), new Bench(),
+        new UnknownSample('A', ApiType.ASPIRIN));
+    for (String templateId : List.of("test_tube", "cylinder", "cylinder", "ice_bath",
+        "clamp_stand", "flask", "funnel")) {
+      take(lab, templateId);
+    }
     return lab;
   }
 
-  /** Clamps the flask and puts the funnel on it (what MoveItem's drops will do). */
-  private static BuchnerFunnel assemble(Lab lab) {
+  private static IceBath bath(Lab lab) {
+    return (IceBath) lab.getBench().getItem("ice_bath-1");
+  }
+
+  /** The test tube in the ice bath, then the timer bar's 10 minutes. */
+  private static void coolTheTestTube(Lab lab) {
+    bath(lab).immerse((Vessel) lab.getBench().getItem("test_tube-1"));
+    lab.advanceTime(10);
+  }
+
+  /** Both cylinders into the ice bath (the time-saving tip). */
+  private static void coolTheCylinders(Lab lab) {
+    bath(lab).immerse((Vessel) lab.getBench().getItem("cylinder-1"));
+    bath(lab).immerse((Vessel) lab.getBench().getItem("cylinder-2"));
+  }
+
+  /** Clamps the flask, puts the funnel on it and adds the paper (MoveItem's drops + UseItem). */
+  private static void setUpTheFiltration(Lab lab) {
     ClampStand stand = (ClampStand) lab.getBench().getItem("clamp_stand-1");
     FiltrationFlask flask = (FiltrationFlask) lab.getBench().getItem("flask-1");
     stand.clamp(flask);
     flask.placeFunnel("funnel-1");
-    return (BuchnerFunnel) lab.getBench().getItem("funnel-1");
+    ((BuchnerFunnel) lab.getBench().getItem("funnel-1")).addPaper();
   }
 
   @Test
   void b2IsNotDoneWithTheItemsJustOnTheBench() {
-    assertFalse(b2.isComplete(b2ItemsOnTheBench()));
+    assertEquals(StepStatus.INCOMPLETE, atB2().status());
+  }
+
+  @Test
+  void b2IsDoneOnceAllThreePartsAreDone() {
+    Lab lab = atB2();
+    coolTheTestTube(lab);
+    coolTheCylinders(lab);
+    setUpTheFiltration(lab);
+    assertEquals(StepStatus.COMPLETE, lab.status());
+  }
+
+  @Test
+  void b2PartsCanBeDoneInAnyOrder() {
+    Lab lab = atB2();
+    setUpTheFiltration(lab);
+    coolTheCylinders(lab);
+    coolTheTestTube(lab);
+    assertEquals(StepStatus.COMPLETE, lab.status());
+  }
+
+  @Test
+  void b2IsNotDoneWithoutTheTenMinutes() {
+    Lab lab = atB2();
+    bath(lab).immerse((Vessel) lab.getBench().getItem("test_tube-1"));   // no wait yet
+    coolTheCylinders(lab);
+    setUpTheFiltration(lab);
+    assertEquals(StepStatus.INCOMPLETE, lab.status());
+  }
+
+  @Test
+  void b2IsNotDoneWithOnlyOneCylinderCooled() {
+    Lab lab = atB2();
+    coolTheTestTube(lab);
+    bath(lab).immerse((Vessel) lab.getBench().getItem("cylinder-1"));
+    setUpTheFiltration(lab);
+    assertEquals(StepStatus.INCOMPLETE, lab.status());
   }
 
   @Test
   void b2IsNotDoneWithoutFilterPaper() {
-    Lab lab = b2ItemsOnTheBench();
-    assemble(lab);
-    assertFalse(b2.isComplete(lab));
+    Lab lab = atB2();
+    coolTheTestTube(lab);
+    coolTheCylinders(lab);
+    ClampStand stand = (ClampStand) lab.getBench().getItem("clamp_stand-1");
+    FiltrationFlask flask = (FiltrationFlask) lab.getBench().getItem("flask-1");
+    stand.clamp(flask);
+    flask.placeFunnel("funnel-1");                               // no paper
+    assertEquals(StepStatus.INCOMPLETE, lab.status());
   }
 
   @Test
-  void b2IsDoneOnceTheFiltrationIsSetUpWithPaper() {
-    Lab lab = b2ItemsOnTheBench();
-    assemble(lab).addPaper();
-    assertTrue(b2.isComplete(lab));
+  void b2StaysDoneIfTheTubeIsLiftedOutAfterTheWait() {
+    Lab lab = atB2();
+    coolTheTestTube(lab);
+    bath(lab).release("test_tube-1");                            // dragged out of the bath
+    coolTheCylinders(lab);
+    setUpTheFiltration(lab);
+    assertEquals(StepStatus.COMPLETE, lab.status());
   }
 
   @Test
-  void b2IsNotDoneWithoutTheIceBath() {
-    Lab lab = Lab3Definition.create(new UnknownSample('A', ApiType.ASPIRIN));
-    take(lab, "clamp_stand");
-    take(lab, "flask");
-    take(lab, "funnel");
-    assemble(lab).addPaper();
-    assertFalse(b2.isComplete(lab));
+  void theTimerBarShowsOnceTheTestTubeIsInTheBath() {
+    Lab lab = atB2();
+    assertEquals(0, lab.currentStep().waitMinutes(lab));
+    bath(lab).immerse((Vessel) lab.getBench().getItem("test_tube-1"));
+    assertEquals(10, lab.currentStep().waitMinutes(lab));
+    lab.advanceTime(10);                                         // the Wait use case
+    assertEquals(0, lab.currentStep().waitMinutes(lab));
   }
 
   @Test
-  void addingThePaperBelongsToB2() {
+  void addingThePaperAndMovingThingsBelongToB2() {
+    LabStep b2 = Lab3Definition.steps().get(B2);
     assertTrue(b2.expects(new Action(ActionKind.USE, "funnel-1", null, 0, Operation.ADD_PAPER,
+        "")));
+    assertTrue(b2.expects(new Action(ActionKind.MOVE, "test_tube-1", "ice_bath-1", 0, null,
         "")));
     assertFalse(b2.expects(new Action(ActionKind.MIX, "pipette-1", "test_tube-1", 5, null,
         "")));

@@ -23,12 +23,14 @@ import entity.MistakeRule;
 import entity.Mixture;
 import entity.MultiPartStep;
 import entity.OrderRule;
+import entity.PrecipitateStep;
 import entity.SeparateLayersStep;
 import entity.TareRule;
 import entity.TimerStep;
 import entity.UnknownSample;
 import entity.UnsettledDrawRule;
 import entity.Vec2;
+import entity.Vessel;
 import entity.WrongTargetRule;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -123,13 +125,19 @@ public final class Lab3Definition {
     steps.add(step(steps, "B1 Acidify",
         "Add 20 drops of HCl to the test tube and stir 5 times.",
         List.of("hcl_bottle", "stir_rod"), List.of("hcl_bottle", "stir_rod")));
-    // B2 (ice bath part still a stub): the filtration has to be set up while the tube cools
-    steps.add(new CheckStep(steps.size(), "B2 Ice bath and filtration setup",
-        "Cool the test tube in the ice bath for 10 minutes and set up the filtration.",
-        "Clamp the flask, put the funnel on it and add filter paper.",
+    // B2: the test tube cools for 10 minutes, both cylinders go in the ice bath, and the
+    // filtration is set up, in any order (the lab manual's time-saving tips)
+    steps.add(new MultiPartStep(steps.size(), "B2 Ice bath and filtration setup",
+        "Cool the test tube in the ice bath for 10 minutes. Meanwhile, cool both cylinders "
+            + "and set up the filtration.",
+        "Put the test tube and both cylinders in the ice bath. Clamp the flask, put the funnel "
+            + "on it and add filter paper.",
         List.of("ice_bath", "clamp_stand", "flask", "funnel"), false,
-        hasOnBench(List.of("ice_bath")).and(Lab3Definition::filtrationReady),
-        Lab3Definition::isSetupAction));
+        List.of(new PrecipitateStep(ItemType.TEST_TUBE, 10),
+            new CheckStep(steps.size(), "", "", "", List.of(), false,
+                Lab3Definition::cylindersCold, Lab3Definition::isBenchAction),
+            new CheckStep(steps.size(), "", "", "", List.of(), false,
+                Lab3Definition::filtrationReady, Lab3Definition::isSetupAction))));
     // B3: the solid onto the funnel, then the test tube rinsed out onto it twice
     steps.add(new FilterStep(steps.size(), "B3 Collect the solid",
         "Filter the solid onto the funnel and rinse it twice with 1 mL of cold water.",
@@ -173,12 +181,26 @@ public final class Lab3Definition {
     return action.getKind() == ActionKind.SPAWN || action.getKind() == ActionKind.MOVE;
   }
 
-  // B2: setting up the filtration is taking items out, moving them, and adding the paper.
+  // B2 Helper
+  // setting up the filtration is taking items out, moving them, and adding the paper.
   private static boolean isSetupAction(Action action) {
     return isBenchAction(action) || action.getKind() == ActionKind.USE;
   }
 
-  // B2: the flask is clamped with the funnel on it, and the funnel has filter paper.
+  // B2 Helper
+  // both cylinders (water and ether, from A3) have been in the ice bath.
+  private static boolean cylindersCold(Lab lab) {
+    int cold = 0;
+    for (LabItem item : lab.getBench().getItems()) {
+      if (item.getType() == ItemType.GRADUATED_CYLINDER && ((Vessel) item).isCold()) {
+        cold++;
+      }
+    }
+    return cold >= 2;
+  }
+
+  // B2 Helper
+  // the flask is clamped with the funnel on it, and the funnel has filter paper.
   private static boolean filtrationReady(Lab lab) {
     for (LabItem item : lab.getBench().getItems()) {
       if (item.getType() == ItemType.FILTRATION_FLASK
