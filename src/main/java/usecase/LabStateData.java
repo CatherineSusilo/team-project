@@ -40,7 +40,8 @@ public final class LabStateData {
    */
   public LabStateData(int stepIndex, int stepCount, List<String> stepTitles, String title,
       String instruction, StepStatus status, String message, boolean nextLocked,
-      boolean prevLocked, List<String> trayTemplates, List<ItemData> items, double waitMinutes) {    
+      boolean prevLocked, List<String> trayTemplates, List<ItemData> items,
+      double waitMinutes) {    
     this.stepIndex = stepIndex;
     this.stepCount = stepCount;
     this.stepTitles = List.copyOf(stepTitles);
