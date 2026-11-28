@@ -27,6 +27,7 @@ public class LabViewModel {
   private boolean prevLocked = true;
   private List<String> trayTemplates = List.of();
   private List<ItemState> items = List.of();
+  private double waitMinutes;
 
   /**
    * Replaces everything the screen shows.
@@ -44,6 +45,7 @@ public class LabViewModel {
     this.nextLocked = state.isNextLocked();
     this.prevLocked = state.isPrevLocked();
     this.trayTemplates = List.copyOf(state.getTrayTemplates());
+    this.waitMinutes = state.getWaitMinutes();
     List<ItemState> shown = new ArrayList<>();
     for (ItemData item : state.getItems()) {
       shown.add(new ItemState(item.getId(), item.getType(), item.getLabel(), item.getX(),
@@ -118,5 +120,9 @@ public class LabViewModel {
 
   public List<ItemState> getItems() {
     return items;
+  }
+
+  public double getWaitMinutes() {
+    return waitMinutes;
   }
 }
