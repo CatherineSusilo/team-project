@@ -30,6 +30,7 @@ class ItemFactoryTest {
     assertTrue(make("naoh_bottle") instanceof StockBottle);
     assertTrue(make("ether_bottle") instanceof StockBottle);
     assertTrue(make("scale") instanceof Scale);
+    assertTrue(make("melting_point_app") instanceof MeltingPointApp);
   }
 
   @Test

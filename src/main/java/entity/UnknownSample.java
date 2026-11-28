@@ -34,12 +34,7 @@ public final class UnknownSample {
    * @param grams how much was scooped
    */
   public void addTo(Mixture tube, double grams) {
-    Substance drug;
-    if (api == ApiType.ASPIRIN) {
-      drug = Substances.ASPIRIN;
-    } else {
-      drug = Substances.MEFENAMIC_ACID;
-    }
+    Substance drug = drugOf(api);
     double vanillinGrams = grams * VANILLIN_FRACTION;    // e.g. 0.040 g of 0.200 g
     tube.add(drug, grams - vanillinGrams);
     tube.add(Substances.VANILLIN, vanillinGrams);  
@@ -53,5 +48,18 @@ public final class UnknownSample {
    */
   public boolean checkGuess(ApiType guess) {
     return guess == api;
+  }
+
+  /**
+   * The substance a kind of drug is, e.g. to look it up in a mixture or read its melting point.
+   *
+   * @param api the kind of drug
+   * @return aspirin or mefenamic acid
+   */
+  public static Substance drugOf(ApiType api) {
+    if (api == ApiType.ASPIRIN) {
+      return Substances.ASPIRIN;
+    }
+    return Substances.MEFENAMIC_ACID;
   }
 }

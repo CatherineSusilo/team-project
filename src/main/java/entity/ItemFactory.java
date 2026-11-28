@@ -37,6 +37,8 @@ public class ItemFactory {
         return new StockBottle(id, template.getType(), origin, template.getSubstance());
       case SCALE:
         return new Scale(id, origin);
+      case MELTING_POINT_APP:
+        return new MeltingPointApp(id, origin);
       default:
         return new TemplateItem(id, template, origin);
     }
