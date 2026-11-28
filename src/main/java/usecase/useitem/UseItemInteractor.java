@@ -6,7 +6,9 @@ import entity.BuchnerFunnel;
 import entity.ItemType;
 import entity.Lab;
 import entity.LabItem;
+import entity.MeltingPointApp;
 import entity.Operation;
+import entity.Range;
 import entity.Scale;
 import entity.VacuumTap;
 import entity.Vessel;
@@ -16,9 +18,9 @@ import usecase.LabStateMapper;
 
 /**
  * Does something to one item: writes its label (LABEL), covers it (COVER), zeroes the scale
- * (TARE), puts filter paper in the funnel (ADD_PAPER) or turns the vacuum on/off (VACUUM_ON /
- * VACUUM_OFF). It doesn't judge whether the label is right; the step checks that (A2: CheckStep
- * with labelMatches).
+ * (TARE), puts filter paper in the funnel (ADD_PAPER), turns the vacuum on/off (VACUUM_ON /
+ * VACUUM_OFF) or measures the melting point (START). It doesn't judge whether the label is
+ * right; the step checks that (A2: CheckStep with labelMatches).
  */
 public class UseItemInteractor implements UseItemInputBoundary {
   private final LabDataAccessInterface dataAccess;
@@ -52,8 +54,10 @@ public class UseItemInteractor implements UseItemInputBoundary {
     } else if (in.getOperation() == Operation.VACUUM_ON
         || in.getOperation() == Operation.VACUUM_OFF) {
       vacuum(lab, in);
+    } else if (in.getOperation() == Operation.START) {
+      start(lab, in);
     } else {
-      // STIR, START, ... get handled with their tickets
+      // STIR, SCAN, ... get handled with their tickets
       presenter.prepareFailView("That doesn't work yet.");
     }
   }
@@ -121,6 +125,28 @@ public class UseItemInteractor implements UseItemInputBoundary {
     }
     dataAccess.pushSnapshot();
     ((VacuumTap) item).setOn(in.getOperation() == Operation.VACUUM_ON);
+    finish(lab, in);
+  }
+
+  // START (B7): melt some of the dried solid and record the range it melts over.
+  private void start(Lab lab, UseItemInputData in) {
+    LabItem item = lab.getBench().getItem(in.getItemId());
+    if (item == null || item.getType() != ItemType.MELTING_POINT_APP) {
+      presenter.prepareFailView("Use the melting point app.");   // only the app melts things
+      return;
+    }
+    // the sample comes from a container, e.g. the watch glass weighed in B6
+    Vessel sample = vesselOf(lab, in.getTargetId());
+    Range range = null;
+    if (sample != null) {
+      range = ((MeltingPointApp) item).measure(sample.getMixture());
+    }
+    if (range == null) {
+      presenter.prepareFailView("Load some of your dried solid first.");   // no drug in it
+      return;
+    }
+    dataAccess.pushSnapshot();
+    lab.getRecord().setMeltingRange(range);         // it melts straight away
     finish(lab, in);
   }
 

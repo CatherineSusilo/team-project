@@ -8,6 +8,7 @@ import entity.Operation;
 public final class UseItemInputData {
   private final String itemId;
   private final Operation operation;
+  private final String targetId;
   private final String text;
 
   /**
@@ -18,8 +19,21 @@ public final class UseItemInputData {
    * @param text the label text for LABEL, otherwise ""
    */
   public UseItemInputData(String itemId, Operation operation, String text) {
+    this(itemId, operation, null, text);
+  }
+
+  /**
+   * Creates the input for an operation that also needs a second item.
+   *
+   * @param itemId the item being used, e.g. "melting_point_app-1"
+   * @param operation what is done with it, e.g. START
+   * @param targetId the other item, e.g. the watch glass the sample comes from (START)
+   * @param text the label text for LABEL, otherwise ""
+   */
+  public UseItemInputData(String itemId, Operation operation, String targetId, String text) {
     this.itemId = itemId;
     this.operation = operation;
+    this.targetId = targetId;
     this.text = text;
   }
 
@@ -29,6 +43,10 @@ public final class UseItemInputData {
 
   public Operation getOperation() {
     return operation;
+  }
+
+  public String getTargetId() {
+    return targetId;
   }
 
   public String getText() {

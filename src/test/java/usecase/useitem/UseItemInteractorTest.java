@@ -12,8 +12,10 @@ import entity.Bench;
 import entity.BuchnerFunnel;
 import entity.ItemType;
 import entity.Lab;
+import entity.MeltingPointApp;
 import entity.Operation;
 import entity.Scale;
+import entity.Substances;
 import entity.UnknownSample;
 import entity.VacuumTap;
 import entity.Vec2;
@@ -280,5 +282,64 @@ class UseItemInteractorTest {
   void onlyTheTapTurnsTheVacuumOn() {
     interactor.execute(new UseItemInputData("conical", Operation.VACUUM_ON, ""));
     assertEquals("Use the vacuum tap.", error);
+  }
+
+  // ----- B7: the melting point app -----
+
+  /** Puts the app and a watch glass holding this much aspirin on the bench. */
+  private MeltingPointApp appWithSample(double aspirinG) {
+    MeltingPointApp app = new MeltingPointApp("app", new Vec2(0, 0));
+    bench.getBench().addItem(app, new Vec2(0, 0));
+    Vessel glass = new Vessel("glass", ItemType.WATCH_GLASS, new Vec2(0, 0), 0, 20);
+    bench.getBench().addItem(glass, new Vec2(0, 0));
+    if (aspirinG > 0) {
+      glass.getMixture().add(Substances.ASPIRIN, aspirinG);
+    }
+    return app;
+  }
+
+  @Test
+  void startRecordsTheMeltingRange() {
+    appWithSample(0.15);
+    interactor.execute(new UseItemInputData("app", Operation.START, "glass", ""));
+    assertNull(error);
+    assertNotNull(output);
+    assertEquals(135, bench.lab.getRecord().getMeltingRange().getLo(), 0.0001);
+    assertEquals(136, bench.lab.getRecord().getMeltingRange().getHi(), 0.0001);
+    assertEquals(1, bench.snapshots);                      // Undo takes the reading back
+    assertEquals(1, bench.saves);
+  }
+
+  @Test
+  void startNeedsTheApp() {
+    appWithSample(0.15);
+    interactor.execute(new UseItemInputData("glass", Operation.START, "glass", ""));
+    assertEquals("Use the melting point app.", error);
+    assertEquals(0, bench.snapshots);
+  }
+
+  @Test
+  void startNeedsASample() {
+    appWithSample(0);
+    interactor.execute(new UseItemInputData("app", Operation.START, "glass", ""));
+    assertEquals("Load some of your dried solid first.", error);   // empty watch glass
+    interactor.execute(new UseItemInputData("app", Operation.START, null, ""));
+    assertEquals("Load some of your dried solid first.", error);   // nothing picked
+    assertEquals(0, bench.snapshots);
+    assertNull(bench.lab.getRecord().getMeltingRange());
+  }
+
+  @Test
+  void startingAgainRemeasures() {
+    appWithSample(0.15);
+    Vessel wet = new Vessel("wetGlass", ItemType.WATCH_GLASS, new Vec2(0, 0), 0, 20);
+    bench.getBench().addItem(wet, new Vec2(0, 0));
+    wet.getMixture().add(Substances.ASPIRIN, 0.15);
+    wet.getMixture().add(Substances.WATER, 0.5);           // not dried yet: melts low
+    interactor.execute(new UseItemInputData("app", Operation.START, "wetGlass", ""));
+    assertEquals(125, bench.lab.getRecord().getMeltingRange().getLo(), 0.0001);
+
+    interactor.execute(new UseItemInputData("app", Operation.START, "glass", ""));
+    assertEquals(135, bench.lab.getRecord().getMeltingRange().getLo(), 0.0001);   // replaced
   }
 }
