@@ -6,6 +6,7 @@ import entity.BuchnerFunnel;
 import entity.ItemType;
 import entity.Lab;
 import entity.LabItem;
+import entity.Mixture;
 import entity.Operation;
 import entity.Scale;
 import entity.VacuumTap;
@@ -16,9 +17,9 @@ import usecase.LabStateMapper;
 
 /**
  * Does something to one item: writes its label (LABEL), covers it (COVER), zeroes the scale
- * (TARE), puts filter paper in the funnel (ADD_PAPER) or turns the vacuum on/off (VACUUM_ON /
- * VACUUM_OFF). It doesn't judge whether the label is right; the step checks that (A2: CheckStep
- * with labelMatches).
+ * (TARE), puts filter paper in the funnel (ADD_PAPER), turns the vacuum on/off (VACUUM_ON /
+ * VACUUM_OFF) or stirs a tube (STIR). It doesn't judge whether the label is right; the step
+ * checks that (A2: CheckStep with labelMatches).
  */
 public class UseItemInteractor implements UseItemInputBoundary {
   private final LabDataAccessInterface dataAccess;
@@ -52,6 +53,8 @@ public class UseItemInteractor implements UseItemInputBoundary {
     } else if (in.getOperation() == Operation.VACUUM_ON
         || in.getOperation() == Operation.VACUUM_OFF) {
       vacuum(lab, in);
+    } else if (in.getOperation() == Operation.STIR) {
+      stir(lab, in);
     } else {
       // STIR, START, ... get handled with their tickets
       presenter.prepareFailView("That doesn't work yet.");
@@ -121,6 +124,24 @@ public class UseItemInteractor implements UseItemInputBoundary {
     }
     dataAccess.pushSnapshot();
     ((VacuumTap) item).setOn(in.getOperation() == Operation.VACUUM_ON);
+    finish(lab, in);
+  }
+
+  // STIR (B1): the stir rod dropped on a tube stirs it once. Each stir mixes it fully, so after
+  // the HCl the drug comes out as a solid right away.
+  private void stir(Lab lab, UseItemInputData in) {
+    Vessel vessel = vesselOf(lab, in.getItemId());
+    if (vessel == null || vessel.getType() != ItemType.TEST_TUBE) {
+      presenter.prepareFailView("Stir the test tube.");   // only the test tube gets stirred (B1)
+      return;
+    }
+    if (vessel.getMixture().totalVolume() == 0) {
+      presenter.prepareFailView("There's nothing to stir yet.");
+      return;
+    }
+    dataAccess.pushSnapshot();
+    vessel.stir();                                  // B1 counts the stirs
+    vessel.getMixture().mix(Mixture.FULL_MIX);     // at pH 1 the drug turns solid
     finish(lab, in);
   }
 
