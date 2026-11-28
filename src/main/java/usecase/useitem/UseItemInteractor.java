@@ -6,7 +6,10 @@ import entity.BuchnerFunnel;
 import entity.ItemType;
 import entity.Lab;
 import entity.LabItem;
+import entity.MeltingPointApp;
+import entity.Mixture;
 import entity.Operation;
+import entity.Range;
 import entity.Scale;
 import entity.VacuumTap;
 import entity.Vessel;
@@ -16,9 +19,9 @@ import usecase.LabStateMapper;
 
 /**
  * Does something to one item: writes its label (LABEL), covers it (COVER), zeroes the scale
- * (TARE), puts filter paper in the funnel (ADD_PAPER) or turns the vacuum on/off (VACUUM_ON /
- * VACUUM_OFF). It doesn't judge whether the label is right; the step checks that (A2: CheckStep
- * with labelMatches).
+ * (TARE), puts filter paper in the funnel (ADD_PAPER), turns the vacuum on/off (VACUUM_ON /
+ * VACUUM_OFF), stirs a tube (STIR) or measures the melting point (START). It doesn't judge
+ * whether the label is right; the step checks that (A2: CheckStep with labelMatches).
  */
 public class UseItemInteractor implements UseItemInputBoundary {
   private final LabDataAccessInterface dataAccess;
@@ -52,8 +55,12 @@ public class UseItemInteractor implements UseItemInputBoundary {
     } else if (in.getOperation() == Operation.VACUUM_ON
         || in.getOperation() == Operation.VACUUM_OFF) {
       vacuum(lab, in);
+    } else if (in.getOperation() == Operation.START) {
+      start(lab, in);
+    } else if (in.getOperation() == Operation.STIR) {
+      stir(lab, in);
     } else {
-      // STIR, START, ... get handled with their tickets
+      // SCAN, LABEL_PEAK, ... get handled with their tickets
       presenter.prepareFailView("That doesn't work yet.");
     }
   }
@@ -124,6 +131,48 @@ public class UseItemInteractor implements UseItemInputBoundary {
     finish(lab, in);
   }
 
+  // START (B7): melt some of the dried solid and record the range it melts over.
+  private void start(Lab lab, UseItemInputData in) {
+    LabItem item = lab.getBench().getItem(in.getItemId());
+    if (item == null || item.getType() != ItemType.MELTING_POINT_APP) {
+      presenter.prepareFailView("Use the melting point app.");   // only the app melts things
+      return;
+    }
+    // the sample comes from a container, e.g. the watch glass weighed in B6
+    Vessel sample = vesselOf(lab, in.getTargetId());
+    Range range = null;
+    if (sample != null) {
+      // the solid on the funnel is wet until the vacuum has dried it (B5)
+      boolean wet = sample instanceof BuchnerFunnel && !((BuchnerFunnel) sample).isDry();
+      range = ((MeltingPointApp) item).measure(sample.getMixture(), wet);
+    }
+    if (range == null) {
+      presenter.prepareFailView("Load some of your dried solid first.");   // no drug in it
+      return;
+    }
+    dataAccess.pushSnapshot();
+    lab.getRecord().setMeltingRange(range);         // it melts straight away
+    finish(lab, in);
+  }
+
+  // STIR (B1): the stir rod dropped on a tube stirs it once. Each stir mixes it fully, so after
+  // the HCl the drug comes out as a solid right away.
+  private void stir(Lab lab, UseItemInputData in) {
+    Vessel vessel = vesselOf(lab, in.getItemId());
+    if (vessel == null || vessel.getType() != ItemType.TEST_TUBE) {
+      presenter.prepareFailView("Stir the test tube.");   // only the test tube gets stirred (B1)
+      return;
+    }
+    if (vessel.getMixture().totalVolume() == 0) {
+      presenter.prepareFailView("There's nothing to stir yet.");
+      return;
+    }
+    dataAccess.pushSnapshot();
+    vessel.stir();                                  // B1 counts the stirs
+    vessel.getMixture().mix(Mixture.FULL_MIX);     // at pH 1 the drug turns solid
+    finish(lab, in);
+  }
+
   // After a change: the steps and mistake rules see the action, the lab is saved, and the
   // screen gets the whole lab (the label tape, the cover, the scale's number, the step).
   private void finish(Lab lab, UseItemInputData in) {
@@ -131,7 +180,8 @@ public class UseItemInteractor implements UseItemInputBoundary {
     if (in.getText() != null) {
       text = in.getText();
     }
-    lab.record(new Action(ActionKind.USE, in.getItemId(), null, 0, in.getOperation(), text));
+    lab.record(new Action(ActionKind.USE, in.getItemId(), in.getTargetId(), 0,
+        in.getOperation(), text));
     presenter.prepareSuccessView(new UseItemOutputData(LabStateMapper.from(lab)));
     try {
       dataAccess.saveLab(lab);

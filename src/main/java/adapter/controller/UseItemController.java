@@ -27,6 +27,19 @@ public class UseItemController {
    * @param text the label text for LABEL, otherwise ""
    */
   public void execute(String itemId, String operation, String text) {
-    interactor.execute(new UseItemInputData(itemId, Operation.valueOf(operation), text));
+    execute(itemId, operation, null, text);
+  }
+
+  /**
+   * Carries out an action that also needs a second item.
+   *
+   * @param itemId the item that was clicked, e.g. "melting_point_app-1"
+   * @param operation e.g. "START" (plain text, so the view never imports entity)
+   * @param targetId the other item, e.g. the funnel the sample comes from (START)
+   * @param text the label text for LABEL, otherwise ""
+   */
+  public void execute(String itemId, String operation, String targetId, String text) {
+    interactor.execute(new UseItemInputData(itemId, Operation.valueOf(operation), targetId,
+        text));
   }
 }

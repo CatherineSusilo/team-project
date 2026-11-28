@@ -10,6 +10,7 @@ import entity.ItemFactory;
 import entity.ItemTemplates;
 import entity.Lab;
 import entity.LabItem;
+import entity.Range;
 import entity.Scale;
 import entity.Substances;
 import entity.UnknownSample;
@@ -80,5 +81,17 @@ class LabStateMapperTest {
     scale.place(beaker.getId());
 
     assertEquals("30.000", find(LabStateMapper.from(lab), "scale-1").getDisplay());
+  }
+
+  @Test
+  void meltingRangeIsBlankUntilMeasured() {
+    assertEquals("", LabStateMapper.from(lab()).getMeltingRange());
+  }
+
+  @Test
+  void showsTheMeasuredMeltingRange() {
+    Lab lab = lab();
+    lab.getRecord().setMeltingRange(new Range(125, 132));
+    assertEquals("125-132 °C", LabStateMapper.from(lab).getMeltingRange());
   }
 }

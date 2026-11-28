@@ -7,13 +7,19 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import data.Lab3Definition;
+import entity.AcidBaseRule;
 import entity.ApiType;
 import entity.Bench;
 import entity.BuchnerFunnel;
+import entity.ClampStand;
+import entity.FiltrationFlask;
 import entity.ItemType;
 import entity.Lab;
+import entity.MeltingPointApp;
+import entity.Mixture;
 import entity.Operation;
 import entity.Scale;
+import entity.Substances;
 import entity.UnknownSample;
 import entity.VacuumTap;
 import entity.Vec2;
@@ -244,7 +250,7 @@ class UseItemInteractorTest {
 
   @Test
   void operationsNotBuiltYetFail() {
-    interactor.execute(new UseItemInputData("conical", Operation.STIR, ""));
+    interactor.execute(new UseItemInputData("conical", Operation.SCAN, ""));
     assertEquals("That doesn't work yet.", error);
   }
 
@@ -280,5 +286,148 @@ class UseItemInteractorTest {
   void onlyTheTapTurnsTheVacuumOn() {
     interactor.execute(new UseItemInputData("conical", Operation.VACUUM_ON, ""));
     assertEquals("Use the vacuum tap.", error);
+  }
+
+  // ----- B7: the melting point app -----
+
+  /** Puts the app and a watch glass holding this much aspirin on the bench. */
+  private MeltingPointApp appWithSample(double aspirinG) {
+    MeltingPointApp app = new MeltingPointApp("app", new Vec2(0, 0));
+    bench.getBench().addItem(app, new Vec2(0, 0));
+    Vessel glass = new Vessel("glass", ItemType.WATCH_GLASS, new Vec2(0, 0), 0, 20);
+    bench.getBench().addItem(glass, new Vec2(0, 0));
+    if (aspirinG > 0) {
+      glass.getMixture().add(Substances.ASPIRIN, aspirinG);
+    }
+    return app;
+  }
+
+  @Test
+  void startRecordsTheMeltingRange() {
+    appWithSample(0.15);
+    interactor.execute(new UseItemInputData("app", Operation.START, "glass", ""));
+    assertNull(error);
+    assertNotNull(output);
+    assertEquals(135, bench.lab.getRecord().getMeltingRange().getLo(), 0.0001);
+    assertEquals(136, bench.lab.getRecord().getMeltingRange().getHi(), 0.0001);
+    assertEquals(1, bench.snapshots);                      // Undo takes the reading back
+    assertEquals(1, bench.saves);
+  }
+
+  @Test
+  void startNeedsTheApp() {
+    appWithSample(0.15);
+    interactor.execute(new UseItemInputData("glass", Operation.START, "glass", ""));
+    assertEquals("Use the melting point app.", error);
+    assertEquals(0, bench.snapshots);
+  }
+
+  @Test
+  void startNeedsASample() {
+    appWithSample(0);
+    interactor.execute(new UseItemInputData("app", Operation.START, "glass", ""));
+    assertEquals("Load some of your dried solid first.", error);   // empty watch glass
+    interactor.execute(new UseItemInputData("app", Operation.START, null, ""));
+    assertEquals("Load some of your dried solid first.", error);   // nothing picked
+    assertEquals(0, bench.snapshots);
+    assertNull(bench.lab.getRecord().getMeltingRange());
+  }
+
+  @Test
+  void startingAgainRemeasures() {
+    appWithSample(0.15);
+    Vessel wet = new Vessel("wetGlass", ItemType.WATCH_GLASS, new Vec2(0, 0), 0, 20);
+    bench.getBench().addItem(wet, new Vec2(0, 0));
+    wet.getMixture().add(Substances.ASPIRIN, 0.15);
+    wet.getMixture().add(Substances.WATER, 0.5);           // not dried yet: melts low
+    interactor.execute(new UseItemInputData("app", Operation.START, "wetGlass", ""));
+    assertEquals(125, bench.lab.getRecord().getMeltingRange().getLo(), 0.0001);
+
+    interactor.execute(new UseItemInputData("app", Operation.START, "glass", ""));
+    assertEquals(135, bench.lab.getRecord().getMeltingRange().getLo(), 0.0001);   // replaced
+  }
+
+  /** The funnel as B3 leaves it: only the solid on the paper, the liquid went to the flask. */
+  private BuchnerFunnel funnelWithSolid() {
+    appWithSample(0);
+    BuchnerFunnel funnel = new BuchnerFunnel("funnel", new Vec2(0, 0), 10, 60);
+    FiltrationFlask flask = new FiltrationFlask("flask", new Vec2(0, 0), 250, 150);
+    ClampStand stand = new ClampStand("stand", new Vec2(0, 0));
+    bench.getBench().addItem(funnel, new Vec2(0, 0));
+    bench.getBench().addItem(flask, new Vec2(0, 0));
+    bench.getBench().addItem(stand, new Vec2(0, 0));
+    stand.clamp(flask);
+    flask.placeFunnel("funnel");
+    funnel.getMixture().add(Substances.ASPIRIN, 0.15);
+    return funnel;
+  }
+
+  @Test
+  void undriedSolidOnTheFunnelMeltsLow() {
+    funnelWithSolid();
+    interactor.execute(new UseItemInputData("app", Operation.START, "funnel", ""));
+    assertEquals(125, bench.lab.getRecord().getMeltingRange().getLo(), 0.0001);
+  }
+
+  @Test
+  void solidDriedUnderVacuumMeltsAtItsLiteratureRange() {
+    BuchnerFunnel funnel = funnelWithSolid();
+    funnel.advance(BuchnerFunnel.DRY_MINUTES,
+        (FiltrationFlask) bench.getBench().getItem("flask"), true);   // B5: 10 min, vacuum on
+    interactor.execute(new UseItemInputData("app", Operation.START, "funnel", ""));
+    assertEquals(135, bench.lab.getRecord().getMeltingRange().getLo(), 0.0001);
+  }
+
+  // ----- B1: stirring the test tube -----
+
+  /** B1: the test tube after the HCl: 3 mL of acidic water with the drug dissolved in it. */
+  private Vessel acidifiedTestTube() {
+    Vessel testTube = bench.getVessel("testTube");
+    testTube.getMixture().add(Substances.WATER, 3);
+    testTube.getMixture().add(Substances.ASPIRIN, 0.150);
+    testTube.getMixture().add(Substances.NAOH, 0.5);
+    testTube.getMixture().mix(Mixture.FULL_MIX);           // the drug in the basic water
+    new AcidBaseRule().apply(testTube.getMixture(), Substances.HCL, 1);   // 20 drops of HCl
+    testTube.getMixture().add(Substances.HCL, 1);
+    return testTube;
+  }
+
+  @Test
+  void stirringCountsEachStir() {
+    Vessel testTube = acidifiedTestTube();
+    for (int i = 0; i < 5; i++) {
+      interactor.execute(new UseItemInputData("testTube", Operation.STIR, ""));
+    }
+    assertNull(error);
+    assertEquals(5, testTube.getStirCount());
+    assertEquals(5, bench.snapshots);                     // each stir can be undone
+  }
+
+  @Test
+  void stirringAfterTheHclMakesTheSolid() {
+    acidifiedTestTube();
+    interactor.execute(new UseItemInputData("testTube", Operation.STIR, ""));
+    assertTrue(shown("testTube").hasSolid());              // the drug comes out of the water
+  }
+
+  @Test
+  void stirringAnEmptyTubeFails() {
+    interactor.execute(new UseItemInputData("testTube", Operation.STIR, ""));
+    assertEquals("There's nothing to stir yet.", error);
+    assertEquals(0, bench.getVessel("testTube").getStirCount());
+  }
+
+  @Test
+  void stirringNothingFails() {
+    interactor.execute(new UseItemInputData("bench", Operation.STIR, ""));
+    assertEquals("Stir the test tube.", error);
+  }
+
+  @Test
+  void stirringTheConicalTubeFails() {
+    bench.getVessel("conical").getMixture().add(Substances.WATER, 2);
+    interactor.execute(new UseItemInputData("conical", Operation.STIR, ""));
+    assertEquals("Stir the test tube.", error);              // Task A mixes with the pipette
+    assertEquals(0, bench.getVessel("conical").getStirCount());
   }
 }

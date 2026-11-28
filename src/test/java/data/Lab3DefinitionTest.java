@@ -4,13 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import entity.AcidBaseRule;
 import entity.Action;
 import entity.ActionKind;
 import entity.ApiType;
 import entity.Bench;
 import entity.BuchnerFunnel;
+import entity.ChemistryEngine;
 import entity.ClampStand;
 import entity.FiltrationFlask;
+import entity.IceBath;
 import entity.ItemFactory;
 import entity.ItemTemplates;
 import entity.ItemType;
@@ -18,8 +21,11 @@ import entity.Lab;
 import entity.LabItem;
 import entity.LabStep;
 import entity.Mixture;
+import entity.MultiPartStep;
 import entity.Operation;
+import entity.Range;
 import entity.StepStatus;
+import entity.StockBottle;
 import entity.Substances;
 import entity.TemplateItem;
 import entity.UnknownSample;
@@ -125,10 +131,90 @@ class Lab3DefinitionTest {
     assertTrue(a8.getTitle().startsWith("A8"));
   }
 
-  // ----- B2: the filtration set up while the test tube cools -----
+  // ----- B1: 20 drops of HCl, then stir 5 times -----
+
+  private static final int B1 = 9;
+
+  /** B1's bench: the test tube with the basic water layers from A8/A9 (the drug dissolved). */
+  private static Lab atB1(Vessel testTube) {
+    Lab lab = new Lab(List.of(Lab3Definition.steps().get(B1)), new Bench(),
+        new UnknownSample('A', ApiType.ASPIRIN));
+    lab.getBench().addItem(testTube, new Vec2(0, 0));
+    new ChemistryEngine(List.of(new AcidBaseRule()))
+        .addReagent(testTube.getMixture(), Substances.NAOH, 0.5);
+    testTube.getMixture().add(Substances.WATER, 3);
+    testTube.getMixture().add(Substances.ASPIRIN, 0.150);
+    testTube.getMixture().mix(Mixture.FULL_MIX);
+    return lab;
+  }
+
+  /** 20 drops of HCl into the test tube (what TransferContents does). */
+  private static void addHcl(Vessel testTube) {
+    new ChemistryEngine(List.of(new AcidBaseRule()))
+        .addReagent(testTube.getMixture(), Substances.HCL, 20 * StockBottle.DROP_ML);
+  }
+
+  /** The stir rod on the test tube (what UseItem STIR does). */
+  private static void stir(Vessel testTube, int times) {
+    for (int i = 0; i < times; i++) {
+      testTube.stir();
+      testTube.getMixture().mix(Mixture.FULL_MIX);
+    }
+  }
+
+  private static Vessel testTube() {
+    return new Vessel("test_tube-1", ItemType.TEST_TUBE, new Vec2(0, 0), 15, 8);
+  }
+
+  @Test
+  void b1IsDoneAfterTwentyDropsAndFiveStirs() {
+    Vessel testTube = testTube();
+    Lab lab = atB1(testTube);
+    addHcl(testTube);
+    stir(testTube, 5);
+    assertEquals(StepStatus.COMPLETE, lab.status());
+  }
+
+  @Test
+  void b1IsNotDoneWithoutStirring() {
+    Vessel testTube = testTube();
+    Lab lab = atB1(testTube);
+    addHcl(testTube);
+    stir(testTube, 4);
+    assertEquals(StepStatus.INCOMPLETE, lab.status());
+  }
+
+  @Test
+  void b1IsNotDoneWithoutTheHcl() {
+    Vessel testTube = testTube();
+    Lab lab = atB1(testTube);
+    stir(testTube, 5);                                           // no solid without the acid
+    assertEquals(StepStatus.INCOMPLETE, lab.status());
+  }
+
+  @Test
+  void b1StirringBeforeTheHclDoesNotCount() {
+    Vessel testTube = testTube();
+    Lab lab = atB1(testTube);
+    stir(testTube, 5);
+    addHcl(testTube);                                            // the drug is still dissolved
+    assertEquals(StepStatus.INCOMPLETE, lab.status());
+  }
+
+  @Test
+  void b1LimitsTheHclToTwentyDrops() {
+    LabStep b1 = Lab3Definition.steps().get(B1);
+    MultiPartStep parts = (MultiPartStep) b1;
+    assertEquals(1.0, parts.getParts().get(0).amountRange().getHi(), 1e-9);   // 20 drops
+    assertTrue(b1.expects(new Action(ActionKind.ADD, "hcl_bottle-1", "test_tube-1", 1, null,
+        "")));
+    assertTrue(b1.expects(new Action(ActionKind.USE, "test_tube-1", null, 0, Operation.STIR,
+        "")));
+  }
+
+  // ----- B2: the ice bath and the filtration setup -----
 
   private static final int B2 = 10;
-  private final LabStep b2 = Lab3Definition.steps().get(B2);
 
   /** Takes an item from the tray, like dragging it onto the bench. */
   private static LabItem take(Lab lab, String templateId) {
@@ -139,59 +225,168 @@ class Lab3DefinitionTest {
     return item;
   }
 
-  /** B2's items on the bench: the ice bath, clamp stand, flask and funnel, not set up yet. */
-  private static Lab b2ItemsOnTheBench() {
-    Lab lab = Lab3Definition.create(new UnknownSample('A', ApiType.ASPIRIN));
-    take(lab, "ice_bath");
-    take(lab, "clamp_stand");
-    take(lab, "flask");
-    take(lab, "funnel");
+  /**
+   * A lab on B2 with its items on the bench, nothing done yet: the test tube and two cylinders
+   * from Task A, the ice bath, clamp stand, flask and funnel.
+   */
+  private static Lab atB2() {
+    Lab lab = new Lab(List.of(Lab3Definition.steps().get(B2)), new Bench(),
+        new UnknownSample('A', ApiType.ASPIRIN));
+    for (String templateId : List.of("test_tube", "cylinder", "cylinder", "ice_bath",
+        "clamp_stand", "flask", "funnel")) {
+      take(lab, templateId);
+    }
     return lab;
   }
 
-  /** Clamps the flask and puts the funnel on it (what MoveItem's drops will do). */
-  private static BuchnerFunnel assemble(Lab lab) {
+  private static IceBath bath(Lab lab) {
+    return (IceBath) lab.getBench().getItem("ice_bath-1");
+  }
+
+  /** The test tube in the ice bath, then the timer bar's 10 minutes. */
+  private static void coolTheTestTube(Lab lab) {
+    bath(lab).immerse((Vessel) lab.getBench().getItem("test_tube-1"));
+    lab.advanceTime(10);
+  }
+
+  /** Both cylinders into the ice bath (the time-saving tip). */
+  private static void coolTheCylinders(Lab lab) {
+    bath(lab).immerse((Vessel) lab.getBench().getItem("cylinder-1"));
+    bath(lab).immerse((Vessel) lab.getBench().getItem("cylinder-2"));
+  }
+
+  /** Clamps the flask, puts the funnel on it and adds the paper (MoveItem's drops + UseItem). */
+  private static void setUpTheFiltration(Lab lab) {
     ClampStand stand = (ClampStand) lab.getBench().getItem("clamp_stand-1");
     FiltrationFlask flask = (FiltrationFlask) lab.getBench().getItem("flask-1");
     stand.clamp(flask);
     flask.placeFunnel("funnel-1");
-    return (BuchnerFunnel) lab.getBench().getItem("funnel-1");
+    ((BuchnerFunnel) lab.getBench().getItem("funnel-1")).addPaper();
   }
 
   @Test
   void b2IsNotDoneWithTheItemsJustOnTheBench() {
-    assertFalse(b2.isComplete(b2ItemsOnTheBench()));
+    assertEquals(StepStatus.INCOMPLETE, atB2().status());
+  }
+
+  @Test
+  void b2IsDoneOnceAllThreePartsAreDone() {
+    Lab lab = atB2();
+    coolTheTestTube(lab);
+    coolTheCylinders(lab);
+    setUpTheFiltration(lab);
+    assertEquals(StepStatus.COMPLETE, lab.status());
+  }
+
+  @Test
+  void b2PartsCanBeDoneInAnyOrder() {
+    Lab lab = atB2();
+    setUpTheFiltration(lab);
+    coolTheCylinders(lab);
+    coolTheTestTube(lab);
+    assertEquals(StepStatus.COMPLETE, lab.status());
+  }
+
+  @Test
+  void b2IsNotDoneWithoutTheTenMinutes() {
+    Lab lab = atB2();
+    bath(lab).immerse((Vessel) lab.getBench().getItem("test_tube-1"));   // no wait yet
+    coolTheCylinders(lab);
+    setUpTheFiltration(lab);
+    assertEquals(StepStatus.INCOMPLETE, lab.status());
+  }
+
+  @Test
+  void b2IsNotDoneWithOnlyOneCylinderCooled() {
+    Lab lab = atB2();
+    coolTheTestTube(lab);
+    bath(lab).immerse((Vessel) lab.getBench().getItem("cylinder-1"));
+    setUpTheFiltration(lab);
+    assertEquals(StepStatus.INCOMPLETE, lab.status());
   }
 
   @Test
   void b2IsNotDoneWithoutFilterPaper() {
-    Lab lab = b2ItemsOnTheBench();
-    assemble(lab);
-    assertFalse(b2.isComplete(lab));
+    Lab lab = atB2();
+    coolTheTestTube(lab);
+    coolTheCylinders(lab);
+    ClampStand stand = (ClampStand) lab.getBench().getItem("clamp_stand-1");
+    FiltrationFlask flask = (FiltrationFlask) lab.getBench().getItem("flask-1");
+    stand.clamp(flask);
+    flask.placeFunnel("funnel-1");                               // no paper
+    assertEquals(StepStatus.INCOMPLETE, lab.status());
   }
 
   @Test
-  void b2IsDoneOnceTheFiltrationIsSetUpWithPaper() {
-    Lab lab = b2ItemsOnTheBench();
-    assemble(lab).addPaper();
-    assertTrue(b2.isComplete(lab));
+  void b2StaysDoneIfTheTubeIsLiftedOutAfterTheWait() {
+    Lab lab = atB2();
+    coolTheTestTube(lab);
+    bath(lab).release("test_tube-1");                            // dragged out of the bath
+    coolTheCylinders(lab);
+    setUpTheFiltration(lab);
+    assertEquals(StepStatus.COMPLETE, lab.status());
   }
 
   @Test
-  void b2IsNotDoneWithoutTheIceBath() {
-    Lab lab = Lab3Definition.create(new UnknownSample('A', ApiType.ASPIRIN));
-    take(lab, "clamp_stand");
-    take(lab, "flask");
-    take(lab, "funnel");
-    assemble(lab).addPaper();
-    assertFalse(b2.isComplete(lab));
+  void theTimerBarShowsOnceTheTestTubeIsInTheBath() {
+    Lab lab = atB2();
+    assertEquals(0, lab.currentStep().waitMinutes(lab));
+    bath(lab).immerse((Vessel) lab.getBench().getItem("test_tube-1"));
+    assertEquals(10, lab.currentStep().waitMinutes(lab));
+    lab.advanceTime(10);                                         // the Wait use case
+    assertEquals(0, lab.currentStep().waitMinutes(lab));
   }
 
   @Test
-  void addingThePaperBelongsToB2() {
+  void addingThePaperAndMovingThingsBelongToB2() {
+    LabStep b2 = Lab3Definition.steps().get(B2);
     assertTrue(b2.expects(new Action(ActionKind.USE, "funnel-1", null, 0, Operation.ADD_PAPER,
         "")));
+    assertTrue(b2.expects(new Action(ActionKind.MOVE, "test_tube-1", "ice_bath-1", 0, null,
+        "")));
     assertFalse(b2.expects(new Action(ActionKind.MIX, "pipette-1", "test_tube-1", 5, null,
+        "")));
+  }
+
+  // ----- B7: melting point, then the guess -----
+
+  private static final int B7 = 15;
+  private final LabStep b7 = Lab3Definition.steps().get(B7);
+
+  private static Lab b7Lab() {
+    return Lab3Definition.create(new UnknownSample('A', ApiType.ASPIRIN));
+  }
+
+  @Test
+  void b7IsNotDoneBeforeMeasuring() {
+    Lab lab = b7Lab();
+    lab.getRecord().setGuessCorrect(true);
+    assertFalse(b7.isComplete(lab));
+  }
+
+  @Test
+  void b7IsNotDoneWithoutTheRightGuess() {
+    Lab lab = b7Lab();
+    lab.getRecord().setMeltingRange(new Range(135, 136));
+    assertFalse(b7.isComplete(lab));
+  }
+
+  @Test
+  void b7IsDoneOnceMeasuredAndGuessed() {
+    Lab lab = b7Lab();
+    lab.getRecord().setMeltingRange(new Range(135, 136));
+    lab.getRecord().setGuessCorrect(true);
+    assertTrue(b7.isComplete(lab));
+    assertEquals(0, b7.waitMinutes(lab));                  // no heating wait
+  }
+
+  @Test
+  void startingTheAppBelongsToB7() {
+    assertTrue(b7.expects(new Action(ActionKind.USE, "melting_point_app-1", null, 0,
+        Operation.START, "")));
+    assertTrue(b7.expects(Action.spawn("melting_point_app-1")));
+    assertTrue(b7.expects(Action.move("melting_point_app-1", null)));
+    assertFalse(b7.expects(new Action(ActionKind.USE, "tap-1", null, 0, Operation.VACUUM_ON,
         "")));
   }
 }

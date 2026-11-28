@@ -18,9 +18,11 @@ import com.google.gson.stream.JsonWriter;
 import entity.BuchnerFunnel;
 import entity.ClampStand;
 import entity.FiltrationFlask;
+import entity.IceBath;
 import entity.ItemFactory;
 import entity.ItemType;
 import entity.LabItem;
+import entity.MeltingPointApp;
 import entity.PasteurPipette;
 import entity.Scale;
 import entity.StockBottle;
@@ -79,6 +81,8 @@ public final class LabJson {
     classes.put(ItemType.BUCHNER_FUNNEL, BuchnerFunnel.class);
     classes.put(ItemType.CLAMP_STAND, ClampStand.class);
     classes.put(ItemType.VACUUM_TAP, VacuumTap.class);
+    classes.put(ItemType.ICE_BATH, IceBath.class);
+    classes.put(ItemType.MELTING_POINT_APP, MeltingPointApp.class);
     return classes;
   }
 

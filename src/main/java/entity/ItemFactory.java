@@ -30,6 +30,8 @@ public class ItemFactory {
         return new ClampStand(id, origin);
       case VACUUM_TAP:
         return new VacuumTap(id, origin);
+      case ICE_BATH:
+        return new IceBath(id, origin);
       case PIPETTE:
         return new PasteurPipette(id, origin);
       case DROPPER:
@@ -37,6 +39,8 @@ public class ItemFactory {
         return new StockBottle(id, template.getType(), origin, template.getSubstance());
       case SCALE:
         return new Scale(id, origin);
+      case MELTING_POINT_APP:
+        return new MeltingPointApp(id, origin);
       default:
         return new TemplateItem(id, template, origin);
     }
