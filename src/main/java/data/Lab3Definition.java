@@ -22,6 +22,7 @@ import entity.LabelRule;
 import entity.MistakeRule;
 import entity.Mixture;
 import entity.MultiPartStep;
+import entity.Operation;
 import entity.OrderRule;
 import entity.SeparateLayersStep;
 import entity.TareRule;
@@ -144,9 +145,13 @@ public final class Lab3Definition {
     steps.add(step(steps, "B6 Weigh the product",
         "Weigh the solid on the watch glass. The % recovery will show here.",
         List.of(), List.of()));
-    steps.add(step(steps, "B7 Melting point",
+    // B7: the melting range is measured (START), then the right drug is picked
+    steps.add(new CheckStep(steps.size(), "B7 Melting point",
         "Measure the melting range, then pick which drug you think the unknown is.",
-        List.of("melting_point_app"), List.of("melting_point_app")));
+        "Put some of the solid in the melting point app, press Start, then pick the drug.",
+        List.of("melting_point_app"), false,
+        lab -> lab.getRecord().getMeltingRange() != null && lab.getRecord().isGuessCorrect(),
+        Lab3Definition::isStartAction));
     steps.add(optionalStep(steps, "B8 IR spectrum (optional)",
         "Scan the sample and label every peak, or skip this step.",
         List.of("ir_spectrometer"), List.of("ir_spectrometer")));
@@ -176,6 +181,12 @@ public final class Lab3Definition {
   // B2: setting up the filtration is taking items out, moving them, and adding the paper.
   private static boolean isSetupAction(Action action) {
     return isBenchAction(action) || action.getKind() == ActionKind.USE;
+  }
+
+  // B7: taking out the melting point app and pressing its Start button. The guess isn't an
+  // action, so it isn't listed.
+  private static boolean isStartAction(Action action) {
+    return isBenchAction(action) || action.getOperation() == Operation.START;
   }
 
   // B2: the flask is clamped with the funnel on it, and the funnel has filter paper.

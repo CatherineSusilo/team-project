@@ -21,6 +21,7 @@ public final class LabStateData {
   private final List<String> trayTemplates;
   private final List<ItemData> items;
   private final double waitMinutes;     // > 0 while the step is waiting (timer bar shows)
+  private final String meltingRange;    // e.g. "135-136 °C", "" until B7 measures it
 
   /**
    * Creates the data.
@@ -37,11 +38,12 @@ public final class LabStateData {
    * @param trayTemplates the template ids the tray offers now
    * @param items what is on the bench
    * @param waitMinutes how long the timer bar counts down, or 0 if there is nothing to wait for
+   * @param meltingRange the measured melting range, e.g. "135-136 °C", or "" until B7
    */
   public LabStateData(int stepIndex, int stepCount, List<String> stepTitles, String title,
       String instruction, StepStatus status, String message, boolean nextLocked,
       boolean prevLocked, List<String> trayTemplates, List<ItemData> items,
-      double waitMinutes) { 
+      double waitMinutes, String meltingRange) {
     this.stepIndex = stepIndex;
     this.stepCount = stepCount;
     this.stepTitles = List.copyOf(stepTitles);
@@ -54,6 +56,7 @@ public final class LabStateData {
     this.trayTemplates = List.copyOf(trayTemplates);
     this.items = List.copyOf(items);
     this.waitMinutes = waitMinutes;
+    this.meltingRange = meltingRange;
   }
 
   public int getStepIndex() {
@@ -102,5 +105,9 @@ public final class LabStateData {
 
   public double getWaitMinutes() {
     return waitMinutes;
+  }
+
+  public String getMeltingRange() {
+    return meltingRange;
   }
 }

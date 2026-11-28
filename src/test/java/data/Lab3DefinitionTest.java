@@ -19,6 +19,7 @@ import entity.LabItem;
 import entity.LabStep;
 import entity.Mixture;
 import entity.Operation;
+import entity.Range;
 import entity.StepStatus;
 import entity.Substances;
 import entity.TemplateItem;
@@ -192,6 +193,48 @@ class Lab3DefinitionTest {
     assertTrue(b2.expects(new Action(ActionKind.USE, "funnel-1", null, 0, Operation.ADD_PAPER,
         "")));
     assertFalse(b2.expects(new Action(ActionKind.MIX, "pipette-1", "test_tube-1", 5, null,
+        "")));
+  }
+
+  // ----- B7: melting point, then the guess -----
+
+  private static final int B7 = 15;
+  private final LabStep b7 = Lab3Definition.steps().get(B7);
+
+  private static Lab b7Lab() {
+    return Lab3Definition.create(new UnknownSample('A', ApiType.ASPIRIN));
+  }
+
+  @Test
+  void b7IsNotDoneBeforeMeasuring() {
+    Lab lab = b7Lab();
+    lab.getRecord().setGuessCorrect(true);
+    assertFalse(b7.isComplete(lab));
+  }
+
+  @Test
+  void b7IsNotDoneWithoutTheRightGuess() {
+    Lab lab = b7Lab();
+    lab.getRecord().setMeltingRange(new Range(135, 136));
+    assertFalse(b7.isComplete(lab));
+  }
+
+  @Test
+  void b7IsDoneOnceMeasuredAndGuessed() {
+    Lab lab = b7Lab();
+    lab.getRecord().setMeltingRange(new Range(135, 136));
+    lab.getRecord().setGuessCorrect(true);
+    assertTrue(b7.isComplete(lab));
+    assertEquals(0, b7.waitMinutes(lab));                  // no heating wait
+  }
+
+  @Test
+  void startingTheAppBelongsToB7() {
+    assertTrue(b7.expects(new Action(ActionKind.USE, "melting_point_app-1", null, 0,
+        Operation.START, "")));
+    assertTrue(b7.expects(Action.spawn("melting_point_app-1")));
+    assertTrue(b7.expects(Action.move("melting_point_app-1", null)));
+    assertFalse(b7.expects(new Action(ActionKind.USE, "tap-1", null, 0, Operation.VACUUM_ON,
         "")));
   }
 }

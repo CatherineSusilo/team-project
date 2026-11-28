@@ -4,6 +4,7 @@ import entity.Lab;
 import entity.LabItem;
 import entity.LabStep;
 import entity.Layer;
+import entity.Range;
 import entity.Scale;
 import entity.StepStatus;
 import entity.TemplateItem;
@@ -56,6 +57,19 @@ public final class LabStateMapper {
   }
 
   /**
+   * Writes a melting range the way the screen shows it, e.g. "135-136 °C".
+   *
+   * @param range the measured range, or null if it hasn't been measured
+   * @return the text, or "" if there is no range yet
+   */
+  public static String meltingRange(Range range) {
+    if (range == null) {
+      return "";
+    }
+    return String.format("%.0f-%.0f °C", range.getLo(), range.getHi());
+  }
+
+  /**
    * Describes the lab as it is now.
    *
    * @param lab the lab to describe
@@ -75,6 +89,7 @@ public final class LabStateMapper {
     boolean nextLocked = status != StepStatus.COMPLETE || !lab.hasNextStep();
     return new LabStateData(lab.getCurrentIndex(), lab.getStepCount(), titles,
         step.getTitle(), step.getInstruction(), status, lab.message(), nextLocked,
-        lab.getCurrentIndex() == 0, step.getTrayTemplates(), items, step.waitMinutes(lab));
+        lab.getCurrentIndex() == 0, step.getTrayTemplates(), items, step.waitMinutes(lab),
+        meltingRange(lab.getRecord().getMeltingRange()));
   }
 }
