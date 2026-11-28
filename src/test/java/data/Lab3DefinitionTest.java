@@ -4,11 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import entity.AcidBaseRule;
 import entity.Action;
 import entity.ActionKind;
 import entity.ApiType;
 import entity.Bench;
 import entity.BuchnerFunnel;
+import entity.ChemistryEngine;
 import entity.ClampStand;
 import entity.FiltrationFlask;
 import entity.IceBath;
@@ -19,9 +21,11 @@ import entity.Lab;
 import entity.LabItem;
 import entity.LabStep;
 import entity.Mixture;
+import entity.MultiPartStep;
 import entity.Operation;
 import entity.Range;
 import entity.StepStatus;
+import entity.StockBottle;
 import entity.Substances;
 import entity.TemplateItem;
 import entity.UnknownSample;
@@ -125,6 +129,87 @@ class Lab3DefinitionTest {
     assertTrue(a8.expects(new Action(ActionKind.MOVE_LIQUID, "conical", "pipette", 2, null,
         "")));
     assertTrue(a8.getTitle().startsWith("A8"));
+  }
+
+  // ----- B1: 20 drops of HCl, then stir 5 times -----
+
+  private static final int B1 = 9;
+
+  /** B1's bench: the test tube with the basic water layers from A8/A9 (the drug dissolved). */
+  private static Lab atB1(Vessel testTube) {
+    Lab lab = new Lab(List.of(Lab3Definition.steps().get(B1)), new Bench(),
+        new UnknownSample('A', ApiType.ASPIRIN));
+    lab.getBench().addItem(testTube, new Vec2(0, 0));
+    new ChemistryEngine(List.of(new AcidBaseRule()))
+        .addReagent(testTube.getMixture(), Substances.NAOH, 0.5);
+    testTube.getMixture().add(Substances.WATER, 3);
+    testTube.getMixture().add(Substances.ASPIRIN, 0.150);
+    testTube.getMixture().mix(Mixture.FULL_MIX);
+    return lab;
+  }
+
+  /** 20 drops of HCl into the test tube (what TransferContents does). */
+  private static void addHcl(Vessel testTube) {
+    new ChemistryEngine(List.of(new AcidBaseRule()))
+        .addReagent(testTube.getMixture(), Substances.HCL, 20 * StockBottle.DROP_ML);
+  }
+
+  /** The stir rod on the test tube (what UseItem STIR does). */
+  private static void stir(Vessel testTube, int times) {
+    for (int i = 0; i < times; i++) {
+      testTube.stir();
+      testTube.getMixture().mix(Mixture.FULL_MIX);
+    }
+  }
+
+  private static Vessel testTube() {
+    return new Vessel("test_tube-1", ItemType.TEST_TUBE, new Vec2(0, 0), 15, 8);
+  }
+
+  @Test
+  void b1IsDoneAfterTwentyDropsAndFiveStirs() {
+    Vessel testTube = testTube();
+    Lab lab = atB1(testTube);
+    addHcl(testTube);
+    stir(testTube, 5);
+    assertEquals(StepStatus.COMPLETE, lab.status());
+  }
+
+  @Test
+  void b1IsNotDoneWithoutStirring() {
+    Vessel testTube = testTube();
+    Lab lab = atB1(testTube);
+    addHcl(testTube);
+    stir(testTube, 4);
+    assertEquals(StepStatus.INCOMPLETE, lab.status());
+  }
+
+  @Test
+  void b1IsNotDoneWithoutTheHcl() {
+    Vessel testTube = testTube();
+    Lab lab = atB1(testTube);
+    stir(testTube, 5);                                           // no solid without the acid
+    assertEquals(StepStatus.INCOMPLETE, lab.status());
+  }
+
+  @Test
+  void b1StirringBeforeTheHclDoesNotCount() {
+    Vessel testTube = testTube();
+    Lab lab = atB1(testTube);
+    stir(testTube, 5);
+    addHcl(testTube);                                            // the drug is still dissolved
+    assertEquals(StepStatus.INCOMPLETE, lab.status());
+  }
+
+  @Test
+  void b1LimitsTheHclToTwentyDrops() {
+    LabStep b1 = Lab3Definition.steps().get(B1);
+    MultiPartStep parts = (MultiPartStep) b1;
+    assertEquals(1.0, parts.getParts().get(0).amountRange().getHi(), 1e-9);   // 20 drops
+    assertTrue(b1.expects(new Action(ActionKind.ADD, "hcl_bottle-1", "test_tube-1", 1, null,
+        "")));
+    assertTrue(b1.expects(new Action(ActionKind.USE, "test_tube-1", null, 0, Operation.STIR,
+        "")));
   }
 
   // ----- B2: the ice bath and the filtration setup -----
