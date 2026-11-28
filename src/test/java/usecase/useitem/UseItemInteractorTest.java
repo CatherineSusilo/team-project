@@ -11,6 +11,8 @@ import entity.AcidBaseRule;
 import entity.ApiType;
 import entity.Bench;
 import entity.BuchnerFunnel;
+import entity.ClampStand;
+import entity.FiltrationFlask;
 import entity.ItemType;
 import entity.Lab;
 import entity.MeltingPointApp;
@@ -343,6 +345,37 @@ class UseItemInteractorTest {
 
     interactor.execute(new UseItemInputData("app", Operation.START, "glass", ""));
     assertEquals(135, bench.lab.getRecord().getMeltingRange().getLo(), 0.0001);   // replaced
+  }
+
+  /** The funnel as B3 leaves it: only the solid on the paper, the liquid went to the flask. */
+  private BuchnerFunnel funnelWithSolid() {
+    appWithSample(0);
+    BuchnerFunnel funnel = new BuchnerFunnel("funnel", new Vec2(0, 0), 10, 60);
+    FiltrationFlask flask = new FiltrationFlask("flask", new Vec2(0, 0), 250, 150);
+    ClampStand stand = new ClampStand("stand", new Vec2(0, 0));
+    bench.getBench().addItem(funnel, new Vec2(0, 0));
+    bench.getBench().addItem(flask, new Vec2(0, 0));
+    bench.getBench().addItem(stand, new Vec2(0, 0));
+    stand.clamp(flask);
+    flask.placeFunnel("funnel");
+    funnel.getMixture().add(Substances.ASPIRIN, 0.15);
+    return funnel;
+  }
+
+  @Test
+  void undriedSolidOnTheFunnelMeltsLow() {
+    funnelWithSolid();
+    interactor.execute(new UseItemInputData("app", Operation.START, "funnel", ""));
+    assertEquals(125, bench.lab.getRecord().getMeltingRange().getLo(), 0.0001);
+  }
+
+  @Test
+  void solidDriedUnderVacuumMeltsAtItsLiteratureRange() {
+    BuchnerFunnel funnel = funnelWithSolid();
+    funnel.advance(BuchnerFunnel.DRY_MINUTES,
+        (FiltrationFlask) bench.getBench().getItem("flask"), true);   // B5: 10 min, vacuum on
+    interactor.execute(new UseItemInputData("app", Operation.START, "funnel", ""));
+    assertEquals(135, bench.lab.getRecord().getMeltingRange().getLo(), 0.0001);
   }
 
   // ----- B1: stirring the test tube -----

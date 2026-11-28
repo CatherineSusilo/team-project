@@ -142,7 +142,9 @@ public class UseItemInteractor implements UseItemInputBoundary {
     Vessel sample = vesselOf(lab, in.getTargetId());
     Range range = null;
     if (sample != null) {
-      range = ((MeltingPointApp) item).measure(sample.getMixture());
+      // the solid on the funnel is wet until the vacuum has dried it (B5)
+      boolean wet = sample instanceof BuchnerFunnel && !((BuchnerFunnel) sample).isDry();
+      range = ((MeltingPointApp) item).measure(sample.getMixture(), wet);
     }
     if (range == null) {
       presenter.prepareFailView("Load some of your dried solid first.");   // no drug in it
@@ -178,7 +180,8 @@ public class UseItemInteractor implements UseItemInputBoundary {
     if (in.getText() != null) {
       text = in.getText();
     }
-    lab.record(new Action(ActionKind.USE, in.getItemId(), null, 0, in.getOperation(), text));
+    lab.record(new Action(ActionKind.USE, in.getItemId(), in.getTargetId(), 0,
+        in.getOperation(), text));
     presenter.prepareSuccessView(new UseItemOutputData(LabStateMapper.from(lab)));
     try {
       dataAccess.saveLab(lab);

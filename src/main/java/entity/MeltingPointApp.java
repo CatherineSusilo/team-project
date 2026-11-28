@@ -21,17 +21,21 @@ public class MeltingPointApp extends LabItem {
   }
 
   /**
-   * Melts the sample and reads off the range.
+   * Melts the sample and reads off the range. Only undissolved drug melts: a solution has no
+   * solid to load.
    *
-   * @param sample the solid loaded into the apparatus, e.g. the watch glass's contents
-   * @return the melting range in °C, or null if there is no drug in the sample
+   * @param sample the solid loaded into the apparatus, e.g. the solid on the Büchner funnel
+   * @param wet true if the solid wasn't dried under vacuum (B5)
+   * @return the melting range in °C, or null if there is no solid drug in the sample
    */
-  public Range measure(Mixture sample) {
+  public Range measure(Mixture sample, boolean wet) {
     for (ApiType api : ApiType.values()) {
       Substance drug = UnknownSample.drugOf(api);
-      if (sample.amountOf(drug) > 0) {
+      if (solid(sample, drug) > 0) {
         Range pure = drug.getMeltingRange();
-        boolean impure = sample.amountOf(Substances.VANILLIN) > 0 || sample.totalVolume() > 0;
+        // liquid still around the solid counts as wet too, e.g. straight from the test tube
+        boolean impure = wet || sample.amountOf(Substances.VANILLIN) > 0
+            || sample.totalVolume() > 0;
         if (!impure) {
           return pure;
         }
@@ -39,5 +43,14 @@ public class MeltingPointApp extends LabItem {
       }
     }
     return null;
+  }
+
+  // How much of a substance is sitting in the sample as a solid, in grams.
+  private static double solid(Mixture sample, Substance substance) {
+    double grams = 0;
+    for (Layer layer : sample.getLayers()) {
+      grams += layer.getSolids().getOrDefault(substance, 0.0);
+    }
+    return grams;
   }
 }
