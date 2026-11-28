@@ -232,6 +232,16 @@ class Lab3DefinitionTest {
   }
 
   @Test
+  void b2StaysDoneIfTheTubeIsLiftedOutAfterTheWait() {
+    Lab lab = atB2();
+    coolTheTestTube(lab);
+    bath(lab).release("test_tube-1");                            // dragged out of the bath
+    coolTheCylinders(lab);
+    setUpTheFiltration(lab);
+    assertEquals(StepStatus.COMPLETE, lab.status());
+  }
+
+  @Test
   void theTimerBarShowsOnceTheTestTubeIsInTheBath() {
     Lab lab = atB2();
     assertEquals(0, lab.currentStep().waitMinutes(lab));

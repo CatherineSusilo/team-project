@@ -53,6 +53,14 @@ class PrecipitateStepTest {
   }
 
   @Test
+  void stillDoneAfterItIsTakenOut() {
+    bath.immerse(testTube);
+    lab.advanceTime(10);
+    bath.release("test_tube-1");                          // lifted out after the wait
+    assertTrue(step.isComplete(lab));
+  }
+
+  @Test
   void noIceBathMeansNoWait() {
     Lab noBath = new Lab(List.of(step), new Bench(), new UnknownSample('A', ApiType.ASPIRIN));
     noBath.getBench().addItem(testTube, new Vec2(0, 0));

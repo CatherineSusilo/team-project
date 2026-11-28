@@ -47,13 +47,14 @@ class IceBathTest {
   }
 
   @Test
-  void releasedItIsOutButStaysCold() {
+  void releasedItStopsCoolingButKeepsItsMinutes() {
     bath.immerse(testTube);
-    bath.advance(4);
+    bath.advance(10);
     bath.release("test_tube-1");                           // lifted out
+    bath.advance(5);                                       // no more minutes while it's out
     assertFalse(bath.isImmersed("test_tube-1"));
-    assertEquals(0, bath.minutesImmersed("test_tube-1"));  // starts over if it goes back in
-    assertTrue(testTube.isCold());
+    assertEquals(10, bath.minutesImmersed("test_tube-1"));
+    assertTrue(testTube.isCold());                         // stays cold
   }
 
   @Test
