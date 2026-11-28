@@ -7,13 +7,16 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import data.Lab3Definition;
+import entity.AcidBaseRule;
 import entity.ApiType;
 import entity.Bench;
 import entity.BuchnerFunnel;
 import entity.ItemType;
 import entity.Lab;
+import entity.Mixture;
 import entity.Operation;
 import entity.Scale;
+import entity.Substances;
 import entity.UnknownSample;
 import entity.VacuumTap;
 import entity.Vec2;
@@ -244,7 +247,7 @@ class UseItemInteractorTest {
 
   @Test
   void operationsNotBuiltYetFail() {
-    interactor.execute(new UseItemInputData("conical", Operation.STIR, ""));
+    interactor.execute(new UseItemInputData("conical", Operation.START, ""));
     assertEquals("That doesn't work yet.", error);
   }
 
@@ -280,5 +283,50 @@ class UseItemInteractorTest {
   void onlyTheTapTurnsTheVacuumOn() {
     interactor.execute(new UseItemInputData("conical", Operation.VACUUM_ON, ""));
     assertEquals("Use the vacuum tap.", error);
+  }
+
+  // ----- B1: stirring the test tube -----
+
+  /** B1: the test tube after the HCl: 3 mL of acidic water with the drug dissolved in it. */
+  private Vessel acidifiedTestTube() {
+    Vessel testTube = bench.getVessel("testTube");
+    testTube.getMixture().add(Substances.WATER, 3);
+    testTube.getMixture().add(Substances.ASPIRIN, 0.150);
+    testTube.getMixture().add(Substances.NAOH, 0.5);
+    testTube.getMixture().mix(Mixture.FULL_MIX);           // the drug in the basic water
+    new AcidBaseRule().apply(testTube.getMixture(), Substances.HCL, 1);   // 20 drops of HCl
+    testTube.getMixture().add(Substances.HCL, 1);
+    return testTube;
+  }
+
+  @Test
+  void stirringCountsEachStir() {
+    Vessel testTube = acidifiedTestTube();
+    for (int i = 0; i < 5; i++) {
+      interactor.execute(new UseItemInputData("testTube", Operation.STIR, ""));
+    }
+    assertNull(error);
+    assertEquals(5, testTube.getStirCount());
+    assertEquals(5, bench.snapshots);                     // each stir can be undone
+  }
+
+  @Test
+  void stirringAfterTheHclMakesTheSolid() {
+    acidifiedTestTube();
+    interactor.execute(new UseItemInputData("testTube", Operation.STIR, ""));
+    assertTrue(shown("testTube").hasSolid());              // the drug comes out of the water
+  }
+
+  @Test
+  void stirringAnEmptyTubeFails() {
+    interactor.execute(new UseItemInputData("testTube", Operation.STIR, ""));
+    assertEquals("There's nothing to stir yet.", error);
+    assertEquals(0, bench.getVessel("testTube").getStirCount());
+  }
+
+  @Test
+  void stirringNothingFails() {
+    interactor.execute(new UseItemInputData("bench", Operation.STIR, ""));
+    assertEquals("Stir a container.", error);
   }
 }

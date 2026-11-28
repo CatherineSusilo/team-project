@@ -2,6 +2,7 @@ package data;
 
 import entity.Action;
 import entity.ActionKind;
+import entity.AddReagentStep;
 import entity.AmountRule;
 import entity.Bench;
 import entity.BuchnerFunnel;
@@ -19,12 +20,14 @@ import entity.Lab;
 import entity.LabItem;
 import entity.LabStep;
 import entity.LabelRule;
+import entity.Layer;
 import entity.MistakeRule;
 import entity.Mixture;
 import entity.MultiPartStep;
 import entity.OrderRule;
 import entity.PrecipitateStep;
 import entity.SeparateLayersStep;
+import entity.Substances;
 import entity.TareRule;
 import entity.TimerStep;
 import entity.UnknownSample;
@@ -122,9 +125,14 @@ public final class Lab3Definition {
     steps.add(step(steps, "A9 Second wash",
         "Add about 2 mL water, mix, let it settle, and combine the aqueous layers.",
         List.of(), List.of()));
-    steps.add(step(steps, "B1 Acidify",
+    // B1: 20 drops of HCl in the test tube, then stirred 5 times so the drug comes out as a solid
+    steps.add(new MultiPartStep(steps.size(), "B1 Acidify",
         "Add 20 drops of HCl to the test tube and stir 5 times.",
-        List.of("hcl_bottle", "stir_rod"), List.of("hcl_bottle", "stir_rod")));
+        "Add 20 drops of HCl to the test tube, then stir it 5 times with the stir rod.",
+        List.of("hcl_bottle", "stir_rod"), false,
+        List.of(new AddReagentStep(ItemType.TEST_TUBE, Substances.HCL, 20),
+            new CheckStep(steps.size(), "", "", "", List.of(), false,
+                Lab3Definition::stirredFiveTimes, Lab3Definition::isSetupAction))));
     // B2: the test tube cools for 10 minutes, both cylinders go in the ice bath, and the
     // filtration is set up, in any order (the lab manual's time-saving tips)
     steps.add(new MultiPartStep(steps.size(), "B2 Ice bath and filtration setup",
@@ -181,10 +189,27 @@ public final class Lab3Definition {
     return action.getKind() == ActionKind.SPAWN || action.getKind() == ActionKind.MOVE;
   }
 
-  // B2 Helper
-  // setting up the filtration is taking items out, moving them, and adding the paper.
+  // B1 and B2 Helper
+  // taking items out, moving them, and using one (stirring in B1, adding the paper in B2).
   private static boolean isSetupAction(Action action) {
     return isBenchAction(action) || action.getKind() == ActionKind.USE;
+  }
+
+  // B1 Helper
+  // the test tube has been stirred 5 times and the drug has come out as a solid (so the
+  // stirring happened after the HCl).
+  private static boolean stirredFiveTimes(Lab lab) {
+    for (LabItem item : lab.getBench().getItems()) {
+      if (item.getType() == ItemType.TEST_TUBE && ((Vessel) item).getStirCount() >= 5) {
+        for (Layer layer : ((Vessel) item).getMixture().getLayers()) {
+          if (layer.getSolids().containsKey(Substances.ASPIRIN)
+              || layer.getSolids().containsKey(Substances.MEFENAMIC_ACID)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   // B2 Helper
